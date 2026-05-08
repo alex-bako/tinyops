@@ -1,0 +1,30 @@
+{
+  "name": "tinyops",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "turbo format",
+    "typecheck": "turbo typecheck",
+    "supabase:start": "pnpm dlx supabase@latest start",
+    "supabase:stop": "pnpm dlx supabase@latest stop",
+    "supabase:status": "pnpm dlx supabase@latest status",
+    "supabase:reset": "pnpm dlx supabase@latest db reset",
+    "supabase:migration:new": "pnpm dlx supabase@latest migration new",
+    "supabase:types": "pnpm dlx supabase@latest gen types typescript --local > apps/web/lib/database.types.ts"
+  },
+  "devDependencies": {
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "turbo": "^2.8.17",
+    "typescript": "5.9.3"
+  },
+  "packageManager": "pnpm@10.18.3",
+  "engines": {
+    "node": ">=20"
+  }
+}
