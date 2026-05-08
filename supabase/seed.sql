@@ -1,0 +1,2 @@
+-- Initial local seed file.
+-- Add seed data here once the first schema migration exists.
