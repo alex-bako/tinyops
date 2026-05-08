@@ -1,10 +1,10 @@
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google"
 
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils"
 
-const geist = Geist({
+const fontSans = Geist({
   subsets: ["latin"],
   variable: "--font-sans",
 })
@@ -12,6 +12,13 @@ const geist = Geist({
 const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+})
+
+const fontSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-serif",
 })
 
 export default function RootLayout({
@@ -25,9 +32,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn(
         "antialiased",
+        fontSans.variable,
         fontMono.variable,
-        "font-sans",
-        geist.variable
+        fontSerif.variable,
+        "font-sans"
       )}
     >
       <body>
