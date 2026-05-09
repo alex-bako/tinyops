@@ -22,6 +22,8 @@ type FilterTabsContextValue = {
   onValueChange: (next: string) => void
   registerTab: (value: string, ref: React.RefObject<HTMLButtonElement | null>) => () => void
   focusByDelta: (currentValue: string, delta: 1 | -1) => void
+  focusFirst: () => void
+  focusLast: () => void
 }
 
 const FilterTabsContext = React.createContext<FilterTabsContextValue | null>(
@@ -86,14 +88,24 @@ function FilterTabs({
     []
   )
 
+  const focusFirst = React.useCallback(() => {
+    tabsRef.current[0]?.ref.current?.focus()
+  }, [])
+
+  const focusLast = React.useCallback(() => {
+    tabsRef.current[tabsRef.current.length - 1]?.ref.current?.focus()
+  }, [])
+
   const ctx = React.useMemo<FilterTabsContextValue>(
     () => ({
       value: current ?? "",
       onValueChange: handleChange,
       registerTab,
       focusByDelta,
+      focusFirst,
+      focusLast,
     }),
-    [current, handleChange, registerTab, focusByDelta]
+    [current, handleChange, registerTab, focusByDelta, focusFirst, focusLast]
   )
 
   return (
@@ -153,15 +165,13 @@ function FilterTab({
           ctx.focusByDelta(value, -1)
         } else if (e.key === "Home") {
           e.preventDefault()
-          ref.current?.parentElement
-            ?.querySelector<HTMLButtonElement>("[role=tab]:first-child")
-            ?.focus()
+          ctx.focusFirst()
         } else if (e.key === "End") {
           e.preventDefault()
-          const all = ref.current?.parentElement?.querySelectorAll<HTMLButtonElement>(
-            "[role=tab]"
-          )
-          all?.[all.length - 1]?.focus()
+          ctx.focusLast()
+        } else if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          ctx.onValueChange(value)
         }
         onKeyDown?.(e)
       }}
