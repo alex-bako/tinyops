@@ -4,14 +4,14 @@ import { cookies } from "next/headers"
 import type { Database } from "@/lib/database.types"
 import {
   getSupabasePublishableKey,
-  getSupabaseUrl,
-} from "@/lib/supabase/env"
+  getSupabasePublicUrl,
+} from "@/lib/supabase/public-env"
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
-    getSupabaseUrl(),
+    getSupabasePublicUrl(),
     getSupabasePublishableKey(),
     {
       cookies: {

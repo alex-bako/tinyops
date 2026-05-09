@@ -3,12 +3,12 @@ import { createClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/database.types"
 import {
   getSupabaseServiceRoleKey,
-  getSupabaseUrl,
-} from "@/lib/supabase/env"
+  getSupabaseServerUrl,
+} from "@/lib/supabase/server-env"
 
 export function createSupabaseAdminClient() {
   return createClient<Database>(
-    getSupabaseUrl(),
+    getSupabaseServerUrl(),
     getSupabaseServiceRoleKey(),
     {
       auth: {

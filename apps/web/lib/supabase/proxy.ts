@@ -4,8 +4,8 @@ import { NextResponse, type NextRequest } from "next/server"
 import type { Database } from "@/lib/database.types"
 import {
   getSupabasePublishableKey,
-  getSupabaseUrl,
-} from "@/lib/supabase/env"
+  getSupabasePublicUrl,
+} from "@/lib/supabase/public-env"
 import {
   resolveAuthRedirect,
   resolveMagicLinkCodeRedirect,
@@ -43,7 +43,7 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient<Database>(
-    getSupabaseUrl(),
+    getSupabasePublicUrl(),
     getSupabasePublishableKey(),
     {
       cookies: {
