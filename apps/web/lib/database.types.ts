@@ -73,12 +73,221 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          id: string
+          invited_by: string
+          revoked_at: string | null
+          role: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          invited_by: string
+          revoked_at?: string | null
+          role: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string
+          revoked_at?: string | null
+          role?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_invitations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          joined_at: string
+          last_active_at: string | null
+          role: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          joined_at?: string
+          last_active_at?: string | null
+          role: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          joined_at?: string
+          last_active_at?: string | null
+          role?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_memberships_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          accent: string
+          archived_at: string | null
+          auto_send_threshold: string
+          created_at: string
+          created_by: string
+          description: string
+          exclude_from_outbound: boolean
+          handle: string
+          icon_kind: string
+          icon_letter: string | null
+          icon_tone: string
+          id: string
+          manual_review_keywords: string[]
+          name: string
+          plan_price: string
+          plan_seats: number
+          plan_tier: string
+          sensitivity_mode: string
+          updated_at: string
+        }
+        Insert: {
+          accent?: string
+          archived_at?: string | null
+          auto_send_threshold?: string
+          created_at?: string
+          created_by: string
+          description?: string
+          exclude_from_outbound?: boolean
+          handle: string
+          icon_kind?: string
+          icon_letter?: string | null
+          icon_tone?: string
+          id?: string
+          manual_review_keywords?: string[]
+          name: string
+          plan_price?: string
+          plan_seats?: number
+          plan_tier?: string
+          sensitivity_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          accent?: string
+          archived_at?: string | null
+          auto_send_threshold?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          exclude_from_outbound?: boolean
+          handle?: string
+          icon_kind?: string
+          icon_letter?: string | null
+          icon_tone?: string
+          id?: string
+          manual_review_keywords?: string[]
+          name?: string
+          plan_price?: string
+          plan_seats?: number
+          plan_tier?: string
+          sensitivity_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      accept_workspace_invitation: {
+        Args: { target_invitation_id: string }
+        Returns: string
+      }
+      archive_workspace: {
+        Args: { target_workspace_id: string }
+        Returns: undefined
+      }
+      create_personal_workspace: {
+        Args: {
+          actor_email: string
+          workspace_handle: string
+          workspace_name: string
+        }
+        Returns: string
+      }
+      create_workspace_invitation: {
+        Args: {
+          target_email: string
+          target_role: string
+          target_workspace_id: string
+        }
+        Returns: Json
+      }
       enforce_invited_user: { Args: { event: Json }; Returns: Json }
+      revoke_workspace_invitation: {
+        Args: { target_invitation_id: string }
+        Returns: undefined
+      }
+      workspace_actor_role: {
+        Args: { target_workspace_id: string }
+        Returns: string
+      }
+      workspace_creator_id: {
+        Args: { target_workspace_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

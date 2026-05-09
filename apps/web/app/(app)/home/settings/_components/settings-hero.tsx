@@ -7,6 +7,7 @@ import { Eyebrow, H1 } from "@workspace/ui/components/typography"
 import { WorkspaceIcon } from "@workspace/ui/components/workspace-icon"
 
 import { ROLE_DEFS } from "@/features/workspaces/catalog"
+import { workspaceTypeLabel } from "@/features/workspaces/view-models"
 import type { Workspace } from "@/features/workspaces/types"
 
 export function SettingsHero({ workspace }: { workspace: Workspace }) {
@@ -27,7 +28,7 @@ export function SettingsHero({ workspace }: { workspace: Workspace }) {
           <span aria-hidden className="text-muted-foreground/55">
             ·
           </span>
-          <span>{workspace.type}</span>
+          <span>{workspaceTypeLabel(workspace)}</span>
           <span aria-hidden className="text-muted-foreground/55">
             ·
           </span>

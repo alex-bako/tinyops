@@ -7,6 +7,7 @@ import { WorkspaceFeatureProvider } from "@/features/workspaces/context"
 import {
   JOINABLE_WORKSPACES,
   WORKSPACES,
+  WORKSPACE_USAGE_BY_ID,
 } from "@/features/workspaces/mock-data"
 
 let pathname = "/home"
@@ -46,7 +47,11 @@ describe("AppShell", () => {
 
     render(
       <WorkspaceFeatureProvider
-        data={{ workspaces: WORKSPACES, joinableWorkspaces: JOINABLE_WORKSPACES }}
+        data={{
+          workspaces: WORKSPACES,
+          joinableWorkspaces: JOINABLE_WORKSPACES,
+          usageByWorkspaceId: WORKSPACE_USAGE_BY_ID,
+        }}
       >
         <AppShell
           userEmail="profile@example.co"
@@ -66,7 +71,11 @@ describe("AppShell", () => {
 
     render(
       <WorkspaceFeatureProvider
-        data={{ workspaces: WORKSPACES, joinableWorkspaces: JOINABLE_WORKSPACES }}
+        data={{
+          workspaces: WORKSPACES,
+          joinableWorkspaces: JOINABLE_WORKSPACES,
+          usageByWorkspaceId: WORKSPACE_USAGE_BY_ID,
+        }}
       >
         <AppShell sourceNavItems={[{ id: "imap", title: "IMAP mailbox" }]}>
           <main>Workspace</main>

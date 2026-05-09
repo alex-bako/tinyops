@@ -3,25 +3,26 @@
 import * as React from "react"
 
 import {
-  changeMemberRole,
+  acceptWorkspaceInvitationAction,
+  archiveWorkspaceAction,
+  changeMemberRoleAction,
+  inviteWorkspaceMemberAction,
+  removeMemberAction,
+  revokeWorkspaceInviteAction,
+  switchWorkspaceAction,
+  updateWorkspaceProfileAction,
+  updateWorkspaceSensitivityAction,
+} from "@/features/workspaces/actions"
+import {
   createWorkspaceFeatureState,
-  inviteMember,
-  removeMember,
-  switchWorkspace,
-  toggleCapability,
-  updateSensitivity,
-  updateWorkspaceProfile,
   type WorkspaceFeatureState,
-  type WorkspaceProfilePatch,
-} from "@/features/workspaces/commands"
-import type { WorkspaceFeatureData } from "@/features/workspaces/repository"
+} from "@/features/workspaces/state"
+import type { WorkspaceProfilePatch } from "@/features/workspaces/use-cases"
 import type {
-  CapabilityId,
+  WorkspaceFeatureData,
   WorkspaceRole,
   WorkspaceSensitivity,
 } from "@/features/workspaces/types"
-
-const STORAGE_KEY = "tinyops:active-workspace"
 
 type WorkspaceFeatureCommands = {
   switchWorkspace: (id: string) => void
@@ -29,7 +30,9 @@ type WorkspaceFeatureCommands = {
   inviteMember: (email: string, role: WorkspaceRole) => void
   changeMemberRole: (memberId: string, role: WorkspaceRole) => void
   removeMember: (memberId: string) => void
-  toggleCapability: (role: WorkspaceRole, capability: CapabilityId) => void
+  acceptInvitation: (invitationId: string) => void
+  revokeInvitation: (invitationId: string) => void
+  archiveWorkspace: (workspaceId: string) => void
   updateSensitivity: (patch: Partial<WorkspaceSensitivity>) => void
 }
 
@@ -41,24 +44,6 @@ type WorkspaceFeatureContextValue = {
 const WorkspaceFeatureContext =
   React.createContext<WorkspaceFeatureContextValue | null>(null)
 
-function readStoredId(): string | null {
-  if (typeof window === "undefined") return null
-  try {
-    return window.localStorage.getItem(STORAGE_KEY)
-  } catch {
-    return null
-  }
-}
-
-function writeStoredId(id: string) {
-  if (typeof window === "undefined") return
-  try {
-    window.localStorage.setItem(STORAGE_KEY, id)
-  } catch {
-    /* ignore */
-  }
-}
-
 export function WorkspaceFeatureProvider({
   data,
   children,
@@ -69,46 +54,83 @@ export function WorkspaceFeatureProvider({
   const [state, setState] = React.useState<WorkspaceFeatureState>(() =>
     createWorkspaceFeatureState(data)
   )
+  const [, startTransition] = React.useTransition()
 
-  React.useEffect(() => {
-    const stored = readStoredId()
-    if (!stored) return
-    setState((current) => switchWorkspace(current, stored).state)
-  }, [])
+  const applyResult = React.useCallback(
+    async (
+      run: () => Promise<{
+        data?: WorkspaceFeatureData
+        error?: string
+      }>
+    ) => {
+      const result = await run()
+      if (result.data) {
+        setState(createWorkspaceFeatureState(result.data))
+      }
+    },
+    []
+  )
 
   const commands = React.useMemo<WorkspaceFeatureCommands>(
     () => ({
       switchWorkspace(id) {
-        setState((current) => {
-          const result = switchWorkspace(current, id)
-          if (!result.error) writeStoredId(result.state.activeId)
-          return result.state
+        startTransition(() => {
+          void applyResult(() => switchWorkspaceAction(id))
         })
       },
       updateWorkspaceProfile(patch) {
-        setState((current) => updateWorkspaceProfile(current, patch).state)
+        startTransition(() => {
+          void applyResult(() =>
+            updateWorkspaceProfileAction(state.activeId, patch)
+          )
+        })
       },
       inviteMember(email, role) {
-        setState((current) => inviteMember(current, { email, role }).state)
+        startTransition(() => {
+          void applyResult(() =>
+            inviteWorkspaceMemberAction({
+              workspaceId: state.activeId,
+              email,
+              role,
+            })
+          )
+        })
       },
       changeMemberRole(memberId, role) {
-        setState(
-          (current) => changeMemberRole(current, { memberId, role }).state
-        )
+        if (role === "owner") return
+        startTransition(() => {
+          void applyResult(() => changeMemberRoleAction(memberId, role))
+        })
       },
       removeMember(memberId) {
-        setState((current) => removeMember(current, { memberId }).state)
+        startTransition(() => {
+          void applyResult(() => removeMemberAction(memberId))
+        })
       },
-      toggleCapability(role, capability) {
-        setState(
-          (current) => toggleCapability(current, { role, capability }).state
-        )
+      acceptInvitation(invitationId) {
+        startTransition(() => {
+          void applyResult(() => acceptWorkspaceInvitationAction(invitationId))
+        })
+      },
+      revokeInvitation(invitationId) {
+        startTransition(() => {
+          void applyResult(() => revokeWorkspaceInviteAction(invitationId))
+        })
+      },
+      archiveWorkspace(workspaceId) {
+        startTransition(() => {
+          void applyResult(() => archiveWorkspaceAction(workspaceId))
+        })
       },
       updateSensitivity(patch) {
-        setState((current) => updateSensitivity(current, patch).state)
+        startTransition(() => {
+          void applyResult(() =>
+            updateWorkspaceSensitivityAction(state.activeId, patch)
+          )
+        })
       },
     }),
-    []
+    [applyResult, state.activeId, startTransition]
   )
 
   const value = React.useMemo<WorkspaceFeatureContextValue>(

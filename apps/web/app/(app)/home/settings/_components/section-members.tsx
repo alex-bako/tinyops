@@ -22,9 +22,13 @@ import {
   canManageMembers,
   canRemoveMember,
 } from "@/features/workspaces/policy"
+import {
+  buildWorkspaceInviteRows,
+  buildWorkspaceMemberRows,
+  type WorkspaceMemberRow,
+} from "@/features/workspaces/view-models"
 import type {
   Workspace,
-  WorkspaceMember,
   WorkspaceRole,
 } from "@/features/workspaces/types"
 
@@ -33,15 +37,19 @@ export function SectionMembers({
   onInvite,
   onChangeRole,
   onRemoveMember,
+  onRevokeInvite,
 }: {
   workspace: Workspace
   onInvite: (email: string, role: WorkspaceRole) => void
   onChangeRole: (id: string, role: WorkspaceRole) => void
   onRemoveMember: (id: string) => void
+  onRevokeInvite: (id: string) => void
 }) {
   const canManage = canManageMembers(workspace.role)
   const seatsUsed = workspace.members.length + workspace.invites.length
   const seatsTotal = workspace.plan.seats
+  const memberRows = buildWorkspaceMemberRows(workspace)
+  const inviteRows = buildWorkspaceInviteRows(workspace)
 
   const [inviteEmail, setInviteEmail] = React.useState("")
   const [inviteRole, setInviteRole] = React.useState<WorkspaceRole>("operator")
@@ -107,7 +115,7 @@ export function SectionMembers({
           <span>Role</span>
           <span />
         </div>
-        {workspace.members.map((m) => (
+        {memberRows.map((m) => (
           <MemberRow
             key={m.id}
             member={m}
@@ -118,13 +126,13 @@ export function SectionMembers({
         ))}
       </div>
 
-      {workspace.invites.length > 0 ? (
+      {inviteRows.length > 0 ? (
         <>
           <div className="mb-3 mt-7 text-[12px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
             Pending invites
           </div>
           <div className="flex flex-col gap-1">
-            {workspace.invites.map((i) => (
+            {inviteRows.map((i) => (
               <div
                 key={i.email}
                 className="grid grid-cols-[24px_1fr_auto_auto_auto] items-center gap-2.5 rounded-md border border-border bg-[var(--tint-hover)] px-2.5 py-2"
@@ -142,11 +150,16 @@ export function SectionMembers({
                   label={ROLE_DEFS[i.role].label}
                   tone={ROLE_DEFS[i.role].tone}
                 />
-                <Button variant="tertiary" size="sm">
+                <Button variant="tertiary" size="sm" disabled>
                   <SendIcon />
                   Resend
                 </Button>
-                <Button variant="tertiary" size="icon-sm" aria-label="Revoke">
+                <Button
+                  variant="tertiary"
+                  size="icon-sm"
+                  aria-label="Revoke"
+                  onClick={() => onRevokeInvite(i.id)}
+                >
                   <XIcon />
                 </Button>
               </div>
@@ -172,7 +185,7 @@ function MemberRow({
   onChangeRole,
   onRemove,
 }: {
-  member: WorkspaceMember
+  member: WorkspaceMemberRow
   actorRole: WorkspaceRole
   onChangeRole: (id: string, role: WorkspaceRole) => void
   onRemove: (id: string) => void
@@ -210,7 +223,9 @@ function MemberRow({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {ROLE_ORDER.map((r) => (
+          {ROLE_ORDER.filter(
+            (r) => r !== "owner" || member.role === "owner"
+          ).map((r) => (
             <SelectItem key={r} value={r}>
               {ROLE_DEFS[r].label}
             </SelectItem>

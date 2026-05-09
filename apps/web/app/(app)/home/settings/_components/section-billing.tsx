@@ -12,7 +12,10 @@ import { Badge, BadgeDot } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Meter } from "@workspace/ui/components/meter"
 
-import type { Workspace } from "@/features/workspaces/types"
+import type {
+  Workspace,
+  WorkspaceUsageSnapshot,
+} from "@/features/workspaces/types"
 
 const INVOICES = [
   { date: "May 1, 2026", amount: "$89.00", status: "Paid" },
@@ -20,14 +23,21 @@ const INVOICES = [
   { date: "Mar 1, 2026", amount: "$89.00", status: "Paid" },
 ]
 
-export function SectionBilling({ workspace }: { workspace: Workspace }) {
-  const { plan, members, counts } = workspace
+export function SectionBilling({
+  workspace,
+  usage,
+}: {
+  workspace: Workspace
+  usage: WorkspaceUsageSnapshot
+}) {
+  const { plan, members } = workspace
+  const { counts } = usage
   const seatsUsed = members.length
 
   return (
     <div>
       <div className="mb-6">
-        <h2 className="mb-1.5 font-sans text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-foreground">
+        <h2 className="mb-1.5 font-sans text-[22px] leading-[1.2] font-bold tracking-[-0.02em] text-foreground">
           Plan &amp; billing
         </h2>
         <p className="m-0 max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">
@@ -78,7 +88,7 @@ export function SectionBilling({ workspace }: { workspace: Workspace }) {
         </div>
       </div>
 
-      <div className="mt-7 mb-3 text-[12px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+      <div className="mt-7 mb-3 text-[12px] font-medium tracking-[0.05em] text-muted-foreground uppercase">
         Recent invoices
       </div>
       <div className="flex flex-col">
@@ -90,7 +100,7 @@ export function SectionBilling({ workspace }: { workspace: Workspace }) {
             <span className="font-mono text-[12px] text-foreground">
               {i.date}
             </span>
-            <span className="font-mono text-[12px] tabular-nums text-foreground">
+            <span className="font-mono text-[12px] text-foreground tabular-nums">
               {i.amount}
             </span>
             <Badge variant="active">

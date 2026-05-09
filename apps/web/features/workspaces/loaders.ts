@@ -1,20 +1,39 @@
-import { mockWorkspaceRepository } from "@/features/workspaces/mock-repository"
-import type {
-  WorkspaceFeatureData,
-  WorkspaceRepository,
-} from "@/features/workspaces/repository"
+import {
+  createWorkspaceApplication,
+  type WorkspaceApplicationStore,
+} from "@/features/workspaces/application"
+import type { WorkspaceFeatureData } from "@/features/workspaces/types"
+import type { AppProfileSession } from "@/lib/auth/profile"
 
-export function getWorkspaceRepository(): WorkspaceRepository {
-  return mockWorkspaceRepository
-}
+export async function loadWorkspaceFeatureDataForSession({
+  session,
+  store,
+  activeWorkspaceId,
+}: {
+  session: AppProfileSession | null
+  store: WorkspaceApplicationStore
+  activeWorkspaceId?: string | null
+}): Promise<WorkspaceFeatureData> {
+  const actor = session
+    ? {
+        userId: session.user.id,
+        email: session.email ?? null,
+        name: session.email?.split("@")[0] ?? null,
+      }
+    : null
 
-export async function loadWorkspaceFeatureData(
-  repository: WorkspaceRepository = getWorkspaceRepository()
-): Promise<WorkspaceFeatureData> {
-  const [workspaces, joinableWorkspaces] = await Promise.all([
-    repository.listWorkspaces(),
-    repository.listJoinableWorkspaces(),
-  ])
+  const application = createWorkspaceApplication({
+    actor,
+    store,
+    activeWorkspaceStore: {
+      async read() {
+        return activeWorkspaceId ?? null
+      },
+      async write() {
+        // Layout read path does not mutate cookies. Server actions persist changes.
+      },
+    },
+  })
 
-  return { workspaces, joinableWorkspaces }
+  return application.loadFeatureData()
 }

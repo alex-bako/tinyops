@@ -24,7 +24,7 @@ import {
 import { SidebarSearchTrigger } from "@/components/sidebar-search-trigger"
 import { SidebarUser } from "@/components/sidebar-user"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
-import { useActiveWorkspace } from "@/features/workspaces/context"
+import { useWorkspaceFeature } from "@/features/workspaces/context"
 import { WORKSPACE_NAV_GROUPS } from "@/features/workspaces/navigation"
 import { buildSidebarNavGroups } from "@/features/workspaces/view-models"
 import {
@@ -84,8 +84,11 @@ export function AppSidebar({
   userEmail?: string | null
 }) {
   const pathname = usePathname() ?? ""
-  const workspace = useActiveWorkspace()
-  const navGroups = buildSidebarNavGroups(WORKSPACE_NAV_GROUPS, workspace)
+  const { state } = useWorkspaceFeature()
+  const navGroups = buildSidebarNavGroups(
+    WORKSPACE_NAV_GROUPS,
+    state.activeUsage
+  )
   const activeId = pickActiveNavItemId(flattenNavItems(navGroups), pathname)
 
   return (
@@ -112,11 +115,7 @@ export function AppSidebar({
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (
-                  <NavRow
-                    key={item.id}
-                    item={item}
-                    activeId={activeId}
-                  />
+                  <NavRow key={item.id} item={item} activeId={activeId} />
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
