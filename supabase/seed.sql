@@ -1,2 +1,4 @@
 -- Initial local seed file.
--- Add seed data here once the first schema migration exists.
+insert into public.auth_invites (email)
+values ('anna@example.co')
+on conflict (email) do nothing;

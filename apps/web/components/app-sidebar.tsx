@@ -75,7 +75,12 @@ function NavRow({
   )
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  userEmail,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  userEmail?: string | null
+}) {
   const pathname = usePathname() ?? ""
   const activeId = pickActiveNavItemId(flattenNavItems(NAV_GROUPS), pathname)
 
@@ -112,7 +117,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarUser />
+        <SidebarUser email={userEmail} />
       </SidebarFooter>
 
       <SidebarRail />
