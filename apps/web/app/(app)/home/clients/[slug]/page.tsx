@@ -4,8 +4,8 @@ import { ArrowLeftIcon, FilterIcon, EyeOffIcon, PlusIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 import { Section, SectionHead } from "@workspace/ui/components/section"
-import { cn } from "@workspace/ui/lib/utils"
 
+import { WorkspacePageSurface } from "@/components/page-surface"
 import { clientBySlug } from "@/lib/clients"
 
 import { ClientHeader } from "./_components/client-header"
@@ -27,11 +27,7 @@ export default async function ClientDetailPage({
   const view = createClientDetailView(client)
 
   return (
-    <div
-      className={cn(
-        "mx-auto w-full max-w-[1200px] px-6 pt-10 pb-24 md:px-14 md:pt-14"
-      )}
-    >
+    <WorkspacePageSurface>
       <div className="mb-[18px]">
         <Button asChild variant="tertiary" size="sm">
           <Link href="/home/clients">
@@ -83,6 +79,6 @@ export default async function ClientDetailPage({
         <SectionHead title="Notes" />
         <NotesEmpty />
       </Section>
-    </div>
+    </WorkspacePageSurface>
   )
 }
