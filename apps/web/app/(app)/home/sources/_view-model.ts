@@ -16,8 +16,12 @@ type SourcesPageRow = {
   title: string
   sub: string
   connected: boolean
+  isNew: boolean
   stats: DataSourceStat[]
   action: SourcesPageRowAction
+  href: string
+  primaryLabel: string
+  configureLabel: string
   statusLabel: string
 }
 
@@ -38,8 +42,12 @@ function sourcePageRow(source: DataSource): SourcesPageRow {
     title: source.title,
     sub: source.sub,
     connected: source.connected,
+    isNew: source.isNew ?? false,
     stats: source.stats,
     action: source.connected ? "sync" : "connect",
+    href: `/home/sources/${source.id}`,
+    primaryLabel: source.connected ? "Sync" : "Connect",
+    configureLabel: `Configure ${source.title}`,
     statusLabel: sourceStatusLabel(source),
   }
 }

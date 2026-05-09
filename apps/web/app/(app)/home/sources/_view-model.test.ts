@@ -7,7 +7,7 @@ describe("sources page view", () => {
     const view = createSourcesPageView()
 
     expect(view.connected.count).toBe("3")
-    expect(view.available.count).toBe("3")
+    expect(view.available.count).toBe("4")
     expect(view.connected.rows.map((source) => source.id)).toEqual([
       "imap",
       "csv",
@@ -17,6 +17,13 @@ describe("sources page view", () => {
       "connect",
       "connect",
       "connect",
+      "connect",
+    ])
+    expect(view.available.rows.map((source) => source.href)).toEqual([
+      "/home/sources/stripe",
+      "/home/sources/mailerlite",
+      "/home/sources/calendly",
+      "/home/sources/teachable",
     ])
   })
 
@@ -26,11 +33,17 @@ describe("sources page view", () => {
     expect(view.connected.rows[0]).toMatchObject({
       id: "imap",
       action: "sync",
+      href: "/home/sources/imap",
+      primaryLabel: "Sync",
+      configureLabel: "Configure IMAP mailbox",
       statusLabel: "2m ago",
     })
     expect(view.available.rows[0]).toMatchObject({
       id: "stripe",
       action: "connect",
+      href: "/home/sources/stripe",
+      primaryLabel: "Connect",
+      configureLabel: "Configure Stripe",
       statusLabel: "Not connected",
     })
   })

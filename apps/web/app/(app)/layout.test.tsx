@@ -10,13 +10,19 @@ vi.mock("@/components/app-shell", () => ({
   AppShell: ({
     children,
     userEmail,
+    sourceNavItems,
   }: {
     children: React.ReactNode
     userEmail?: string | null
+    sourceNavItems?: { id: string; title: string }[]
   }) =>
     React.createElement(
       "section",
-      { "data-testid": "app-shell", "data-email": userEmail ?? "" },
+      {
+        "data-testid": "app-shell",
+        "data-email": userEmail ?? "",
+        "data-source-count": sourceNavItems?.length ?? 0,
+      },
       children
     ),
 }))
@@ -55,6 +61,10 @@ describe("AuthenticatedAppShell", () => {
     expect(screen.getByTestId("app-shell")).toHaveAttribute(
       "data-email",
       "profile@example.co"
+    )
+    expect(screen.getByTestId("app-shell")).toHaveAttribute(
+      "data-source-count",
+      "7"
     )
   })
 })
