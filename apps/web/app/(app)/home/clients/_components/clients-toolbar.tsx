@@ -66,11 +66,10 @@ export function ClientsToolbar({
 
       <div className="ml-auto flex flex-wrap items-center gap-1.5">
         <SearchField variant="compact" className="w-[220px]">
-          <SearchFieldIcon variant="compact">
+          <SearchFieldIcon>
             <SearchIcon />
           </SearchFieldIcon>
           <SearchFieldInput
-            variant="compact"
             value={filters.query}
             onChange={(e) => updateFilters({ query: e.target.value })}
             placeholder="Filter by name or email…"
