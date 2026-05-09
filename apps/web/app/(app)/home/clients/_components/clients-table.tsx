@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ChevronRightIcon, SearchXIcon } from "lucide-react"
 
@@ -15,9 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
-import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { ClientIdentityLink } from "@/components/client-identity"
 import { ClientFlagBadges, ClientStatusBadge } from "@/components/client-state-badge"
 import type { ClientDetail } from "@/lib/clients"
 
@@ -76,20 +75,15 @@ export function ClientsTable({
               }}
             >
               <TableCell>
-                <Link
+                <ClientIdentityLink
                   href={href}
                   className="-m-1 flex min-w-0 items-center gap-2.5 rounded-sm p-1 no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-                >
-                  <TonalAvatar size="md" name={c.name} />
-                  <div className="flex min-w-0 flex-col leading-[1.2]">
-                    <span className="text-[13.5px] font-medium tracking-[-0.005em] text-foreground">
-                      {c.name}
-                    </span>
-                    <span className="font-mono text-[11px] text-muted-foreground">
-                      {c.email}
-                    </span>
-                  </div>
-                </Link>
+                  name={c.name}
+                  email={c.email}
+                  detailsClassName="leading-[1.2]"
+                  nameClassName="text-[13.5px] font-medium tracking-[-0.005em]"
+                  emailClassName="text-[11px]"
+                />
               </TableCell>
               <TableCell>
                 <ClientStatusBadge status={c.status} />
