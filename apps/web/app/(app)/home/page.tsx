@@ -3,6 +3,7 @@ import {
   ArchiveIcon,
   ChevronRightIcon,
   PlusIcon,
+  SearchIcon,
   SparklesIcon,
   SunIcon,
   UploadIcon,
@@ -10,10 +11,11 @@ import {
 } from "lucide-react"
 
 import {
-  BigSearch,
-  BigSearchIcon,
-  BigSearchInput,
-} from "@workspace/ui/components/big-search"
+  SearchField,
+  SearchFieldIcon,
+  SearchFieldInput,
+  SearchFieldShortcut,
+} from "@workspace/ui/components/search-field"
 import { Button } from "@workspace/ui/components/button"
 import { Kbd } from "@workspace/ui/components/kbd"
 import {
@@ -61,13 +63,13 @@ export default function HomePage() {
         Drafts wait for your approval before sending.
       </Body>
 
-      <BigSearch className="mt-7 mb-8">
-        <BigSearchIcon>
+      <SearchField className="mt-7 mb-8">
+        <SearchFieldIcon>
           <SearchIcon />
-        </BigSearchIcon>
-        <BigSearchInput placeholder="anna@example.com" autoFocus />
-        <Kbd className="ml-auto">↵</Kbd>
-      </BigSearch>
+        </SearchFieldIcon>
+        <SearchFieldInput placeholder="anna@example.com" autoFocus />
+        <SearchFieldShortcut className="ml-auto">↵</SearchFieldShortcut>
+      </SearchField>
 
       <div className="grid gap-x-14 gap-y-10 md:grid-cols-[1.5fr_1fr]">
         <div>
@@ -170,22 +172,5 @@ export default function HomePage() {
         </div>
       </div>
     </div>
-  )
-}
-
-function SearchIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.5-3.5" />
-    </svg>
   )
 }
