@@ -18,10 +18,10 @@ import {
 } from "@workspace/ui/components/source-list"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { SOURCE_ICON_MAP, type DataSource } from "@/lib/sources"
+import { SourceIcon } from "@/components/source-icon"
+import type { DataSource } from "@/lib/sources"
 
 function SourceRow({ source }: { source: DataSource }) {
-  const Icon = SOURCE_ICON_MAP[source.icon]
   return (
     <SourceListRow
       data-connected={source.connected ? "true" : "false"}
@@ -33,7 +33,7 @@ function SourceRow({ source }: { source: DataSource }) {
             : "bg-[var(--tint-hover)] text-muted-foreground/80"
         )}
       >
-        <Icon className="size-4" />
+        <SourceIcon icon={source.icon} className="size-4" />
       </SourceListIcon>
 
       <SourceListBody>
