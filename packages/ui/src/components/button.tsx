@@ -5,7 +5,7 @@ import { Slot } from "radix-ui"
 import { cn } from "@workspace/ui/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-sm border border-transparent text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 active:translate-y-px disabled:pointer-events-none disabled:opacity-40 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 tracking-[-0.005em]",
+  "group/button relative inline-flex shrink-0 items-center justify-center rounded-sm border border-transparent text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 active:translate-y-px disabled:pointer-events-none disabled:opacity-40 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 tracking-[-0.005em]",
   {
     variants: {
       variant: {
@@ -65,4 +65,21 @@ function Button({
   )
 }
 
-export { Button, buttonVariants }
+function ButtonIndicator({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      data-slot="button-indicator"
+      aria-hidden
+      className={cn(
+        "absolute top-0.5 right-0.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-primary px-[3px] font-mono text-[10px] leading-none font-semibold text-primary-foreground ring-2 ring-background",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Button, ButtonIndicator, buttonVariants }

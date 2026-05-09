@@ -1,6 +1,7 @@
 import { SettingsIcon } from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
+import { Button } from "@workspace/ui/components/button"
 import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
 
 export function SidebarUser({
@@ -26,19 +27,20 @@ export function SidebarUser({
           {role}
         </span>
       </div>
-      <button
+      <Button
         type="button"
+        variant="tertiary"
+        size="icon-sm"
         aria-label="Account settings"
         className={cn(
-          "inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-sidebar-foreground/55",
-          "transition-colors duration-(--dur-fast) ease-(--ease-out)",
+          "size-6 shrink-0 text-sidebar-foreground/55",
           "hover:bg-sidebar-accent hover:text-sidebar-foreground",
           "group-data-[collapsible=icon]:hidden",
           "[&>svg]:size-[15px]"
         )}
       >
         <SettingsIcon />
-      </button>
+      </Button>
     </div>
   )
 }

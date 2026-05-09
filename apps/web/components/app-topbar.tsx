@@ -13,6 +13,7 @@ import {
 import type { LucideIcon } from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
+import { Button, ButtonIndicator } from "@workspace/ui/components/button"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -68,39 +69,6 @@ function CrumbContent({ icon: Icon, label }: Crumb) {
   )
 }
 
-function TopbarIconButton({
-  ariaLabel,
-  count,
-  children,
-}: {
-  ariaLabel: string
-  count?: number
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      className={cn(
-        "relative inline-flex size-8 items-center justify-center rounded-sm text-muted-foreground",
-        "transition-colors duration-(--dur-fast) ease-(--ease-out)",
-        "hover:bg-muted hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring",
-        "[&>svg]:size-4"
-      )}
-    >
-      {children}
-      {count != null ? (
-        <span
-          aria-hidden
-          className="absolute top-0.5 right-0.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-primary px-[3px] font-mono text-[10px] leading-none font-semibold text-primary-foreground ring-2 ring-background"
-        >
-          {count}
-        </span>
-      ) : null}
-    </button>
-  )
-}
-
 export function AppTopbar({ crumbs }: { crumbs?: Crumb[] }) {
   const pathname = usePathname() ?? "/home"
   const resolved = crumbs ?? deriveCrumbs(pathname)
@@ -142,30 +110,50 @@ export function AppTopbar({ crumbs }: { crumbs?: Crumb[] }) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-1">
-        <button
+        <Button
           type="button"
+          variant="tertiary"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-[12px] text-muted-foreground",
-            "transition-colors duration-(--dur-fast) ease-(--ease-out) hover:bg-muted hover:text-foreground"
+            "h-auto gap-1.5 px-2 py-1 text-[12px] font-normal text-muted-foreground",
+            "hover:bg-muted hover:text-foreground"
           )}
         >
           <span aria-hidden className="size-1.5 rounded-full bg-mint-500" />
           <span>
             Mailbox <span className="text-muted-foreground/70">· 2m ago</span>
           </span>
-        </button>
+        </Button>
 
-        <TopbarIconButton ariaLabel="Notifications · 3 unread" count={3}>
+        <Button
+          type="button"
+          variant="tertiary"
+          size="icon"
+          aria-label="Notifications · 3 unread"
+          className="size-8 text-muted-foreground hover:bg-muted hover:text-foreground [&>svg]:size-4"
+        >
           <BellIcon />
-        </TopbarIconButton>
+          <ButtonIndicator>3</ButtonIndicator>
+        </Button>
 
-        <TopbarIconButton ariaLabel="Help">
+        <Button
+          type="button"
+          variant="tertiary"
+          size="icon"
+          aria-label="Help"
+          className="size-8 text-muted-foreground hover:bg-muted hover:text-foreground [&>svg]:size-4"
+        >
           <HelpCircleIcon />
-        </TopbarIconButton>
+        </Button>
 
-        <TopbarIconButton ariaLabel="More">
+        <Button
+          type="button"
+          variant="tertiary"
+          size="icon"
+          aria-label="More"
+          className="size-8 text-muted-foreground hover:bg-muted hover:text-foreground [&>svg]:size-4"
+        >
           <MoreHorizontalIcon />
-        </TopbarIconButton>
+        </Button>
       </div>
     </header>
   )
