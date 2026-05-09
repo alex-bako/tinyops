@@ -22,12 +22,11 @@ describe("sources", () => {
   })
 
   it("groups connected and available source catalog entries", () => {
-    expect(connectedSources().map((source) => source.id)).toEqual([
+    expect(connectedSources().map((source) => source.id)).toEqual([])
+    expect(availableSources().map((source) => source.id)).toEqual([
       "imap",
       "csv",
       "forms",
-    ])
-    expect(availableSources().map((source) => source.id)).toEqual([
       "stripe",
       "mailerlite",
       "calendly",
@@ -38,6 +37,7 @@ describe("sources", () => {
   it("uses a named summary stat instead of stat order", () => {
     const source: DataSource = {
       ...SOURCES[0]!,
+      connected: true,
       summaryStatId: "synced",
       stats: [
         { id: "events", label: "Events", value: "8,412" },

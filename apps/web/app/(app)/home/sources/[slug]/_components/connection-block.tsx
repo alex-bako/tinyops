@@ -3,6 +3,7 @@ import type { SourceUiRegistryEntry } from "../source-registry"
 
 import { AuthChip } from "./auth-chip"
 import { DsSection, DsSectionHead } from "./ds-section"
+import { sourceAdapterKey } from "./source-adapter-key"
 
 function ConnectionBlock({
   source,
@@ -16,7 +17,7 @@ function ConnectionBlock({
   return (
     <DsSection>
       <DsSectionHead title="Connection" actions={<AuthChip auth={source.auth} />} />
-      <Connection source={source} />
+      <Connection key={sourceAdapterKey(source)} source={source} />
     </DsSection>
   )
 }

@@ -5,7 +5,7 @@ import { ArrowLeftIcon } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
-import { getSourceCatalogRepository } from "@/lib/source-catalog/loaders"
+import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
 
 import { ActivityBlock } from "./_components/activity-block"
 import { ConfigBlock } from "./_components/config-block"
@@ -21,7 +21,9 @@ export default async function SourceDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const source = await getSourceCatalogRepository().findDataSourceById(slug)
+  const source = (await loadWorkspaceSourceCatalog()).find(
+    (candidate) => candidate.id === slug
+  )
   if (!source) notFound()
 
   const sourceUi = getSourceUi(source.id)
@@ -48,7 +50,9 @@ export default async function SourceDetailPage({
         <ActivityBlock activity={view.activity} />
       ) : null}
 
-      {view.connected ? <DangerZone title={view.header.title} /> : null}
+      {view.connected && source.sourceRowId ? (
+        <DangerZone sourceRowId={source.sourceRowId} title={view.header.title} />
+      ) : null}
     </WorkspacePageSurface>
   )
 }

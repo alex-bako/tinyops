@@ -1,17 +1,22 @@
 "use client"
 
 import * as React from "react"
-import { PlusIcon } from "lucide-react"
+import { PlusIcon, SaveIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
 
+import { Button } from "@workspace/ui/components/button"
 import { Form, FormRow } from "@workspace/ui/components/form-row"
 import { Textarea } from "@workspace/ui/components/textarea"
+
+import { updateImapImportSettingsAction } from "@/features/data-sources/actions"
+import type { DataSource } from "@/lib/sources"
 
 import { ChipPicker } from "../chip-picker"
 import { DsSection, DsSectionHead } from "../ds-section"
 import { RuleRow } from "../rule-row"
 import { SegmentedControl } from "../segmented-control"
 
-const FOLDERS = [
+const DEFAULT_FOLDERS = [
   { id: "INBOX", label: "INBOX", meta: "1,204" },
   { id: "Clients", label: "Clients", meta: "412" },
   { id: "Sent", label: "Sent", meta: "832" },
@@ -19,7 +24,37 @@ const FOLDERS = [
   { id: "Spam", label: "Spam", meta: "39" },
 ]
 
-function ImapConfig() {
+type ImapConfigFormState = {
+  folders: string[]
+  historyWindow: NonNullable<DataSource["imap"]>["historyWindow"]
+  skipSenders: string
+}
+
+function ImapConfig({ source }: { source: DataSource }) {
+  const { refresh } = useRouter()
+  const [pending, startTransition] = React.useTransition()
+  const [form, setForm] = React.useState(() =>
+    imapConfigFormState(source)
+  )
+
+  const folderItems = uniqueFolderItems([
+    ...DEFAULT_FOLDERS,
+    ...form.folders.map((folder) => ({ id: folder, label: folder })),
+  ])
+
+  const save = () => {
+    if (!source.sourceRowId || !source.imap) return
+
+    startTransition(async () => {
+      const result = await updateImapImportSettingsAction(source.sourceRowId!, {
+        historyWindow: form.historyWindow,
+        watchedFolders: form.folders,
+        skipSenders: form.skipSenders.split("\n"),
+      })
+      if (!result.error) refresh()
+    })
+  }
+
   return (
     <DsSection>
       <DsSectionHead
@@ -29,17 +64,27 @@ function ImapConfig() {
       <Form>
         <FormRow label="Folders to watch">
           <ChipPicker
-            items={FOLDERS}
-            defaultValue={["INBOX", "Clients", "Sent"]}
+            items={folderItems}
+            defaultValue={form.folders}
+            onChange={(folders) =>
+              setForm((current) => ({ ...current, folders }))
+            }
             mono
           />
         </FormRow>
         <FormRow label="History window">
           <SegmentedControl
             ariaLabel="History window"
-            defaultValue="12mo"
+            value={form.historyWindow}
+            onChange={(next) =>
+              setForm((current) => ({
+                ...current,
+                historyWindow: next as ImapConfigFormState["historyWindow"],
+              }))
+            }
             options={[
-              { value: "3mo", label: "3 months" },
+              { value: "30d", label: "30 days" },
+              { value: "90d", label: "90 days" },
               { value: "12mo", label: "12 months" },
               { value: "all", label: "All" },
             ]}
@@ -51,8 +96,12 @@ function ImapConfig() {
         >
           <Textarea
             rows={3}
-            defaultValue={
-              "*@noreply.*\nsupport@stripe.com\ncalendar-notification@google.com"
+            value={form.skipSenders}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                skipSenders: event.target.value,
+              }))
             }
             className="font-mono text-[12.5px]"
           />
@@ -84,9 +133,35 @@ function ImapConfig() {
             ]}
           />
         </FormRow>
+        {source.connected ? (
+          <div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={pending}
+              onClick={save}
+            >
+              <SaveIcon />
+              Save import settings
+            </Button>
+          </div>
+        ) : null}
       </Form>
     </DsSection>
   )
+}
+
+function uniqueFolderItems(items: Array<{ id: string; label: string; meta?: string }>) {
+  return Array.from(new Map(items.map((item) => [item.id, item])).values())
+}
+
+function imapConfigFormState(source: DataSource): ImapConfigFormState {
+  return {
+    folders: source.imap?.watchedFolders ?? ["INBOX"],
+    historyWindow: source.imap?.historyWindow ?? "12mo",
+    skipSenders: (source.imap?.skipSenders ?? []).join("\n"),
+  }
 }
 
 export { ImapConfig }

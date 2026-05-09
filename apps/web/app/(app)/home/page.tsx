@@ -24,6 +24,7 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
+import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
 import { ATTENTION, WEEK_TASKS, loadHomePageData } from "./_data"
 import { ClientRow } from "./_components/client-row"
 import { SourceRow } from "./_components/source-row"
@@ -31,7 +32,11 @@ import { StatRow } from "./_components/stat-row"
 import { WeekTaskRow } from "./_components/week-task-row"
 
 export default async function HomePage() {
-  const { recentClients, homeSources } = await loadHomePageData()
+  const sourceCatalog = await loadWorkspaceSourceCatalog()
+  const { recentClients, homeSources } = await loadHomePageData(
+    undefined,
+    sourceCatalog
+  )
   return (
     <WorkspacePageSurface>
       <WorkspacePageHeader
@@ -51,7 +56,7 @@ export default async function HomePage() {
         <SearchFieldIcon>
           <SearchIcon />
         </SearchFieldIcon>
-        <SearchFieldInput placeholder="anna@example.com" autoFocus />
+        <SearchFieldInput placeholder="anna@example.com" />
         <SearchFieldShortcut className="ml-auto">↵</SearchFieldShortcut>
       </SearchField>
 
@@ -150,7 +155,7 @@ export default async function HomePage() {
               </Button>
             </div>
             <div className="mt-3.5 border-t border-border pt-3">
-              <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-slate-500/70">
+              <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted-foreground">
                 Type <Kbd>/</Kbd> anywhere for commands
               </span>
             </div>

@@ -18,8 +18,8 @@ describe("source UI registry", () => {
     }
   })
 
-  it("keeps source-specific visual and activity facts in the UI registry", () => {
-    expect(getSourceUi("imap").activity).toHaveLength(3)
+  it("keeps source-specific visual facts in the UI registry", () => {
+    expect(getSourceUi("imap").activity).toEqual([])
     expect(getSourceUi("stripe").logoClassName).toContain("#635BFF")
   })
 })

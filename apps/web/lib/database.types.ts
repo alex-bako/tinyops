@@ -73,6 +73,150 @@ export type Database = {
         }
         Relationships: []
       }
+      data_source_secrets: {
+        Row: {
+          created_at: string
+          id: string
+          masked_value: string
+          purpose: string
+          replaced_at: string | null
+          source_id: string
+          updated_at: string
+          vault_secret_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          masked_value: string
+          purpose: string
+          replaced_at?: string | null
+          source_id: string
+          updated_at?: string
+          vault_secret_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          masked_value?: string
+          purpose?: string
+          replaced_at?: string | null
+          source_id?: string
+          updated_at?: string
+          vault_secret_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_source_secrets_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_source_sync_states: {
+        Row: {
+          created_at: string
+          cursor: Json | null
+          history_window: string
+          id: string
+          last_error: string | null
+          last_started_at: string | null
+          last_synced_at: string | null
+          requested_at: string | null
+          source_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cursor?: Json | null
+          history_window?: string
+          id?: string
+          last_error?: string | null
+          last_started_at?: string | null
+          last_synced_at?: string | null
+          requested_at?: string | null
+          source_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cursor?: Json | null
+          history_window?: string
+          id?: string
+          last_error?: string | null
+          last_started_at?: string | null
+          last_synced_at?: string | null
+          requested_at?: string | null
+          source_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_source_sync_states_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: true
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_sources: {
+        Row: {
+          config: Json
+          config_version: number
+          connected_at: string | null
+          created_at: string
+          disconnected_at: string | null
+          display_name: string
+          id: string
+          last_verified_at: string | null
+          source_type: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          config?: Json
+          config_version?: number
+          connected_at?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          display_name: string
+          id?: string
+          last_verified_at?: string | null
+          source_type: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          config?: Json
+          config_version?: number
+          connected_at?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          display_name?: string
+          id?: string
+          last_verified_at?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_invitations: {
         Row: {
           accepted_at: string | null
@@ -259,6 +403,20 @@ export type Database = {
         Args: { target_workspace_id: string }
         Returns: undefined
       }
+      connect_imap_data_source: {
+        Args: {
+          imap_encryption: string
+          imap_history_window: string
+          imap_host: string
+          imap_password: string
+          imap_port: number
+          imap_skip_senders: string[]
+          imap_username: string
+          imap_watched_folders: string[]
+          target_workspace_id: string
+        }
+        Returns: string
+      }
       create_personal_workspace: {
         Args: {
           actor_email: string
@@ -275,9 +433,31 @@ export type Database = {
         }
         Returns: Json
       }
+      disconnect_data_source: {
+        Args: { target_source_id: string; target_workspace_id: string }
+        Returns: undefined
+      }
       enforce_invited_user: { Args: { event: Json }; Returns: Json }
+      request_data_source_sync: {
+        Args: { target_source_id: string; target_workspace_id: string }
+        Returns: undefined
+      }
       revoke_workspace_invitation: {
         Args: { target_invitation_id: string }
+        Returns: undefined
+      }
+      update_imap_data_source_config: {
+        Args: {
+          imap_encryption: string
+          imap_history_window: string
+          imap_host: string
+          imap_port: number
+          imap_skip_senders: string[]
+          imap_username: string
+          imap_watched_folders: string[]
+          target_source_id: string
+          target_workspace_id: string
+        }
         Returns: undefined
       }
       workspace_actor_role: {

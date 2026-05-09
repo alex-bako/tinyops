@@ -1,4 +1,8 @@
+"use client"
+
 import Link from "next/link"
+import * as React from "react"
+import { useRouter } from "next/navigation"
 import {
   ChevronRightIcon,
   MoreHorizontalIcon,
@@ -21,9 +25,22 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 
 import { SourceIcon } from "@/components/source-icon"
+import { requestDataSourceSyncAction } from "@/features/data-sources/actions"
 import type { SourcesPageRow } from "../_view-model"
 
 function SourceRow({ source }: { source: SourcesPageRow }) {
+  const { refresh } = useRouter()
+  const [pending, startTransition] = React.useTransition()
+
+  const requestSync = () => {
+    if (!source.sourceRowId) return
+
+    startTransition(async () => {
+      const result = await requestDataSourceSyncAction(source.sourceRowId!)
+      if (!result.error) refresh()
+    })
+  }
+
   return (
     <SourceListRow data-connected={source.connected ? "true" : "false"}>
       <Link
@@ -72,7 +89,13 @@ function SourceRow({ source }: { source: SourcesPageRow }) {
       <SourceListActions className="relative z-[3]">
         {source.action === "sync" ? (
           <>
-            <Button type="button" variant="ghost" size="sm">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={pending || !source.sourceRowId}
+              onClick={requestSync}
+            >
               <RefreshCwIcon />
               {source.primaryLabel}
             </Button>

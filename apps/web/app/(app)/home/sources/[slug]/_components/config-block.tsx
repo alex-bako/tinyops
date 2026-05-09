@@ -1,6 +1,8 @@
 import type { DataSource } from "@/lib/sources"
 import type { SourceUiRegistryEntry } from "../source-registry"
 
+import { sourceAdapterKey } from "./source-adapter-key"
+
 function ConfigBlock({
   source,
   sourceUi,
@@ -10,7 +12,7 @@ function ConfigBlock({
 }) {
   const Config = sourceUi.Config
 
-  return <Config source={source} />
+  return <Config key={sourceAdapterKey(source)} source={source} />
 }
 
 export { ConfigBlock }

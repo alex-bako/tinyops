@@ -32,25 +32,9 @@ export type SourceUiRegistryEntry = {
 }
 
 const ACTIVITY = {
-  imap: [
-    {
-      when: "2m ago",
-      what: "Synced 14 messages · 2 attached to clients, 12 archived.",
-    },
-    { when: "1h ago", what: "New client created from sender · S. Halvorsen." },
-    { when: "3h ago", what: "Skipped 4 messages by rule · *@noreply.*" },
-  ],
-  forms: [
-    { when: "1w ago", what: "203 submissions imported across 2 forms." },
-    { when: "1w ago", what: "27 responses flagged sensitive · review queue." },
-  ],
-  csv: [
-    {
-      when: "3d ago",
-      what: "Imported march-cohort.csv · 138 matched, 4 new clients.",
-    },
-    { when: "3d ago", what: "1 row skipped — invalid email." },
-  ],
+  imap: [],
+  forms: [],
+  csv: [],
 } satisfies Partial<Record<SourceId, SourceActivityRow[]>>
 
 export const SOURCE_UI_REGISTRY: Record<SourceId, SourceUiRegistryEntry> = {
