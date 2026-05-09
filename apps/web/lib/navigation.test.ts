@@ -43,6 +43,36 @@ describe("navigation model", () => {
     ).toEqual(["Home", "Data sources"])
   })
 
+  it("derives source detail breadcrumbs with injected title lookup", () => {
+    const crumbs = deriveAppCrumbs("/home/sources/imap", {
+      resolveSourceTitle: (slug) =>
+        slug === "imap" ? "IMAP mailbox" : undefined,
+    })
+
+    expect(crumbs.map((crumb) => crumb.label)).toEqual([
+      "Home",
+      "Data sources",
+      "IMAP mailbox",
+    ])
+    expect(crumbs[0]?.href).toBe("/home")
+    expect(crumbs[1]?.href).toBe("/home/sources")
+    expect(crumbs[2]?.href).toBeUndefined()
+  })
+
+  it("falls back to slug when source title cannot be resolved", () => {
+    expect(
+      deriveAppCrumbs("/home/sources/unknown-source").map(
+        (crumb) => crumb.label
+      )
+    ).toEqual(["Home", "Data sources", "unknown-source"])
+  })
+
+  it("activates sources nav for nested source detail routes", () => {
+    expect(
+      pickActiveNavItemId(flattenNavItems(NAV_GROUPS), "/home/sources/imap")
+    ).toBe("sources")
+  })
+
   it("derives route nav and crumbs from the same route metadata", () => {
     const sourceRoute = APP_ROUTES.find((route) => route.id === "sources")!
     const sourceNav = flattenNavItems(NAV_GROUPS).find(

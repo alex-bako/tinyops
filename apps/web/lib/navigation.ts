@@ -87,9 +87,11 @@ function routeCrumb(route: AppRoute, href?: string): Crumb {
 
 const HOME_ROUTE = appRoute("home")
 const CLIENTS_ROUTE = appRoute("clients")
+const SOURCES_ROUTE = appRoute("sources")
 
 const HOME: Crumb = routeCrumb(HOME_ROUTE, HOME_ROUTE.href)
 const CLIENTS: Crumb = routeCrumb(CLIENTS_ROUTE, CLIENTS_ROUTE.href)
+const SOURCES: Crumb = routeCrumb(SOURCES_ROUTE, SOURCES_ROUTE.href)
 
 function routeCrumbs(route: AppRoute): Crumb[] {
   if (!route.parentId) return [routeCrumb(route)]
@@ -163,7 +165,10 @@ function pickActiveNavItemId(items: NavItem[], pathname: string): string | null 
 
 function deriveAppCrumbs(
   pathname: string,
-  options: { resolveClientName?: (slug: string) => string | undefined } = {}
+  options: {
+    resolveClientName?: (slug: string) => string | undefined
+    resolveSourceTitle?: (slug: string) => string | undefined
+  } = {}
 ): Crumb[] {
   if (ROUTE_CRUMBS[pathname]) return ROUTE_CRUMBS[pathname]!
 
@@ -173,6 +178,15 @@ function deriveAppCrumbs(
       HOME,
       CLIENTS,
       { label: options.resolveClientName?.(clientSlug) ?? clientSlug },
+    ]
+  }
+
+  const sourceSlug = pathname.match(/^\/home\/sources\/([^/]+)\/?$/)?.[1]
+  if (sourceSlug) {
+    return [
+      HOME,
+      SOURCES,
+      { label: options.resolveSourceTitle?.(sourceSlug) ?? sourceSlug },
     ]
   }
 
@@ -188,6 +202,7 @@ export {
   CLIENTS,
   HOME,
   NAV_GROUPS,
+  SOURCES,
   deriveAppCrumbs,
   flattenNavItems,
   pickActiveNavItemId,

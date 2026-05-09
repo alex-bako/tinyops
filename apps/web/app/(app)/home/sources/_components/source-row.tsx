@@ -1,4 +1,6 @@
+import Link from "next/link"
 import {
+  ChevronRightIcon,
   MoreHorizontalIcon,
   PlugZapIcon,
   RefreshCwIcon,
@@ -23,11 +25,16 @@ import type { SourcesPageRow } from "../_view-model"
 
 function SourceRow({ source }: { source: SourcesPageRow }) {
   return (
-    <SourceListRow
-      data-connected={source.connected ? "true" : "false"}
-    >
+    <SourceListRow data-connected={source.connected ? "true" : "false"}>
+      <Link
+        href={source.href}
+        aria-label={source.configureLabel}
+        className="absolute inset-0 z-[1] rounded-sm focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+      />
+
       <SourceListIcon
         className={cn(
+          "pointer-events-none relative z-[2]",
           source.connected
             ? "bg-cobalt-500/10 text-cobalt-700"
             : "bg-[var(--tint-hover)] text-muted-foreground/80"
@@ -36,12 +43,19 @@ function SourceRow({ source }: { source: SourcesPageRow }) {
         <SourceIcon icon={source.icon} className="size-4" />
       </SourceListIcon>
 
-      <SourceListBody>
-        <SourceListTitle>{source.title}</SourceListTitle>
+      <SourceListBody className="pointer-events-none relative z-[2]">
+        <SourceListTitle className="inline-flex items-center gap-1.5">
+          {source.title}
+          {source.isNew ? (
+            <span className="rounded-[3px] bg-citron-300/30 px-1.5 py-px text-[10.5px] font-medium uppercase tracking-[0.04em] text-citron-700">
+              New
+            </span>
+          ) : null}
+        </SourceListTitle>
         <SourceListDescription>{source.sub}</SourceListDescription>
       </SourceListBody>
 
-      <SourceListStats>
+      <SourceListStats className="pointer-events-none relative z-[2]">
         {source.connected ? (
           source.stats.map((stat) => (
             <SourceListStat
@@ -55,12 +69,12 @@ function SourceRow({ source }: { source: SourcesPageRow }) {
         )}
       </SourceListStats>
 
-      <SourceListActions>
+      <SourceListActions className="relative z-[3]">
         {source.action === "sync" ? (
           <>
             <Button type="button" variant="ghost" size="sm">
               <RefreshCwIcon />
-              Sync
+              {source.primaryLabel}
             </Button>
             <Button
               type="button"
@@ -74,9 +88,15 @@ function SourceRow({ source }: { source: SourcesPageRow }) {
         ) : (
           <Button type="button" variant="secondary" size="sm">
             <PlugZapIcon />
-            Connect
+            {source.primaryLabel}
           </Button>
         )}
+        <span
+          aria-hidden
+          className="pointer-events-none ml-1 inline-flex text-muted-foreground/60 transition-transform duration-75 group-hover/source-list-row:translate-x-0.5"
+        >
+          <ChevronRightIcon className="size-3.5" />
+        </span>
       </SourceListActions>
     </SourceListRow>
   )

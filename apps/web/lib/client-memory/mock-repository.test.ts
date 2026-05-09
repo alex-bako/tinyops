@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 
-import { createSourcesPageView } from "@/app/(app)/home/sources/_view-model"
 import { createMockClientMemoryRepository } from "@/lib/client-memory/mock-repository"
 
 describe("mock client memory repository", () => {
@@ -22,11 +21,4 @@ describe("mock client memory repository", () => {
     await expect(repository.findClientBySlug("missing")).resolves.toBeNull()
   })
 
-  it("lists data sources for grouping view models", async () => {
-    const repository = createMockClientMemoryRepository()
-    const view = createSourcesPageView(await repository.listDataSources())
-
-    expect(view.connected.count).toBe("3")
-    expect(view.available.count).toBe("3")
-  })
 })

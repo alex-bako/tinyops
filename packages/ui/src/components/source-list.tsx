@@ -17,7 +17,7 @@ function SourceListRow({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="source-list-row"
       className={cn(
-        "group/source-list-row -mx-2 grid grid-cols-[32px_minmax(0,1fr)_auto_auto] items-center gap-3.5 rounded-sm border-b border-border px-2 py-3.5 last:border-b-0",
+        "group/source-list-row relative -mx-2 grid grid-cols-[32px_minmax(0,1fr)_auto_auto] items-center gap-3.5 rounded-sm border-b border-border px-2 py-3.5 last:border-b-0",
         "transition-[background] duration-75 hover:bg-[var(--tint-hover)]",
         className
       )}

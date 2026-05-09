@@ -5,6 +5,7 @@ import {
   FileTextIcon,
   GraduationCapIcon,
   MailIcon,
+  SendIcon,
   type LucideIcon,
 } from "lucide-react"
 
@@ -17,6 +18,7 @@ const SOURCE_ICON_MAP: Record<DataSourceIcon, LucideIcon> = {
   "credit-card": CreditCardIcon,
   calendar: CalendarIcon,
   "graduation-cap": GraduationCapIcon,
+  send: SendIcon,
 }
 
 function SourceIcon({
