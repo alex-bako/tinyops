@@ -6,39 +6,25 @@ import {
   TimelineSrc,
   TimelineSummary,
   TimelineTitle,
-  type TimelineTone,
 } from "@workspace/ui/components/timeline"
 
-import type { ClientTimelineEvent, TimelineEventType } from "@/lib/clients"
+import type { ClientTimelineEventView } from "../_view-model"
 
-const TONE_OF: Record<TimelineEventType, TimelineTone> = {
-  email: "brand",
-  form: "positive",
-  sent: "attention",
-  csvimport: "neutral",
-}
-
-const LABEL_OF: Record<TimelineEventType, string> = {
-  email: "email",
-  form: "form",
-  sent: "sent",
-  csvimport: "csv import",
-}
-
-export function TimelineSection({ events }: { events: ClientTimelineEvent[] }) {
+export function TimelineSection({
+  events,
+}: {
+  events: ClientTimelineEventView[]
+}) {
   return (
     <Timeline>
       {events.map((e, i) => (
         <TimelineEvent
           key={`${e.date}-${i}`}
-          tone={TONE_OF[e.type]}
+          tone={e.tone}
           sensitive={e.sensitive}
         >
           <TimelineHead>
-            <TimelineSrc>
-              {LABEL_OF[e.type]}
-              {e.sensitive ? " · sensitive" : ""}
-            </TimelineSrc>
+            <TimelineSrc>{e.sourceLabel}</TimelineSrc>
             <TimelineDate>{e.date}</TimelineDate>
           </TimelineHead>
           <TimelineTitle>{e.title}</TimelineTitle>

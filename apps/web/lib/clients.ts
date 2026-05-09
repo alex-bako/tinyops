@@ -1,8 +1,4 @@
-import {
-  clientDetailFlagBadges,
-  clientStatusBadge,
-  type ClientStateBadge,
-} from "@/lib/client-state"
+import { clientStatusBadge } from "@/lib/client-state"
 
 export type ClientStatus = "active" | "inactive" | "sensitive" | "dnc"
 
@@ -68,13 +64,10 @@ export type ClientTimelineEvent = {
   sensitive?: boolean
 }
 
-export type ClientBadge = ClientStateBadge
-
 export type ClientDetail = Client & {
   slug: string
   joined: string
   location: string
-  badges: ClientBadge[]
   memory: ClientMemory
   properties: ClientProperty[]
   timeline: ClientTimelineEvent[]
@@ -100,11 +93,6 @@ export function slugify(name: string): string {
 const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
   joined: "Feb 12, 2026",
   location: "Berlin, DE",
-  badges: [
-    { kind: "active", label: "Active" },
-    { kind: "neutral", label: "March cohort" },
-    { kind: "warn", label: "Overdue check-in" },
-  ],
   memory: {
     summary:
       "Anna joined the March cohort and has mainly interacted about accessing recordings and completing exercises. She asked for clearer replay instructions on Mar 8 and hasn't submitted feedback in six weeks.",
@@ -327,11 +315,6 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
   return {
     joined: joinedFor(c.cohort),
     location: locationFor(c.email),
-    badges: [
-      clientStatusBadge(c.status),
-      { kind: "neutral", label: c.cohort },
-      ...clientDetailFlagBadges(c.flags),
-    ],
     memory: {
       summary,
       confidence: c.status === "active" ? 0.62 : 0.41,
