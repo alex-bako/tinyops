@@ -19,14 +19,12 @@ import {
 import { Button } from "@workspace/ui/components/button"
 import { Kbd } from "@workspace/ui/components/kbd"
 import { Section, SectionHead } from "@workspace/ui/components/section"
-import {
-  Body,
-  EditorialItalic,
-  Eyebrow,
-  H1,
-} from "@workspace/ui/components/typography"
-import { cn } from "@workspace/ui/lib/utils"
+import { EditorialItalic } from "@workspace/ui/components/typography"
 
+import {
+  WorkspacePageHeader,
+  WorkspacePageSurface,
+} from "@/components/page-surface"
 import { ATTENTION, RECENT_CLIENTS, SOURCES, WEEK_TASKS } from "./_data"
 import { ClientRow } from "./_components/client-row"
 import { SourceRow } from "./_components/source-row"
@@ -35,33 +33,19 @@ import { WeekTaskRow } from "./_components/week-task-row"
 
 export default function HomePage() {
   return (
-    <div
-      className={cn(
-        "mx-auto w-full max-w-[1200px] px-6 pt-10 pb-24 md:px-14 md:pt-14"
-      )}
-    >
-      <Eyebrow className="inline-flex items-center gap-1.5 [&>svg]:size-3.5">
-        <SunIcon />
-        <span>Wednesday, May 8 · Jamie&apos;s workspace</span>
-      </Eyebrow>
-
-      <H1
-        className={cn(
-          "mt-3 text-[38px] font-bold leading-[1.15] tracking-[-0.025em]"
-        )}
-      >
-        Good afternoon, Jamie.{" "}
-        <EditorialItalic className="text-cobalt-500">Eight</EditorialItalic>{" "}
-        clients need attention.
-      </H1>
-
-      <Body
-        size="lg"
-        className="mt-2.5 max-w-[640px] text-[15px] leading-[1.55] text-muted-foreground"
-      >
-        Open a client by typing their email, or work down the queue below.
-        Drafts wait for your approval before sending.
-      </Body>
+    <WorkspacePageSurface>
+      <WorkspacePageHeader
+        eyebrowIcon={SunIcon}
+        eyebrow="Wednesday, May 8 · Jamie's workspace"
+        title={
+          <>
+            Good afternoon, Jamie.{" "}
+            <EditorialItalic className="text-cobalt-500">Eight</EditorialItalic>{" "}
+            clients need attention.
+          </>
+        }
+        description="Open a client by typing their email, or work down the queue below. Drafts wait for your approval before sending."
+      />
 
       <SearchField className="mt-7 mb-8">
         <SearchFieldIcon>
@@ -171,6 +155,6 @@ export default function HomePage() {
           </Section>
         </div>
       </div>
-    </div>
+    </WorkspacePageSurface>
   )
 }
