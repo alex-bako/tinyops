@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import { AppShell } from "@/components/app-shell"
+import { loadClientNavItems } from "@/lib/client-memory/loaders"
 import { readSupabaseAppProfileSession } from "@/lib/auth/profile"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
@@ -18,7 +19,14 @@ export async function AuthenticatedAppShell({
   children: React.ReactNode
 }) {
   const supabase = await createServerSupabaseClient()
-  const session = await readSupabaseAppProfileSession(supabase)
+  const [session, clientNavItems] = await Promise.all([
+    readSupabaseAppProfileSession(supabase),
+    loadClientNavItems(),
+  ])
 
-  return <AppShell userEmail={session?.email}>{children}</AppShell>
+  return (
+    <AppShell userEmail={session?.email} clientNavItems={clientNavItems}>
+      {children}
+    </AppShell>
+  )
 }

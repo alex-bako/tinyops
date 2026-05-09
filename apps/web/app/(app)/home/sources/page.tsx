@@ -7,12 +7,14 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
+import { getClientMemoryRepository } from "@/lib/client-memory/loaders"
 
 import { SourceRow } from "./_components/source-row"
 import { createSourcesPageView } from "./_view-model"
 
-export default function SourcesPage() {
-  const view = createSourcesPageView()
+export default async function SourcesPage() {
+  const sources = await getClientMemoryRepository().listDataSources()
+  const view = createSourcesPageView(sources)
 
   return (
     <WorkspacePageSurface>

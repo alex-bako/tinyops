@@ -29,10 +29,9 @@ describe("AppShell", () => {
     installMatchMedia()
 
     render(
-      React.createElement(AppShell, {
-        userEmail: "profile@example.co",
-        children: React.createElement("main", null, "Workspace"),
-      })
+      <AppShell userEmail="profile@example.co">
+        <main>Workspace</main>
+      </AppShell>
     )
 
     expect(screen.getByText("profile@example.co")).toBeInTheDocument()

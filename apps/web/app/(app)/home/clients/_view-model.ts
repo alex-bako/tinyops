@@ -3,7 +3,6 @@
 import * as React from "react"
 
 import {
-  ALL_CLIENTS,
   COHORTS,
   type ClientDetail,
   type CohortFilter,
@@ -75,14 +74,14 @@ function createClientListView(
   }
 }
 
-function useClientListView() {
+function useClientListView(sourceRows: ClientDetail[]) {
   const [filters, setFilters] = React.useState<ClientListFilters>(
     DEFAULT_CLIENT_LIST_FILTERS
   )
 
   const view = React.useMemo(
-    () => createClientListView(ALL_CLIENTS, filters),
-    [filters]
+    () => createClientListView(sourceRows, filters),
+    [sourceRows, filters]
   )
 
   const updateFilters = React.useCallback((patch: ClientListFilterPatch) => {
