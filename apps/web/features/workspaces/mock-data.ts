@@ -1,0 +1,170 @@
+import { DEFAULT_PERMISSIONS } from "@/features/workspaces/catalog"
+import type {
+  JoinableWorkspace,
+  Workspace,
+} from "@/features/workspaces/types"
+
+export const WORKSPACES: Workspace[] = [
+  {
+    id: "jamie-practice",
+    name: "Jamie's practice",
+    handle: "jamie-practice",
+    description:
+      "Sexual therapy practice — sensitive content, manual review enforced.",
+    icon: { kind: "mark" },
+    accent: "cobalt",
+    type: "Solo practice",
+    role: "owner",
+    plan: { tier: "Solo", price: "$29 / mo", seats: 1 },
+    counts: { clients: 142, sources: 4, drafts: 3 },
+    sidebarCounts: { clients: 142, tasks: 3, march: 47, feedback: 12, dnc: 3 },
+    sensitivity: {
+      mode: "strict",
+      autoSendThreshold: "low-only",
+      manualReviewKeywords: ["trauma", "abuse", "grief", "medication", "crisis"],
+      excludeFromOutbound: true,
+    },
+    members: [
+      {
+        id: "u1",
+        name: "Jamie Park",
+        email: "jamie@yourpractice.com",
+        role: "owner",
+        you: true,
+        joined: "Founder · Jan 2024",
+        lastActive: "Now",
+      },
+    ],
+    invites: [],
+    permissions: DEFAULT_PERMISSIONS,
+  },
+  {
+    id: "course-lab",
+    name: "Replay Lab",
+    handle: "replay-lab",
+    description:
+      "Online course — replay access, intake forms, monthly digests to 2,300 students.",
+    icon: { kind: "letter", letter: "R", tone: "citron" },
+    accent: "citron",
+    type: "Small team · 4 members",
+    role: "admin",
+    plan: { tier: "Team", price: "$89 / mo", seats: 5 },
+    counts: { clients: 2347, sources: 6, drafts: 18 },
+    sidebarCounts: {
+      clients: 2347,
+      tasks: 18,
+      march: 312,
+      feedback: 64,
+      dnc: 8,
+    },
+    sensitivity: {
+      mode: "balanced",
+      autoSendThreshold: "low-and-medium",
+      manualReviewKeywords: ["refund", "chargeback", "legal"],
+      excludeFromOutbound: false,
+    },
+    members: [
+      {
+        id: "u1",
+        name: "Jamie Park",
+        email: "jamie@yourpractice.com",
+        role: "admin",
+        you: true,
+        joined: "Mar 2024",
+        lastActive: "Now",
+      },
+      {
+        id: "u2",
+        name: "Devon Nguyen",
+        email: "devon@replaylab.com",
+        role: "owner",
+        joined: "Founder",
+        lastActive: "12m ago",
+      },
+      {
+        id: "u3",
+        name: "Sara Berger",
+        email: "sara@replaylab.com",
+        role: "operator",
+        joined: "Apr 2024",
+        lastActive: "Yesterday",
+      },
+      {
+        id: "u4",
+        name: "Mariko Tan",
+        email: "mariko@replaylab.com",
+        role: "reviewer",
+        joined: "Sep 2024",
+        lastActive: "3d ago",
+      },
+    ],
+    invites: [
+      {
+        email: "alex@replaylab.com",
+        role: "operator",
+        invitedAt: "2 days ago",
+        invitedBy: "Devon Nguyen",
+      },
+    ],
+    permissions: DEFAULT_PERMISSIONS,
+  },
+  {
+    id: "bloom-coaching",
+    name: "Bloom Coaching",
+    handle: "bloom",
+    description:
+      "Group coaching collective — three coaches, shared client roster.",
+    icon: { kind: "letter", letter: "B", tone: "mint" },
+    accent: "mint",
+    type: "Team · 3 members",
+    role: "operator",
+    plan: { tier: "Team", price: "$89 / mo", seats: 5 },
+    counts: { clients: 480, sources: 3, drafts: 7 },
+    sidebarCounts: { clients: 480, tasks: 7, march: 84, feedback: 22, dnc: 1 },
+    sensitivity: {
+      mode: "balanced",
+      autoSendThreshold: "low-and-medium",
+      manualReviewKeywords: ["medical", "insurance"],
+      excludeFromOutbound: true,
+    },
+    members: [
+      {
+        id: "u1",
+        name: "Jamie Park",
+        email: "jamie@yourpractice.com",
+        role: "operator",
+        you: true,
+        joined: "Feb 2025",
+        lastActive: "Now",
+      },
+      {
+        id: "u2",
+        name: "Priya Raman",
+        email: "priya@bloom.coach",
+        role: "owner",
+        joined: "Founder",
+        lastActive: "1h ago",
+      },
+      {
+        id: "u3",
+        name: "Luca De Rossi",
+        email: "luca@bloom.coach",
+        role: "admin",
+        joined: "Feb 2025",
+        lastActive: "Yesterday",
+      },
+    ],
+    invites: [],
+    permissions: DEFAULT_PERMISSIONS,
+  },
+]
+
+export const JOINABLE_WORKSPACES: JoinableWorkspace[] = [
+  {
+    name: "Studio practice",
+    handle: "studio",
+    icon: { kind: "letter", letter: "S", tone: "coral" },
+    members: 6,
+    hint: "You were invited by Anna Smith",
+  },
+]

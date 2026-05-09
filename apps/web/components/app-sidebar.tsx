@@ -24,8 +24,10 @@ import {
 import { SidebarSearchTrigger } from "@/components/sidebar-search-trigger"
 import { SidebarUser } from "@/components/sidebar-user"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
+import { useActiveWorkspace } from "@/features/workspaces/context"
+import { WORKSPACE_NAV_GROUPS } from "@/features/workspaces/navigation"
+import { buildSidebarNavGroups } from "@/features/workspaces/view-models"
 import {
-  NAV_GROUPS,
   flattenNavItems,
   pickActiveNavItemId,
   type NavItem,
@@ -82,17 +84,19 @@ export function AppSidebar({
   userEmail?: string | null
 }) {
   const pathname = usePathname() ?? ""
-  const activeId = pickActiveNavItemId(flattenNavItems(NAV_GROUPS), pathname)
+  const workspace = useActiveWorkspace()
+  const navGroups = buildSidebarNavGroups(WORKSPACE_NAV_GROUPS, workspace)
+  const activeId = pickActiveNavItemId(flattenNavItems(navGroups), pathname)
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" {...props}>
       <SidebarHeader>
-        <WorkspaceSwitcher />
+        <WorkspaceSwitcher userEmail={userEmail} />
         <SidebarSearchTrigger />
       </SidebarHeader>
 
       <SidebarContent>
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <SidebarGroup key={group.id}>
             {group.label ? (
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
@@ -108,7 +112,11 @@ export function AppSidebar({
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (
-                  <NavRow key={item.id} item={item} activeId={activeId} />
+                  <NavRow
+                    key={item.id}
+                    item={item}
+                    activeId={activeId}
+                  />
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>

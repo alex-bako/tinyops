@@ -13,6 +13,7 @@ import type { LucideIcon } from "lucide-react"
 import {
   CLIENTS_PATH,
   DEFAULT_SIGNED_IN_PATH,
+  SETTINGS_PATH,
   SOURCES_PATH,
 } from "@/lib/auth/route-policy"
 
@@ -36,7 +37,7 @@ export type Crumb = {
   href?: string
 }
 
-export type AppRouteId = "home" | "clients" | "sources"
+export type AppRouteId = "home" | "clients" | "sources" | "settings"
 
 export type AppRoute = {
   id: AppRouteId
@@ -73,6 +74,13 @@ const APP_ROUTES: AppRoute[] = [
     parentId: "home",
     navGroup: "primary",
   },
+  {
+    id: "settings",
+    label: "Workspace settings",
+    icon: Settings2Icon,
+    href: SETTINGS_PATH,
+    parentId: "home",
+  },
 ]
 
 function appRoute(id: AppRouteId): AppRoute {
@@ -88,6 +96,7 @@ function routeCrumb(route: AppRoute, href?: string): Crumb {
 const HOME_ROUTE = appRoute("home")
 const CLIENTS_ROUTE = appRoute("clients")
 const SOURCES_ROUTE = appRoute("sources")
+const SETTINGS_ROUTE = appRoute("settings")
 
 const HOME: Crumb = routeCrumb(HOME_ROUTE, HOME_ROUTE.href)
 const CLIENTS: Crumb = routeCrumb(CLIENTS_ROUTE, CLIENTS_ROUTE.href)
@@ -140,7 +149,14 @@ const NAV_GROUPS: NavGroup[] = [
   {
     id: "workspace",
     label: "Workspace",
-    items: [{ id: "settings", label: "Settings", icon: Settings2Icon }],
+    items: [
+      {
+        id: "settings",
+        label: "Settings",
+        icon: Settings2Icon,
+        href: SETTINGS_ROUTE.href,
+      },
+    ],
   },
 ]
 
