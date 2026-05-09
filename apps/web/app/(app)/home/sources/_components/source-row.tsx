@@ -19,9 +19,9 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 
 import { SourceIcon } from "@/components/source-icon"
-import type { DataSource } from "@/lib/sources"
+import type { SourcesPageRow } from "../_view-model"
 
-function SourceRow({ source }: { source: DataSource }) {
+function SourceRow({ source }: { source: SourcesPageRow }) {
   return (
     <SourceListRow
       data-connected={source.connected ? "true" : "false"}
@@ -51,12 +51,12 @@ function SourceRow({ source }: { source: DataSource }) {
             />
           ))
         ) : (
-          <Badge variant="neutral">Not connected</Badge>
+          <Badge variant="neutral">{source.statusLabel}</Badge>
         )}
       </SourceListStats>
 
       <SourceListActions>
-        {source.connected ? (
+        {source.action === "sync" ? (
           <>
             <Button type="button" variant="ghost" size="sm">
               <RefreshCwIcon />

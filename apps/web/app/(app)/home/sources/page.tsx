@@ -7,13 +7,12 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
-import { availableSources, connectedSources } from "@/lib/sources"
 
 import { SourceRow } from "./_components/source-row"
+import { createSourcesPageView } from "./_view-model"
 
 export default function SourcesPage() {
-  const connected = connectedSources()
-  const available = availableSources()
+  const view = createSourcesPageView()
 
   return (
     <WorkspacePageSurface>
@@ -27,7 +26,7 @@ export default function SourcesPage() {
       <Section className="mt-10">
         <SectionHead
           title="Connected"
-          count={String(connected.length)}
+          count={view.connected.count}
           actions={
             <Button type="button" variant="tertiary" size="sm">
               <RefreshCwIcon />
@@ -36,7 +35,7 @@ export default function SourcesPage() {
           }
         />
         <div className="flex flex-col">
-          {connected.map((source) => (
+          {view.connected.rows.map((source) => (
             <SourceRow key={source.id} source={source} />
           ))}
         </div>
@@ -45,7 +44,7 @@ export default function SourcesPage() {
       <Section divider>
         <SectionHead
           title="Available"
-          count={String(available.length)}
+          count={view.available.count}
           actions={
             <Button type="button" variant="tertiary" size="sm">
               <PlusIcon />
@@ -54,7 +53,7 @@ export default function SourcesPage() {
           }
         />
         <div className="flex flex-col">
-          {available.map((source) => (
+          {view.available.rows.map((source) => (
             <SourceRow key={source.id} source={source} />
           ))}
         </div>
