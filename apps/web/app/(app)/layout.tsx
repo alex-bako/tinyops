@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import { AppShell } from "@/components/app-shell"
+import { readSupabaseAppProfileSession } from "@/lib/auth/profile"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export default function AppLayout({
@@ -11,15 +12,13 @@ export default function AppLayout({
   return <AuthenticatedAppShell>{children}</AuthenticatedAppShell>
 }
 
-async function AuthenticatedAppShell({
+export async function AuthenticatedAppShell({
   children,
 }: {
   children: React.ReactNode
 }) {
   const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const session = await readSupabaseAppProfileSession(supabase)
 
-  return <AppShell userEmail={user?.email}>{children}</AppShell>
+  return <AppShell userEmail={session?.email}>{children}</AppShell>
 }
