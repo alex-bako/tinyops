@@ -8,10 +8,9 @@ import {
 } from "@workspace/ui/components/callout"
 import { cn } from "@workspace/ui/lib/utils"
 
-import type { ClientMemory } from "@/lib/clients"
+import type { ClientMemoryView } from "../_view-model"
 
-export function MemoryCallout({ memory }: { memory: ClientMemory }) {
-  const pct = Math.round(memory.confidence * 100)
+export function MemoryCallout({ memory }: { memory: ClientMemoryView }) {
   return (
     <Callout tone="brand" className="mt-3">
       <CalloutStamp>
@@ -31,10 +30,12 @@ export function MemoryCallout({ memory }: { memory: ClientMemory }) {
         >
           <span
             className="block h-full rounded-full bg-cobalt-500"
-            style={{ width: `${pct}%` }}
+            style={{ width: memory.confidenceWidth }}
           />
         </span>
-        <span className="font-mono text-foreground tabular-nums">{pct}%</span>
+        <span className="font-mono text-foreground tabular-nums">
+          {memory.confidencePct}%
+        </span>
         <span aria-hidden className="text-muted-foreground/40">
           ·
         </span>

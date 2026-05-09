@@ -13,6 +13,7 @@ import { MemoryCallout } from "./_components/memory-callout"
 import { NotesEmpty } from "./_components/notes-empty"
 import { Properties } from "./_components/properties"
 import { TimelineSection } from "./_components/timeline-section"
+import { createClientDetailView } from "./_view-model"
 
 export default async function ClientDetailPage({
   params,
@@ -23,9 +24,7 @@ export default async function ClientDetailPage({
   const client = clientBySlug(slug)
   if (!client) notFound()
 
-  const propsCount = client.properties.length
-  const timelineShown = client.timeline.length
-  const timelineTotal = Math.max(timelineShown, 9)
+  const view = createClientDetailView(client)
 
   return (
     <div
@@ -42,14 +41,14 @@ export default async function ClientDetailPage({
         </Button>
       </div>
 
-      <ClientHeader client={client} />
+      <ClientHeader header={view.header} />
 
-      <MemoryCallout memory={client.memory} />
+      <MemoryCallout memory={view.memory} />
 
       <Section divider>
         <SectionHead
           title="Properties"
-          count={`${propsCount} fields`}
+          count={view.propertiesCount}
           actions={
             <Button variant="tertiary" size="sm">
               <PlusIcon />
@@ -57,13 +56,13 @@ export default async function ClientDetailPage({
             </Button>
           }
         />
-        <Properties properties={client.properties} />
+        <Properties properties={view.properties} />
       </Section>
 
       <Section divider>
         <SectionHead
           title="Timeline"
-          count={`${timelineTotal} events · ${timelineShown} shown`}
+          count={view.timelineCount}
           actions={
             <>
               <Button variant="tertiary" size="sm">
@@ -77,7 +76,7 @@ export default async function ClientDetailPage({
             </>
           }
         />
-        <TimelineSection events={client.timeline} />
+        <TimelineSection events={view.timeline} />
       </Section>
 
       <Section divider>

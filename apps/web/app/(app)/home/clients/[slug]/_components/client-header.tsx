@@ -12,23 +12,23 @@ import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { ClientStateBadgeView } from "@/components/client-state-badge"
-import type { ClientDetail } from "@/lib/clients"
+import type { ClientDetailHeaderView } from "../_view-model"
 
-export function ClientHeader({ client }: { client: ClientDetail }) {
+export function ClientHeader({ header }: { header: ClientDetailHeaderView }) {
   return (
     <div
       className={cn(
         "mb-8 flex items-start gap-[18px] border-b border-border pb-6"
       )}
     >
-      <TonalAvatar size="lg" name={client.name} />
+      <TonalAvatar size="lg" name={header.name} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <h1
           className={cn(
             "font-sans text-[32px] font-bold leading-[1.05] tracking-[-0.025em] text-foreground"
           )}
         >
-          {client.name}
+          {header.name}
         </h1>
         <div
           className={cn(
@@ -36,15 +36,15 @@ export function ClientHeader({ client }: { client: ClientDetail }) {
           )}
         >
           <AtSignIcon className="size-[13px]" />
-          <span>{client.email}</span>
+          <span>{header.email}</span>
           <span aria-hidden className="text-muted-foreground/40">
             ·
           </span>
           <MapPinIcon className="size-[13px]" />
-          <span>{client.location}</span>
+          <span>{header.location}</span>
         </div>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {client.badges.map((b) => (
+          {header.badges.map((b) => (
             <ClientStateBadgeView key={`${b.kind}-${b.label}`} badge={b} />
           ))}
         </div>
