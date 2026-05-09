@@ -12,8 +12,17 @@ import {
 } from "@workspace/ui/components/typography"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { requestMagicLink } from "@/app/login/actions"
+import { initialLoginState, type LoginState } from "@/app/login/_state"
+
+const SHOW_INACTIVE_AUTH_OPTIONS = false
+
 export default function LoginPage() {
-  const [submitted, setSubmitted] = React.useState(false)
+  const [state, formAction, pending] = React.useActionState(
+    requestMagicLink,
+    initialLoginState
+  )
+  const submitted = state.status === "sent"
 
   return (
     <div className="grid min-h-svh grid-rows-[auto_1fr] bg-background overflow-x-hidden">
@@ -21,11 +30,10 @@ export default function LoginPage() {
       <main className="grid min-h-0 grid-cols-1 min-[960px]:grid-cols-[1.35fr_1fr]">
         <Editorial />
         <FormPane
+          state={state}
+          pending={pending}
           submitted={submitted}
-          onSubmit={(e) => {
-            e.preventDefault()
-            setSubmitted(true)
-          }}
+          formAction={formAction}
         />
       </main>
     </div>
@@ -202,11 +210,15 @@ function Editorial() {
 /* ─── Form pane ────────────────────────────────────────────────────────── */
 
 function FormPane({
+  state,
+  pending,
   submitted,
-  onSubmit,
+  formAction,
 }: {
+  state: LoginState
+  pending: boolean
   submitted: boolean
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  formAction: (formData: FormData) => void
 }) {
   return (
     <section
@@ -228,12 +240,19 @@ function FormPane({
           Welcome <EditorialItalic className="text-cobalt-500">back.</EditorialItalic>
         </h2>
 
-        <p className="mb-8 mt-3.5 text-[14.5px] leading-[1.55] text-muted-foreground">
-          We&apos;ll send a one-time link to your inbox. No password to remember
-          — you&apos;re already known here.
+        <p
+          aria-live="polite"
+          className={cn(
+            "mb-8 mt-3.5 text-[14.5px] leading-[1.55]",
+            state.status === "error" || state.status === "invalid"
+              ? "text-coral-700"
+              : "text-muted-foreground"
+          )}
+        >
+          {state.message}
         </p>
 
-        <form onSubmit={onSubmit} className="flex flex-col">
+        <form action={formAction} className="flex flex-col">
           <label className="mb-4 flex flex-col gap-1.5">
             <span className="text-[12px] tracking-[0.01em] text-muted-foreground">
               Email address
@@ -244,26 +263,28 @@ function FormPane({
               placeholder="anna@example.co"
               autoComplete="email"
               required
-              readOnly={submitted}
+              readOnly={pending || submitted}
               className={cn(
                 "h-11 rounded-md border-input bg-card px-3.5 font-mono text-[14px] text-foreground",
                 "placeholder:text-slate-300",
                 "focus-visible:border-cobalt-500 focus-visible:ring-cobalt-500/15",
-                submitted && "opacity-60"
+                (pending || submitted) && "opacity-60"
               )}
             />
           </label>
 
           <Button
             type="submit"
-            disabled={submitted}
+            disabled={pending || submitted}
             className={cn(
               "group/cta relative h-[46px] w-full rounded-md px-[18px] text-[14.5px]",
               "tracking-[-0.005em] gap-2 active:scale-[0.99]",
               "disabled:opacity-100"
             )}
           >
-            {submitted ? (
+            {pending ? (
+              "Sending link..."
+            ) : submitted ? (
               "Check your inbox →"
             ) : (
               <>
@@ -290,58 +311,7 @@ function FormPane({
           </Button>
         </form>
 
-        {/* "or" divider */}
-        <div
-          className={cn(
-            "my-[22px] flex items-center gap-3",
-            "font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300",
-            "before:h-px before:flex-1 before:bg-border before:content-['']",
-            "after:h-px after:flex-1 after:bg-border after:content-['']"
-          )}
-        >
-          or
-        </div>
-
-        <Button
-          type="button"
-          variant="secondary"
-          className={cn(
-            "h-11 w-full gap-2.5 rounded-md border-input px-4 text-[14px]",
-            "text-foreground hover:bg-muted hover:border-slate-300"
-          )}
-        >
-          <svg viewBox="0 0 48 48" aria-hidden className="size-[18px]">
-            <path
-              fill="#FFC107"
-              d="M43.6 20.5H42V20.4H24v7.2h11.3c-1.5 4.2-5.5 7.2-10.3 7.2A11 11 0 0 1 13 23.8 11 11 0 0 1 24 12.8c2.7 0 5.2 1 7.1 2.7l5.1-5.1A18 18 0 0 0 24 5.8a18 18 0 1 0 0 36 18 18 0 0 0 17.7-15c.2-1 .3-2 .3-3.1 0-1.1-.1-2.1-.4-3.2z"
-            />
-            <path
-              fill="#FF3D00"
-              d="M7.3 14.5l5.9 4.3A11 11 0 0 1 24 12.8c2.7 0 5.2 1 7.1 2.7l5.1-5.1A18 18 0 0 0 7.3 14.5z"
-            />
-            <path
-              fill="#4CAF50"
-              d="M24 41.8a18 18 0 0 0 12-4.6l-5.5-4.7a11 11 0 0 1-6.5 2.1c-4.7 0-8.7-3-10.2-7.2L8 32.2A18 18 0 0 0 24 41.8z"
-            />
-            <path
-              fill="#1976D2"
-              d="M43.6 20.5H42V20.4H24v7.2h11.3a11 11 0 0 1-3.8 5.1l5.5 4.6c-.4.4 5.9-4.3 5.9-13.1 0-1.1-.1-2.1-.4-3.2z"
-            />
-          </svg>
-          Continue with Google
-        </Button>
-
-        <Button
-          type="button"
-          variant="tertiary"
-          className={cn(
-            "mt-2.5 h-auto w-full bg-transparent px-0 py-2 text-[13px] font-normal text-muted-foreground",
-            "hover:bg-transparent hover:text-cobalt-500"
-          )}
-        >
-          Prefer a password?{" "}
-          <span className="border-b border-input">Use one instead</span>
-        </Button>
+        {SHOW_INACTIVE_AUTH_OPTIONS ? <InactiveAuthOptions /> : null}
 
         <footer
           className={cn(
@@ -383,5 +353,64 @@ function FormPane({
         A quiet place to begin
       </span>
     </section>
+  )
+}
+
+function InactiveAuthOptions() {
+  return (
+    <>
+      {/* "or" divider */}
+      <div
+        className={cn(
+          "my-[22px] flex items-center gap-3",
+          "font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300",
+          "before:h-px before:flex-1 before:bg-border before:content-['']",
+          "after:h-px after:flex-1 after:bg-border after:content-['']"
+        )}
+      >
+        or
+      </div>
+
+      <Button
+        type="button"
+        variant="secondary"
+        className={cn(
+          "h-11 w-full gap-2.5 rounded-md border-input px-4 text-[14px]",
+          "text-foreground hover:bg-muted hover:border-slate-300"
+        )}
+      >
+        <svg viewBox="0 0 48 48" aria-hidden className="size-[18px]">
+          <path
+            fill="#FFC107"
+            d="M43.6 20.5H42V20.4H24v7.2h11.3c-1.5 4.2-5.5 7.2-10.3 7.2A11 11 0 0 1 13 23.8 11 11 0 0 1 24 12.8c2.7 0 5.2 1 7.1 2.7l5.1-5.1A18 18 0 0 0 24 5.8a18 18 0 1 0 0 36 18 18 0 0 0 17.7-15c.2-1 .3-2 .3-3.1 0-1.1-.1-2.1-.4-3.2z"
+          />
+          <path
+            fill="#FF3D00"
+            d="M7.3 14.5l5.9 4.3A11 11 0 0 1 24 12.8c2.7 0 5.2 1 7.1 2.7l5.1-5.1A18 18 0 0 0 7.3 14.5z"
+          />
+          <path
+            fill="#4CAF50"
+            d="M24 41.8a18 18 0 0 0 12-4.6l-5.5-4.7a11 11 0 0 1-6.5 2.1c-4.7 0-8.7-3-10.2-7.2L8 32.2A18 18 0 0 0 24 41.8z"
+          />
+          <path
+            fill="#1976D2"
+            d="M43.6 20.5H42V20.4H24v7.2h11.3a11 11 0 0 1-3.8 5.1l5.5 4.6c-.4.4 5.9-4.3 5.9-13.1 0-1.1-.1-2.1-.4-3.2z"
+          />
+        </svg>
+        Continue with Google
+      </Button>
+
+      <Button
+        type="button"
+        variant="tertiary"
+        className={cn(
+          "mt-2.5 h-auto w-full bg-transparent px-0 py-2 text-[13px] font-normal text-muted-foreground",
+          "hover:bg-transparent hover:text-cobalt-500"
+        )}
+      >
+        Prefer a password?{" "}
+        <span className="border-b border-input">Use one instead</span>
+      </Button>
+    </>
   )
 }

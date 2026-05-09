@@ -1,16 +1,17 @@
-import { SettingsIcon } from "lucide-react"
+import { LogOutIcon } from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
 import { Button } from "@workspace/ui/components/button"
 import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
 
 export function SidebarUser({
-  name = "Jamie Park",
-  role = "Sole practitioner",
+  email,
 }: {
-  name?: string
-  role?: string
+  email?: string | null
 }) {
+  const displayEmail = email ?? "Signed in"
+  const avatarName = email ?? "TinyOps"
+
   return (
     <div
       className={cn(
@@ -18,29 +19,31 @@ export function SidebarUser({
         "group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
       )}
     >
-      <TonalAvatar name={name} size="md" tone="slate" />
+      <TonalAvatar name={avatarName} size="md" tone="slate" />
       <div className="flex min-w-0 flex-1 flex-col leading-tight group-data-[collapsible=icon]:hidden">
         <span className="truncate text-[13px] font-medium text-sidebar-foreground">
-          {name}
+          {displayEmail}
         </span>
         <span className="truncate text-[11.5px] text-sidebar-foreground/55">
-          {role}
+          Sole practitioner
         </span>
       </div>
-      <Button
-        type="button"
-        variant="tertiary"
-        size="icon-sm"
-        aria-label="Account settings"
-        className={cn(
-          "size-6 shrink-0 text-sidebar-foreground/55",
-          "hover:bg-sidebar-accent hover:text-sidebar-foreground",
-          "group-data-[collapsible=icon]:hidden",
-          "[&>svg]:size-[15px]"
-        )}
-      >
-        <SettingsIcon />
-      </Button>
+      <form action="/auth/sign-out" method="post">
+        <Button
+          type="submit"
+          variant="tertiary"
+          size="icon-sm"
+          aria-label="Sign out"
+          className={cn(
+            "size-6 shrink-0 text-sidebar-foreground/55",
+            "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            "group-data-[collapsible=icon]:hidden",
+            "[&>svg]:size-[15px]"
+          )}
+        >
+          <LogOutIcon />
+        </Button>
+      </form>
     </div>
   )
 }

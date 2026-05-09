@@ -31,8 +31,20 @@ pnpm supabase:start
 pnpm supabase:status
 ```
 
-Copy `apps/web/.env.example` to `apps/web/.env.local` and use the local anon
-key from `pnpm supabase:status`.
+Copy `apps/web/.env.example` to `apps/web/.env.local` and use the local API URL,
+anon or publishable key, and service role key from `pnpm supabase:status`.
+
+Reset the local database, apply migrations, seed the local invite allowlist, and
+regenerate app database types:
+
+```bash
+pnpm supabase:reset
+pnpm supabase:types
+```
+
+The seeded local invited email is `anna@example.co`. Magic-link emails are
+captured by Supabase Inbucket in local development; open the Inbucket URL shown
+by `pnpm supabase:status` to finish sign-in.
 
 ## Adding components
 
