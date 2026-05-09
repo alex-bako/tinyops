@@ -3,14 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {
-  BellIcon,
-  HelpCircleIcon,
-  HomeIcon,
-  MoreHorizontalIcon,
-  UsersIcon,
-} from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+import { BellIcon, HelpCircleIcon, MoreHorizontalIcon } from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
 import { Button, ButtonIndicator } from "@workspace/ui/components/button"
@@ -25,40 +18,7 @@ import {
 import { SidebarTrigger } from "@workspace/ui/components/sidebar"
 
 import { clientBySlug } from "@/lib/clients"
-
-export type Crumb = {
-  icon?: LucideIcon
-  label: string
-  href?: string
-}
-
-const HOME: Crumb = { icon: HomeIcon, label: "Home", href: "/home" }
-const CLIENTS: Crumb = {
-  icon: UsersIcon,
-  label: "Clients",
-  href: "/home/clients",
-}
-
-const ROUTE_CRUMBS: Record<string, Crumb[]> = {
-  "/home": [{ icon: HomeIcon, label: "Home" }],
-  "/home/clients": [HOME, { icon: UsersIcon, label: "Clients" }],
-}
-
-function deriveCrumbs(pathname: string): Crumb[] {
-  if (ROUTE_CRUMBS[pathname]) return ROUTE_CRUMBS[pathname]!
-
-  const clientSlug = pathname.match(/^\/home\/clients\/([^/]+)\/?$/)?.[1]
-  if (clientSlug) {
-    const client = clientBySlug(clientSlug)
-    return [HOME, CLIENTS, { label: client?.name ?? clientSlug }]
-  }
-
-  const match = Object.keys(ROUTE_CRUMBS)
-    .filter((p) => pathname.startsWith(`${p}/`))
-    .sort((a, b) => b.length - a.length)[0]
-  if (match) return ROUTE_CRUMBS[match]!
-  return [{ icon: HomeIcon, label: "Home" }]
-}
+import { deriveAppCrumbs, type Crumb } from "@/lib/navigation"
 
 function CrumbContent({ icon: Icon, label }: Crumb) {
   return (
@@ -71,7 +31,11 @@ function CrumbContent({ icon: Icon, label }: Crumb) {
 
 export function AppTopbar({ crumbs }: { crumbs?: Crumb[] }) {
   const pathname = usePathname() ?? "/home"
-  const resolved = crumbs ?? deriveCrumbs(pathname)
+  const resolved =
+    crumbs ??
+    deriveAppCrumbs(pathname, {
+      resolveClientName: (slug) => clientBySlug(slug)?.name,
+    })
 
   return (
     <header
