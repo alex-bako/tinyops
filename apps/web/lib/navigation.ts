@@ -40,6 +40,7 @@ const CLIENTS: Crumb = {
 const ROUTE_CRUMBS: Record<string, Crumb[]> = {
   "/home": [{ icon: HomeIcon, label: "Home" }],
   "/home/clients": [HOME, { icon: UsersIcon, label: "Clients" }],
+  "/home/sources": [HOME, { icon: PlugZapIcon, label: "Data sources" }],
 }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -55,7 +56,12 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/home/clients",
       },
       { id: "tasks", label: "Tasks", icon: ListTodoIcon, count: 3 },
-      { id: "sources", label: "Data sources", icon: PlugZapIcon },
+      {
+        id: "sources",
+        label: "Data sources",
+        icon: PlugZapIcon,
+        href: "/home/sources",
+      },
     ],
   },
   {
