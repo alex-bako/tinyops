@@ -2,7 +2,10 @@
 
 import { headers } from "next/headers"
 
-import { isInvitedEmail, type InviteLookupClient } from "@/lib/auth/invites"
+import {
+  createSupabaseInviteLookupClient,
+  isInvitedEmail,
+} from "@/lib/auth/invites"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
@@ -27,15 +30,14 @@ export async function requestMagicLink(
   previousState: LoginState,
   formData: FormData
 ) {
+  const inviteLookup = createSupabaseInviteLookupClient(
+    createSupabaseAdminClient()
+  )
   const dependencies: RequestMagicLinkDependencies = {
     getOrigin: () => {
       throw new Error("Origin is loaded before request dependencies run")
     },
-    isInvited: (email) =>
-      isInvitedEmail(
-        email,
-        createSupabaseAdminClient() as unknown as InviteLookupClient
-      ),
+    isInvited: (email) => isInvitedEmail(email, inviteLookup),
     sendMagicLink: async ({ email, emailRedirectTo }) => {
       const supabase = await createServerSupabaseClient()
       const { error } = await supabase.auth.signInWithOtp({

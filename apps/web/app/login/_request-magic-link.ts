@@ -1,5 +1,7 @@
-import { buildAuthCallbackUrl } from "@/lib/auth/redirect"
-import { normalizeEmail } from "@/lib/auth/email"
+import {
+  requestMagicLink,
+  type RequestMagicLinkDependencies,
+} from "@/lib/auth/flow"
 
 import {
   initialLoginState,
@@ -7,18 +9,7 @@ import {
   type LoginState,
 } from "@/app/login/_state"
 
-type SendMagicLinkResult = {
-  error: { message: string } | null
-}
-
-export type RequestMagicLinkDependencies = {
-  getOrigin: () => string
-  isInvited: (email: string) => Promise<boolean>
-  sendMagicLink: (input: {
-    email: string
-    emailRedirectTo: string
-  }) => Promise<SendMagicLinkResult>
-}
+export type { RequestMagicLinkDependencies }
 
 function loginState(status: LoginState["status"], submittedEmail?: string) {
   return {
@@ -33,26 +24,15 @@ export async function requestMagicLinkWithDependencies(
   formData: FormData,
   dependencies: RequestMagicLinkDependencies
 ): Promise<LoginState> {
-  const email = normalizeEmail(formData.get("email"))
-  if (!email) return loginState("invalid")
+  const outcome = await requestMagicLink(
+    { email: formData.get("email") },
+    dependencies
+  )
 
-  let invited: boolean
-  try {
-    invited = await dependencies.isInvited(email)
-  } catch {
-    return loginState("error", email)
-  }
-
-  if (!invited) return loginState("uninvited", email)
-
-  const result = await dependencies.sendMagicLink({
-    email,
-    emailRedirectTo: buildAuthCallbackUrl(dependencies.getOrigin()),
-  })
-
-  if (result.error) return loginState("error", email)
-
-  return loginState("sent", email)
+  return loginState(
+    outcome.status,
+    "email" in outcome ? outcome.email : undefined
+  )
 }
 
 export { initialLoginState }

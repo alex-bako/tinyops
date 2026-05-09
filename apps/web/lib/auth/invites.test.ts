@@ -6,12 +6,9 @@ function inviteClient(result: {
   data: { email: string } | null
   error: { message: string } | null
 }): InviteLookupClient {
-  const maybeSingle = vi.fn().mockResolvedValue(result)
-  const eq = vi.fn().mockReturnValue({ maybeSingle })
-  const select = vi.fn().mockReturnValue({ eq })
-  const from = vi.fn().mockReturnValue({ select })
-
-  return { from }
+  return {
+    findInviteByEmail: vi.fn().mockResolvedValue(result),
+  }
 }
 
 describe("isInvitedEmail", () => {
