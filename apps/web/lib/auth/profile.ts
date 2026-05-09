@@ -79,6 +79,9 @@ export function createSupabaseProfileSyncStore(
 export type AppProfile = {
   id: string
   email: string
+  firstName: string | null
+  lastName: string | null
+  onboardedAt: string | null
 }
 
 export type AppProfileSession = {
@@ -122,7 +125,7 @@ export function createSupabaseAppProfileSessionReader(
     async findProfileByUserId(userId) {
       const { data, error } = await client
         .from("profiles")
-        .select("id,email")
+        .select("id,email,first_name,last_name,onboarded_at")
         .eq("id", userId)
         .maybeSingle()
 
@@ -130,7 +133,15 @@ export function createSupabaseAppProfileSessionReader(
         throw new Error("Could not load app profile", { cause: error })
       }
 
-      return data ? { id: data.id, email: data.email } : null
+      return data
+        ? {
+            id: data.id,
+            email: data.email,
+            firstName: data.first_name,
+            lastName: data.last_name,
+            onboardedAt: data.onboarded_at,
+          }
+        : null
     },
   }
 }

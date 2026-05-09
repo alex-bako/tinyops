@@ -5,7 +5,9 @@ import type {
   WorkspaceInvite,
   WorkspaceMember,
   WorkspaceRole,
+  WorkspaceInitialSourceIntent,
   WorkspaceTone,
+  WorkspaceVertical,
 } from "@/features/workspaces/types"
 
 export type WorkspaceRow = {
@@ -24,6 +26,9 @@ export type WorkspaceRow = {
   auto_send_threshold: string
   manual_review_keywords: string[]
   exclude_from_outbound: boolean
+  vertical?: string | null
+  default_sender_name?: string | null
+  initial_source_intent?: string | null
   workspace_memberships?: WorkspaceMembershipRow[]
   workspace_invitations?: WorkspaceInvitationRow[]
 }
@@ -99,6 +104,9 @@ export function mapWorkspaceRow(
     description: row.description,
     icon: mapIcon(row.icon_kind, row.icon_letter, row.icon_tone),
     accent: coerceTone(row.accent),
+    vertical: coerceVertical(row.vertical),
+    defaultSenderName: row.default_sender_name ?? "",
+    initialSourceIntent: coerceInitialSourceIntent(row.initial_source_intent),
     role,
     plan: {
       tier: coercePlanTier(row.plan_tier),
@@ -220,6 +228,25 @@ function coerceAutoSendThreshold(
 ): Workspace["sensitivity"]["autoSendThreshold"] {
   if (value === "low-and-medium" || value === "everything") return value
   return "low-only"
+}
+
+function coerceVertical(value: string | null | undefined): WorkspaceVertical {
+  if (
+    value === "therapy" ||
+    value === "coaching" ||
+    value === "course" ||
+    value === "agency"
+  ) {
+    return value
+  }
+  return "other"
+}
+
+function coerceInitialSourceIntent(
+  value: string | null | undefined
+): WorkspaceInitialSourceIntent {
+  if (value === "imap" || value === "csv" || value === "forms") return value
+  return "skip"
 }
 
 function nameFromEmail(email: string | null | undefined) {

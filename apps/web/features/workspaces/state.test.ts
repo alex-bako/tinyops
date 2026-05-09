@@ -11,6 +11,9 @@ function workspace(patch: Partial<Workspace> = {}): Workspace {
     description: "Team workspace",
     icon: { kind: "mark" },
     accent: "cobalt",
+    vertical: "other",
+    defaultSenderName: "",
+    initialSourceIntent: "skip",
     role: "owner",
     plan: { tier: "Team", price: "$89 / mo", seats: 2 },
     sensitivity: {

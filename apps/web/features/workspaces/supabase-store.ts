@@ -63,6 +63,9 @@ const WORKSPACE_COLUMNS = `
   auto_send_threshold,
   manual_review_keywords,
   exclude_from_outbound,
+  vertical,
+  default_sender_name,
+  initial_source_intent,
   workspace_memberships (
     id,
     user_id,
@@ -168,6 +171,9 @@ export function createSupabaseWorkspaceStore({
         auto_send_threshold: "low-only",
         manual_review_keywords: ["crisis", "trauma"],
         exclude_from_outbound: true,
+        vertical: "other",
+        default_sender_name: "",
+        initial_source_intent: "skip",
       }
 
       return mapWorkspaceRow(

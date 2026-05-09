@@ -1,11 +1,12 @@
 import * as React from "react"
+import { redirect } from "next/navigation"
 
 import { AppShell } from "@/components/app-shell"
 import { WorkspaceFeatureProvider } from "@/features/workspaces/context"
 import { createWorkspaceRequestContext } from "@/features/data-sources/request-context"
 import { loadWorkspaceSourceCatalogForWorkspace } from "@/features/data-sources/loaders"
 import { loadClientNavItems } from "@/lib/client-memory/loaders"
-import type { WorkspaceFeatureData } from "@/features/workspaces/types"
+import { ONBOARDING_PATH } from "@/app/onboarding/constants"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return <AuthenticatedAppShell>{children}</AuthenticatedAppShell>
@@ -20,20 +21,26 @@ export async function AuthenticatedAppShell({
     loadClientNavItems(),
     createWorkspaceRequestContext(),
   ])
-  const workspaceFeatureData =
-    context?.workspaceFeatureData ?? EMPTY_WORKSPACE_FEATURE_DATA
-  const sourceCatalog = context
-    ? await loadWorkspaceSourceCatalogForWorkspace({
-        workspace: context.activeWorkspace,
-        store: context.dataSourceStore,
-      })
-    : []
+
+  if (
+    !context ||
+    !context.session.profile?.onboardedAt ||
+    !context.workspaceFeatureData.activeWorkspaceId
+  ) {
+    redirect(ONBOARDING_PATH)
+  }
+
+  const workspaceFeatureData = context.workspaceFeatureData
+  const sourceCatalog = await loadWorkspaceSourceCatalogForWorkspace({
+    workspace: context.activeWorkspace,
+    store: context.dataSourceStore,
+  })
   const sourceNavItems = sourceCatalog.map(({ id, title }) => ({ id, title }))
 
   return (
     <WorkspaceFeatureProvider data={workspaceFeatureData}>
       <AppShell
-        userEmail={context?.session.email}
+        userEmail={context.session.email}
         clientNavItems={clientNavItems}
         sourceNavItems={sourceNavItems}
       >
@@ -41,11 +48,4 @@ export async function AuthenticatedAppShell({
       </AppShell>
     </WorkspaceFeatureProvider>
   )
-}
-
-const EMPTY_WORKSPACE_FEATURE_DATA: WorkspaceFeatureData = {
-  workspaces: [],
-  joinableWorkspaces: [],
-  usageByWorkspaceId: {},
-  activeWorkspaceId: null,
 }

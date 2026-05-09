@@ -21,6 +21,13 @@ export type WorkspaceIconKind =
 
 export type SensitivityMode = "strict" | "balanced" | "lenient"
 export type AutoSendThreshold = "low-only" | "low-and-medium" | "everything"
+export type WorkspaceVertical =
+  | "therapy"
+  | "coaching"
+  | "course"
+  | "agency"
+  | "other"
+export type WorkspaceInitialSourceIntent = "imap" | "csv" | "forms" | "skip"
 
 export type WorkspaceSensitivity = {
   mode: SensitivityMode
@@ -98,6 +105,9 @@ export type Workspace = {
   description: string
   icon: WorkspaceIconKind
   accent: WorkspaceTone
+  vertical: WorkspaceVertical
+  defaultSenderName: string
+  initialSourceIntent: WorkspaceInitialSourceIntent
   role: WorkspaceRole
   plan: WorkspacePlan
   sensitivity: WorkspaceSensitivity

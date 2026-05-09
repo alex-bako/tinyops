@@ -10,6 +10,9 @@ const workspace = {
   description: "",
   icon: { kind: "mark" },
   accent: "cobalt",
+  vertical: "other",
+  defaultSenderName: "",
+  initialSourceIntent: "skip",
   role: "owner",
   plan: { tier: "Team", price: "$0 / alpha", seats: 5 },
   sensitivity: {
@@ -26,7 +29,13 @@ describe("workspace request context", () => {
   it("loads session, active workspace, and feature stores through one seam", async () => {
     const session = {
       user: { id: "user_1", email: "user@example.com" },
-      profile: { id: "user_1", email: "user@example.com" },
+      profile: {
+        id: "user_1",
+        email: "user@example.com",
+        firstName: "Jamie",
+        lastName: "Park",
+        onboardedAt: "2026-05-10T01:02:03.000Z",
+      },
       email: "user@example.com",
     }
     const supabase = {}

@@ -24,6 +24,9 @@ describe("workspace mappers", () => {
         auto_send_threshold: "low-only",
         manual_review_keywords: ["crisis"],
         exclude_from_outbound: true,
+        vertical: "therapy",
+        default_sender_name: "Jamie Park",
+        initial_source_intent: "imap",
         workspace_memberships: [
           {
             id: "member_1",
@@ -63,6 +66,9 @@ describe("workspace mappers", () => {
       handle: "jamie-practice",
       icon: { kind: "letter", letter: "J", tone: "mint" },
       accent: "cobalt",
+      vertical: "therapy",
+      defaultSenderName: "Jamie Park",
+      initialSourceIntent: "imap",
       role: "owner",
       plan: { tier: "Team", price: "$0 / alpha", seats: 5 },
       sensitivity: {
