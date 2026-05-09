@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { ArrowLeftIcon, FilterIcon, EyeOffIcon, PlusIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
+import { Section, SectionHead } from "@workspace/ui/components/section"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { clientBySlug } from "@/lib/clients"
@@ -11,7 +12,6 @@ import { ClientHeader } from "./_components/client-header"
 import { MemoryCallout } from "./_components/memory-callout"
 import { NotesEmpty } from "./_components/notes-empty"
 import { Properties } from "./_components/properties"
-import { Section, SectionHead } from "./_components/section"
 import { TimelineSection } from "./_components/timeline-section"
 
 export default async function ClientDetailPage({
