@@ -331,16 +331,17 @@ function FormPane({
           Continue with Google
         </Button>
 
-        <button
+        <Button
           type="button"
+          variant="tertiary"
           className={cn(
-            "mt-2.5 block w-full bg-transparent py-2 text-[13px] text-muted-foreground",
-            "transition-colors duration-[120ms] ease-out hover:text-cobalt-500"
+            "mt-2.5 h-auto w-full bg-transparent px-0 py-2 text-[13px] font-normal text-muted-foreground",
+            "hover:bg-transparent hover:text-cobalt-500"
           )}
         >
           Prefer a password?{" "}
           <span className="border-b border-input">Use one instead</span>
-        </button>
+        </Button>
 
         <footer
           className={cn(
