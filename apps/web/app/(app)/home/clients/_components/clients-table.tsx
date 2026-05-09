@@ -1,0 +1,156 @@
+"use client"
+
+import * as React from "react"
+import { ChevronRightIcon, SearchXIcon } from "lucide-react"
+
+import { Badge, BadgeDot } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@workspace/ui/components/table"
+import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
+import { cn } from "@workspace/ui/lib/utils"
+
+import type { Client, ClientFlag, ClientStatus } from "@/lib/clients"
+
+function StatusCell({ status }: { status: ClientStatus }) {
+  if (status === "sensitive") return <Badge variant="sensitive">Sensitive</Badge>
+  if (status === "inactive")
+    return <Badge variant="neutral">Inactive 90d+</Badge>
+  if (status === "dnc")
+    return (
+      <Badge variant="dnc">
+        <BadgeDot />
+        Do not contact
+      </Badge>
+    )
+  return (
+    <Badge variant="active">
+      <BadgeDot />
+      Active
+    </Badge>
+  )
+}
+
+function FlagPills({ flags }: { flags: ClientFlag[] }) {
+  if (flags.length === 0) {
+    return (
+      <span className="font-mono text-[11.5px] text-muted-foreground/50">
+        —
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex flex-wrap gap-1">
+      {flags.includes("overdue") && <Badge variant="warn">Overdue</Badge>}
+      {flags.includes("sensitive") && (
+        <Badge variant="sensitive">Sensitive</Badge>
+      )}
+      {flags.includes("idle") && <Badge variant="neutral">Idle</Badge>}
+      {flags.includes("dnc") && (
+        <Badge variant="dnc">
+          <BadgeDot />
+          DNC
+        </Badge>
+      )}
+    </span>
+  )
+}
+
+export function ClientsTable({
+  rows,
+  total,
+  onClear,
+}: {
+  rows: Client[]
+  total: number
+  onClear: () => void
+}) {
+  return (
+    <Table className="mt-0">
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          <TableHead className="w-[30%]">Name</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Cohort</TableHead>
+          <TableHead className="text-right">Sources</TableHead>
+          <TableHead>Last contact</TableHead>
+          <TableHead>Last event</TableHead>
+          <TableHead>Flags</TableHead>
+          <TableHead className="w-[60px]" aria-hidden />
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.length === 0 ? (
+          <tr>
+            <td colSpan={8} className="border-b border-border">
+              <div
+                className={cn(
+                  "flex items-center justify-center gap-2.5 px-3 py-9 text-[13px] text-muted-foreground"
+                )}
+              >
+                <SearchXIcon className="size-4 text-muted-foreground/60" />
+                <span>No clients match these filters.</span>
+                <Button variant="tertiary" size="sm" onClick={onClear}>
+                  Clear filters
+                </Button>
+              </div>
+            </td>
+          </tr>
+        ) : (
+          rows.map((c) => (
+            <TableRow key={c.email} interactive>
+              <TableCell>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <TonalAvatar size="md" name={c.name} />
+                  <div className="flex min-w-0 flex-col leading-[1.2]">
+                    <span className="text-[13.5px] font-medium tracking-[-0.005em] text-foreground">
+                      {c.name}
+                    </span>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {c.email}
+                    </span>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <StatusCell status={c.status} />
+              </TableCell>
+              <TableCell>
+                <Badge variant="tag">{c.cohort}</Badge>
+              </TableCell>
+              <TableCell className="text-right font-mono text-[12.5px] tabular-nums text-foreground">
+                {c.sources}
+              </TableCell>
+              <TableCell className="font-mono text-[12px] tabular-nums whitespace-nowrap text-muted-foreground">
+                {c.lastContact}
+              </TableCell>
+              <TableCell className="font-mono text-[12px] tabular-nums whitespace-nowrap text-muted-foreground">
+                {c.lastEvent}
+              </TableCell>
+              <TableCell>
+                <FlagPills flags={c.flags} />
+              </TableCell>
+              <TableCell className="w-[60px] text-right">
+                <span
+                  aria-hidden
+                  className={cn(
+                    "inline-flex -translate-x-0.5 text-muted-foreground/50 opacity-0 transition duration-(--dur-fast) ease-(--ease-out)",
+                    "group-hover/row:translate-x-0 group-hover/row:opacity-100"
+                  )}
+                >
+                  <ChevronRightIcon className="size-3.5" />
+                </span>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  )
+}

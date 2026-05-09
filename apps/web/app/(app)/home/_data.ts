@@ -1,14 +1,16 @@
-export type ClientStatus = "active" | "inactive" | "sensitive"
+import {
+  ALL_CLIENTS,
+  RECENT_CLIENTS,
+  type Client,
+  type ClientStatus,
+} from "@/lib/clients"
+
+export type { ClientStatus, Client }
+export type RecentClient = Client
+
+export { RECENT_CLIENTS, ALL_CLIENTS }
 
 export type BadgeKind = "neutral" | "active" | "warn" | "brand" | "sensitive"
-
-export type RecentClient = {
-  name: string
-  email: string
-  since: string
-  sources: number
-  status: ClientStatus
-}
 
 export type AttentionItem = {
   num: number
@@ -31,44 +33,6 @@ export type WeekTask = {
   sub: string
   badge: { kind: BadgeKind; text: string }
 }
-
-export const RECENT_CLIENTS: RecentClient[] = [
-  {
-    name: "Anna Smith",
-    email: "anna@example.com",
-    since: "12d ago",
-    sources: 3,
-    status: "active",
-  },
-  {
-    name: "Mariko Tan",
-    email: "mariko.t@example.com",
-    since: "3d ago",
-    sources: 4,
-    status: "active",
-  },
-  {
-    name: "Luca De Rossi",
-    email: "luca.derossi@gmail.com",
-    since: "5w ago",
-    sources: 2,
-    status: "inactive",
-  },
-  {
-    name: "Sara Berger",
-    email: "s.berger@example.de",
-    since: "2d ago",
-    sources: 5,
-    status: "sensitive",
-  },
-  {
-    name: "Priya Raman",
-    email: "priya@example.com",
-    since: "yesterday",
-    sources: 3,
-    status: "active",
-  },
-]
 
 export const ATTENTION: AttentionItem[] = [
   {
