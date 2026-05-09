@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  clientCohortBadge,
   clientDetailFlagBadges,
   clientFlagBadges,
   clientStatusBadge,
@@ -29,5 +30,16 @@ describe("client state badges", () => {
       { kind: "warn", label: "Overdue check-in" },
       { kind: "neutral", label: "Idle 60d+" },
     ])
+  })
+
+  it("maps cohort badges for detail and table surfaces", () => {
+    expect(clientCohortBadge("March cohort")).toEqual({
+      kind: "neutral",
+      label: "March cohort",
+    })
+    expect(clientCohortBadge("March cohort", "tag")).toEqual({
+      kind: "tag",
+      label: "March cohort",
+    })
   })
 })
