@@ -1,15 +1,15 @@
 import Link from "next/link"
 
+import { RecordRow } from "@workspace/ui/components/record-row"
 import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
 
 import { ClientStatusBadge } from "@/components/client-state-badge"
 
 import type { RecentClient } from "../_data"
-import { NotionRow } from "./notion-row"
 
 function ClientRow({ client }: { client: RecentClient }) {
   return (
-    <NotionRow asChild>
+    <RecordRow asChild>
       <Link href={`/home/clients/${client.slug}`}>
         <TonalAvatar size="md" name={client.name} />
         <div className="flex min-w-0 flex-col leading-[1.25]">
@@ -27,7 +27,7 @@ function ClientRow({ client }: { client: RecentClient }) {
           <ClientStatusBadge status={client.status} />
         </span>
       </Link>
-    </NotionRow>
+    </RecordRow>
   )
 }
 

@@ -5,6 +5,8 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+import { RecordRow } from "@workspace/ui/components/record-row"
+
 import type { DataSource } from "../_data"
 
 const ICON_MAP: Record<DataSource["icon"], LucideIcon> = {
@@ -16,7 +18,7 @@ const ICON_MAP: Record<DataSource["icon"], LucideIcon> = {
 function SourceRow({ source }: { source: DataSource }) {
   const Icon = ICON_MAP[source.icon]
   return (
-    <div className="flex items-center gap-2.5 border-b border-border py-2 text-[13.5px] last:border-b-0">
+    <RecordRow variant="source" interactive={false}>
       <span className="inline-flex size-6 items-center justify-center rounded-xs text-muted-foreground">
         <Icon className="size-3.5" />
       </span>
@@ -35,7 +37,7 @@ function SourceRow({ source }: { source: DataSource }) {
         )}
         {source.state}
       </span>
-    </div>
+    </RecordRow>
   )
 }
 

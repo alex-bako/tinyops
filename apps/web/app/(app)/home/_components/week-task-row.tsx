@@ -5,10 +5,10 @@ import {
 } from "lucide-react"
 
 import { Badge } from "@workspace/ui/components/badge"
+import { RecordRow } from "@workspace/ui/components/record-row"
 import { cn } from "@workspace/ui/lib/utils"
 
 import type { WeekTask } from "../_data"
-import { NotionRow } from "./notion-row"
 
 const ICON_MAP: Record<WeekTask["icon"], LucideIcon> = {
   sparkles: SparklesIcon,
@@ -23,7 +23,7 @@ const TONE_BG: Record<WeekTask["tone"], string> = {
 function WeekTaskRow({ task }: { task: WeekTask }) {
   const Icon = ICON_MAP[task.icon]
   return (
-    <NotionRow>
+    <RecordRow>
       <span
         aria-hidden
         className={cn(
@@ -42,7 +42,7 @@ function WeekTaskRow({ task }: { task: WeekTask }) {
       <span className="ml-auto flex items-center">
         <Badge variant={task.badge.kind}>{task.badge.text}</Badge>
       </span>
-    </NotionRow>
+    </RecordRow>
   )
 }
 

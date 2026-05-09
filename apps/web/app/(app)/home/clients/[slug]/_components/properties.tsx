@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
+import { RecordRow } from "@workspace/ui/components/record-row"
 import { Badge, BadgeDot } from "@workspace/ui/components/badge"
 import { EditorialItalic } from "@workspace/ui/components/typography"
 import { cn } from "@workspace/ui/lib/utils"
@@ -100,10 +101,11 @@ export function Properties({
       {properties.map((p) => {
         const Icon = ICONS[p.icon]
         return (
-          <div
+          <RecordRow
             key={p.key}
+            variant="property"
+            interactive={false}
             className={cn(
-              "grid min-h-[30px] grid-cols-[160px_1fr] items-start gap-x-3 rounded-xs px-1.5 py-[5px]",
               "transition-colors duration-(--dur-fast) ease-(--ease-out) hover:bg-[var(--tint-hover)]"
             )}
           >
@@ -124,7 +126,7 @@ export function Properties({
             >
               <PropertyValue value={p.value} />
             </span>
-          </div>
+          </RecordRow>
         )
       })}
     </div>
