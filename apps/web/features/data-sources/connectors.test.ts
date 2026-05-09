@@ -15,14 +15,20 @@ function imapSource(): ImapDataSource {
     displayName: "IMAP mailbox",
     status: "connected",
     configVersion: 1,
-    config: {
+    connection: {
       host: "imap.example.com",
       port: 993,
       encryption: "ssl",
       username: "hello@example.com",
+    },
+    intake: {
       historyWindow: "12mo",
       watchedFolders: ["INBOX"],
       skipSenders: [],
+      messageFilters: { mode: "and", rules: [] },
+    },
+    folderSnapshot: {
+      availableFolders: [{ path: "INBOX", messages: 1204 }],
     },
     secret: { purpose: "imap_password", maskedValue: "****cret" },
     sync: {
@@ -69,7 +75,11 @@ describe("data source connector platform", () => {
       id: "imap",
       connected: true,
       sourceRowId: "source_1",
-      imap: { username: "hello@example.com" },
+      imap: {
+        username: "hello@example.com",
+        watchedFolders: ["INBOX"],
+        availableFolders: [{ path: "INBOX", messages: 1204 }],
+      },
     })
     expect(csv).toMatchObject({
       id: "csv",

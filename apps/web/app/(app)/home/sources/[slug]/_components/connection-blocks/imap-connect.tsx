@@ -44,11 +44,11 @@ function ImapConnect({ source }: { source: DataSource }) {
     setError(null)
     startTransition(async () => {
       const result =
-        source.connected && source.sourceRowId && form.password.trim() === ""
-          ? await updateImapConnectionSettingsAction(
-              source.sourceRowId,
-              connectionSettings
-            )
+        source.connected && source.sourceRowId
+          ? await updateImapConnectionSettingsAction(source.sourceRowId, {
+              ...connectionSettings,
+              password: form.password,
+            })
           : await connectImapDataSourceAction({
               ...connectionSettings,
               password: form.password,

@@ -12,59 +12,86 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select"
 
-const FIELDS = ["From", "To", "Subject", "Body"] as const
-const OPERATORS = ["is", "is not", "contains", "does not contain"] as const
+import type {
+  ImapMessageFilterField,
+  ImapMessageFilterOperator,
+  ImapMessageFilterRule,
+} from "@/features/data-sources/types"
+
+const FIELDS: Array<{ value: ImapMessageFilterField; label: string }> = [
+  { value: "from", label: "From" },
+  { value: "to", label: "To" },
+  { value: "subject", label: "Subject" },
+  { value: "body", label: "Body" },
+]
+
+const OPERATORS: Array<{ value: ImapMessageFilterOperator; label: string }> = [
+  { value: "is", label: "is" },
+  { value: "is_not", label: "is not" },
+  { value: "contains", label: "contains" },
+  { value: "does_not_contain", label: "does not contain" },
+]
 
 function RuleRow({
-  field,
-  op,
-  value,
+  rule,
+  onChange,
+  onRemove,
 }: {
-  field: (typeof FIELDS)[number]
-  op: (typeof OPERATORS)[number]
-  value: string
+  rule: ImapMessageFilterRule
+  onChange: (rule: ImapMessageFilterRule) => void
+  onRemove: () => void
 }) {
-  const [fieldVal, setFieldVal] = React.useState<string>(field)
-  const [opVal, setOpVal] = React.useState<string>(op)
-  const [textVal, setTextVal] = React.useState<string>(value)
-
   return (
-    <div className="grid grid-cols-[110px_140px_minmax(0,1fr)_28px] items-center gap-1.5">
-      <Select value={fieldVal} onValueChange={setFieldVal}>
+    <div className="grid grid-cols-[110px_150px_minmax(0,1fr)_28px] items-center gap-1.5">
+      <Select
+        value={rule.field}
+        onValueChange={(field) =>
+          onChange({ ...rule, field: field as ImapMessageFilterField })
+        }
+      >
         <SelectTrigger size="sm" className="w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {FIELDS.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      <Select value={opVal} onValueChange={setOpVal}>
+      <Select
+        value={rule.operator}
+        onValueChange={(operator) =>
+          onChange({
+            ...rule,
+            operator: operator as ImapMessageFilterOperator,
+          })
+        }
+      >
         <SelectTrigger size="sm" className="w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {OPERATORS.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
       <Input
-        value={textVal}
-        onChange={(event) => setTextVal(event.target.value)}
+        value={rule.value}
+        onChange={(event) => onChange({ ...rule, value: event.target.value })}
         className="font-mono text-[12.5px]"
       />
 
       <button
         type="button"
         aria-label="Remove rule"
+        onClick={onRemove}
         className="inline-flex size-6 items-center justify-center rounded-[3px] text-muted-foreground transition-colors hover:bg-[var(--tint-hover)] hover:text-foreground"
       >
         <XIcon className="size-3" />

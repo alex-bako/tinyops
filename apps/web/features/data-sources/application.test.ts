@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest"
 
-import { createDataSourceApplication } from "@/features/data-sources/application"
+import {
+  createDataSourceCommandApplication,
+  createDataSourceQueryApplication,
+} from "@/features/data-sources/application"
 import type {
-  DataSourceStore,
-  ImapConfig,
+  DataSourceCommandStore,
+  DataSourceReader,
   ImapConnectionTester,
   ImapDataSource,
+  ImapIntakeSettings,
 } from "@/features/data-sources/types"
 
 const workspace = {
@@ -13,7 +17,9 @@ const workspace = {
   role: "owner" as const,
 }
 
-function connectedImapSource(): ImapDataSource {
+function connectedImapSource(
+  intake: Partial<ImapIntakeSettings> = {}
+): ImapDataSource {
   return {
     id: "source_1",
     workspaceId: workspace.id,
@@ -21,14 +27,24 @@ function connectedImapSource(): ImapDataSource {
     displayName: "IMAP mailbox",
     status: "connected",
     configVersion: 1,
-    config: {
+    connection: {
       host: "imap.example.com",
       port: 993,
       encryption: "ssl",
       username: "hello@example.com",
+    },
+    intake: {
       historyWindow: "12mo",
       watchedFolders: ["INBOX", "Clients"],
       skipSenders: ["*@noreply.*"],
+      messageFilters: { mode: "and", rules: [] },
+      ...intake,
+    },
+    folderSnapshot: {
+      availableFolders: [
+        { path: "INBOX", messages: 1204 },
+        { path: "Clients", messages: 412 },
+      ],
     },
     secret: {
       purpose: "imap_password",
@@ -47,8 +63,8 @@ function connectedImapSource(): ImapDataSource {
 }
 
 function dataSourceStore(
-  overrides: Partial<DataSourceStore> = {}
-): DataSourceStore {
+  overrides: Partial<DataSourceCommandStore> = {}
+): DataSourceCommandStore {
   return {
     async listForWorkspace() {
       return []
@@ -62,8 +78,14 @@ function dataSourceStore(
     async connectImap() {
       throw new Error("unexpected connect")
     },
-    async updateImapConfig() {
-      throw new Error("unexpected config update")
+    async updateImapConnection() {
+      throw new Error("unexpected connection update")
+    },
+    async updateImapIntake() {
+      throw new Error("unexpected intake update")
+    },
+    async updateImapFolderSnapshot() {
+      throw new Error("unexpected folder snapshot update")
     },
     async disconnect() {
       throw new Error("unexpected disconnect")
@@ -82,7 +104,29 @@ const successfulTester: ImapConnectionTester = {
 }
 
 describe("data source application", () => {
-  it("connects IMAP without returning the submitted password", async () => {
+  it("lists data sources through a read-only application without command adapters", async () => {
+    const reader: DataSourceReader = {
+      async listForWorkspace(workspaceId) {
+        expect(workspaceId).toBe(workspace.id)
+        return [connectedImapSource()]
+      },
+      async findForWorkspace() {
+        throw new Error("unexpected find")
+      },
+      async findByIdForWorkspace() {
+        throw new Error("unexpected find by id")
+      },
+    }
+
+    const application = createDataSourceQueryApplication({
+      workspace,
+      reader,
+    })
+
+    await expect(application.listDataSources()).resolves.toHaveLength(1)
+  })
+
+  it("connects IMAP and persists verified folder snapshot without returning the password", async () => {
     const testedConnections: unknown[] = []
     const persistedConnections: unknown[] = []
     const imapConnectionTester: ImapConnectionTester = {
@@ -99,14 +143,22 @@ describe("data source application", () => {
     const store = dataSourceStore({
       async connectImap(input) {
         persistedConnections.push(input)
-        return connectedImapSource()
+        return {
+          ...connectedImapSource(input.intake),
+          folderSnapshot: input.folderSnapshot,
+        }
       },
     })
 
-    const application = createDataSourceApplication({
+    const application = createDataSourceCommandApplication({
       workspace,
       store,
       imapConnectionTester,
+      imapCredentialReader: {
+        async readImapPassword() {
+          throw new Error("unexpected secret read")
+        },
+      },
     })
 
     const result = await application.connectImap({
@@ -116,8 +168,6 @@ describe("data source application", () => {
       username: " hello@example.com ",
       password: "top-secret",
       historyWindow: "12mo",
-      watchedFolders: ["INBOX", "Clients"],
-      skipSenders: ["*@noreply.*"],
     })
 
     expect(testedConnections).toMatchObject([
@@ -131,10 +181,21 @@ describe("data source application", () => {
       {
         workspaceId: workspace.id,
         password: "top-secret",
-        config: {
+        connection: {
           host: "imap.example.com",
           username: "hello@example.com",
-          watchedFolders: ["INBOX", "Clients"],
+        },
+        intake: {
+          historyWindow: "12mo",
+          watchedFolders: ["INBOX"],
+          skipSenders: [],
+          messageFilters: { mode: "and", rules: [] },
+        },
+        folderSnapshot: {
+          availableFolders: [
+            { path: "INBOX", messages: 1204 },
+            { path: "Clients", messages: 412 },
+          ],
         },
       },
     ])
@@ -149,25 +210,37 @@ describe("data source application", () => {
     expect(JSON.stringify(result)).not.toContain("top-secret")
   })
 
-  it("updates IMAP connection settings without password by preserving import settings", async () => {
-    const updatedConfigs: ImapConfig[] = []
+  it("updates IMAP connection settings with the stored password and preserves intake settings", async () => {
+    const updatedConnections: unknown[] = []
     const testedConnections: unknown[] = []
     const source = connectedImapSource()
-    const application = createDataSourceApplication({
+    const reads: unknown[] = []
+    const application = createDataSourceCommandApplication({
       workspace,
       store: dataSourceStore({
         async findByIdForWorkspace() {
           return source
         },
-        async updateImapConfig(input) {
-          updatedConfigs.push(input.config)
-          return { ...source, config: input.config }
+        async updateImapConnection(input) {
+          updatedConnections.push(input)
+          return {
+            ...source,
+            connection: input.connection,
+            intake: source.intake,
+            folderSnapshot: input.folderSnapshot,
+          }
         },
       }),
       imapConnectionTester: {
         async test(input) {
           testedConnections.push(input)
-          return { folders: [] }
+          return { folders: [{ path: "Receipts", messages: 9 }] }
+        },
+      },
+      imapCredentialReader: {
+        async readImapPassword(input) {
+          reads.push(input)
+          return "stored-secret"
         },
       },
     })
@@ -180,101 +253,218 @@ describe("data source application", () => {
       password: "",
     })
 
-    expect(result).toMatchObject({ data: { config: { host: "imap.new.com" } } })
-    expect(testedConnections).toEqual([])
-    expect(updatedConfigs).toEqual([
+    expect(result).toMatchObject({ data: { connection: { host: "imap.new.com" } } })
+    expect(reads).toEqual([{ workspaceId: workspace.id, sourceId: "source_1" }])
+    expect(testedConnections).toMatchObject([
+      { host: "imap.new.com", password: "stored-secret" },
+    ])
+    expect(updatedConnections).toMatchObject([
       {
-        host: "imap.new.com",
-        port: 993,
-        encryption: "starttls",
-        username: "owner@example.com",
-        historyWindow: "12mo",
-        watchedFolders: ["INBOX", "Clients"],
-        skipSenders: ["*@noreply.*"],
+        connection: {
+          host: "imap.new.com",
+          port: 993,
+          encryption: "starttls",
+          username: "owner@example.com",
+        },
+        password: undefined,
+        folderSnapshot: {
+          availableFolders: [{ path: "Receipts", messages: 9 }],
+        },
       },
     ])
   })
 
-  it("updates IMAP import settings without preserving stale UI-owned connection drafts", async () => {
-    const updatedConfigs: ImapConfig[] = []
-    const source = connectedImapSource()
-    const application = createDataSourceApplication({
-      workspace,
-      store: dataSourceStore({
-        async findByIdForWorkspace() {
-          return source
-        },
-        async updateImapConfig(input) {
-          updatedConfigs.push(input.config)
-          return { ...source, config: input.config }
-        },
-      }),
-      imapConnectionTester: successfulTester,
-    })
-
-    await expect(
-      application.updateImapImportSettings("source_1", {
-        historyWindow: "all",
-        watchedFolders: ["Receipts", " "],
-        skipSenders: ["notifications@example.com"],
-      })
-    ).resolves.toMatchObject({ data: { config: { historyWindow: "all" } } })
-    expect(updatedConfigs).toEqual([
-      {
-        ...source.config,
-        historyWindow: "all",
-        watchedFolders: ["Receipts"],
-        skipSenders: ["notifications@example.com"],
-      },
-    ])
-  })
-
-  it("stores a new IMAP password through connect while preserving import settings", async () => {
+  it("updates IMAP connection settings with a new password without rebuilding intake", async () => {
+    const updatedConnections: unknown[] = []
     const testedConnections: unknown[] = []
-    const persistedConnections: unknown[] = []
-    const source = connectedImapSource()
-    const application = createDataSourceApplication({
+    const source = connectedImapSource({
+      historyWindow: "all",
+      watchedFolders: ["Clients"],
+      skipSenders: ["*@noreply.*"],
+      messageFilters: {
+        mode: "and",
+        rules: [
+          {
+            id: "rule_1",
+            field: "subject",
+            operator: "does_not_contain",
+            value: "invoice",
+          },
+        ],
+      },
+    })
+    const application = createDataSourceCommandApplication({
       workspace,
       store: dataSourceStore({
         async findByIdForWorkspace() {
           return source
         },
-        async connectImap(input) {
-          persistedConnections.push(input)
-          return { ...source, config: input.config }
+        async updateImapConnection(input) {
+          updatedConnections.push(input)
+          return {
+            ...source,
+            connection: input.connection,
+            folderSnapshot: input.folderSnapshot,
+          }
         },
       }),
       imapConnectionTester: {
         async test(input) {
           testedConnections.push(input)
-          return { folders: [] }
+          return { folders: [{ path: "Clients", messages: 44 }] }
+        },
+      },
+      imapCredentialReader: {
+        async readImapPassword() {
+          throw new Error("new password should avoid secret read")
         },
       },
     })
 
-    await application.updateImapConnectionSettings("source_1", {
-      host: "imap.example.com",
-      port: 993,
-      encryption: "ssl",
-      username: "hello@example.com",
-      password: "new-secret",
+    await expect(
+      application.updateImapConnectionSettings("source_1", {
+        host: "imap.new.com",
+        port: 993,
+        encryption: "ssl",
+        username: "owner@example.com",
+        password: "new-secret",
+      })
+    ).resolves.toMatchObject({
+      data: {
+        intake: {
+          historyWindow: "all",
+          watchedFolders: ["Clients"],
+          skipSenders: ["*@noreply.*"],
+        },
+      },
     })
-
     expect(testedConnections).toMatchObject([{ password: "new-secret" }])
-    expect(persistedConnections).toMatchObject([
+    expect(updatedConnections).toMatchObject([
       {
         password: "new-secret",
-        config: {
-          historyWindow: "12mo",
-          watchedFolders: ["INBOX", "Clients"],
-          skipSenders: ["*@noreply.*"],
+        folderSnapshot: {
+          availableFolders: [{ path: "Clients", messages: 44 }],
+        },
+      },
+    ])
+  })
+
+  it("updates IMAP intake settings without changing connection settings or folder snapshot", async () => {
+    const updatedIntake: unknown[] = []
+    const source = connectedImapSource()
+    const application = createDataSourceCommandApplication({
+      workspace,
+      store: dataSourceStore({
+        async findByIdForWorkspace() {
+          return source
+        },
+        async updateImapIntake(input) {
+          updatedIntake.push(input)
+          return { ...source, intake: input.intake }
+        },
+      }),
+      imapConnectionTester: successfulTester,
+      imapCredentialReader: {
+        async readImapPassword() {
+          throw new Error("unexpected secret read")
+        },
+      },
+    })
+
+    await expect(
+      application.updateImapIntakeSettings("source_1", {
+        historyWindow: "all",
+        watchedFolders: ["Receipts", " "],
+        skipSenders: ["notifications@example.com"],
+        messageFilters: {
+          mode: "and",
+          rules: [
+            {
+              id: "rule_1",
+              field: "Subject",
+              operator: "does not contain",
+              value: " invoice ",
+            },
+          ],
+        },
+      })
+    ).resolves.toMatchObject({ data: { intake: { historyWindow: "all" } } })
+    expect(updatedIntake).toMatchObject([
+      {
+        intake: {
+          historyWindow: "all",
+          watchedFolders: ["Receipts"],
+          skipSenders: ["notifications@example.com"],
+          messageFilters: {
+            mode: "and",
+            rules: [
+              {
+                id: "rule_1",
+                field: "subject",
+                operator: "does_not_contain",
+                value: "invoice",
+              },
+            ],
+          },
+        },
+      },
+    ])
+  })
+
+  it("refreshes IMAP folders from the stored password", async () => {
+    const refreshed: unknown[] = []
+    const testedConnections: unknown[] = []
+    const source = connectedImapSource()
+    const application = createDataSourceCommandApplication({
+      workspace,
+      store: dataSourceStore({
+        async findByIdForWorkspace() {
+          return source
+        },
+        async updateImapFolderSnapshot(input) {
+          refreshed.push(input)
+          return {
+            ...source,
+            folderSnapshot: input.folderSnapshot,
+          }
+        },
+      }),
+      imapConnectionTester: {
+        async test(input) {
+          testedConnections.push(input)
+          return { folders: [{ path: "INBOX", messages: 2000 }] }
+        },
+      },
+      imapCredentialReader: {
+        async readImapPassword() {
+          return "stored-secret"
+        },
+      },
+    })
+
+    await expect(application.refreshImapFolders("source_1")).resolves.toMatchObject({
+      data: {
+        folderSnapshot: {
+          availableFolders: [{ path: "INBOX", messages: 2000 }],
+        },
+      },
+    })
+    expect(testedConnections).toMatchObject([
+      { host: "imap.example.com", password: "stored-secret" },
+    ])
+    expect(refreshed).toMatchObject([
+      {
+        workspaceId: workspace.id,
+        sourceId: "source_1",
+        folderSnapshot: {
+          availableFolders: [{ path: "INBOX", messages: 2000 }],
         },
       },
     ])
   })
 
   it("denies source management for non-admin workspace roles before adapters run", async () => {
-    const application = createDataSourceApplication({
+    const application = createDataSourceCommandApplication({
       workspace: { id: workspace.id, role: "operator" },
       store: dataSourceStore({
         async findByIdForWorkspace() {
@@ -282,13 +472,19 @@ describe("data source application", () => {
         },
       }),
       imapConnectionTester: successfulTester,
+      imapCredentialReader: {
+        async readImapPassword() {
+          throw new Error("policy should run before secret read")
+        },
+      },
     })
 
     await expect(
-      application.updateImapImportSettings("source_1", {
+      application.updateImapIntakeSettings("source_1", {
         historyWindow: "90d",
         watchedFolders: ["INBOX"],
         skipSenders: [],
+        messageFilters: { mode: "and", rules: [] },
       })
     ).resolves.toEqual({ error: "source_manage_forbidden" })
   })

@@ -1,103 +1,147 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  applyImapConfigPatch,
-  buildImapConnectionPatch,
-  buildImapImportSettingsPatch,
-  normalizeImapConfigDraft,
+  buildDefaultImapIntakeSettings,
+  buildImapConnectionConfig,
+  buildImapFolderSnapshot,
+  buildImapIntakeSettings,
+  normalizeImapMessageFilters,
 } from "@/features/data-sources/imap"
 
-const currentConfig = {
-  host: "imap.example.com",
-  port: 993,
-  encryption: "ssl" as const,
-  username: "hello@example.com",
-  historyWindow: "12mo" as const,
-  watchedFolders: ["INBOX", "Clients"],
-  skipSenders: ["*@noreply.*"],
-}
-
 describe("IMAP data source domain", () => {
-  it("normalizes a full IMAP config draft through one domain module", () => {
+  it("normalizes connection settings without intake settings", () => {
     expect(
-      normalizeImapConfigDraft({
+      buildImapConnectionConfig({
         host: " IMAP.EXAMPLE.COM ",
         port: "993",
         encryption: "starttls",
         username: " hello@example.com ",
-        historyWindow: "90d",
-        watchedFolders: [" INBOX ", "", " Clients "],
-        skipSenders: [" *@noreply.* ", ""],
       })
     ).toEqual({
       host: "imap.example.com",
       port: 993,
       encryption: "starttls",
       username: "hello@example.com",
-      historyWindow: "90d",
-      watchedFolders: ["INBOX", "Clients"],
-      skipSenders: ["*@noreply.*"],
     })
   })
 
-  it("builds an import settings patch without connection settings", () => {
+  it("normalizes intake settings without connection or folder snapshot", () => {
     expect(
-      buildImapImportSettingsPatch({
+      buildImapIntakeSettings({
         historyWindow: "30d",
         watchedFolders: ["Archive", " "],
-        skipSenders: ["notifications@example.com"],
+        skipSenders: [" notifications@example.com ", ""],
+        messageFilters: {
+          mode: "and",
+          rules: [
+            {
+              id: "rule_1",
+              field: "To",
+              operator: "does not contain",
+              value: " invoice ",
+            },
+            {
+              id: "empty",
+              field: "subject",
+              operator: "contains",
+              value: " ",
+            },
+          ],
+        },
       })
     ).toEqual({
       historyWindow: "30d",
       watchedFolders: ["Archive"],
       skipSenders: ["notifications@example.com"],
+      messageFilters: {
+        mode: "and",
+        rules: [
+          {
+            id: "rule_1",
+            field: "to",
+            operator: "does_not_contain",
+            value: "invoice",
+          },
+        ],
+      },
     })
   })
 
-  it("builds a connection patch without import settings", () => {
+  it("builds default intake from verified folders with no message filters", () => {
     expect(
-      buildImapConnectionPatch({
-        host: " imap.fastmail.com ",
-        port: "993",
-        encryption: "ssl",
-        username: " admin@example.com ",
+      buildDefaultImapIntakeSettings({
+        historyWindow: "bogus",
+        folderSnapshot: {
+          availableFolders: [
+            { path: "Clients", messages: 7 },
+            { path: "INBOX", messages: 42 },
+          ],
+        },
       })
     ).toEqual({
-      host: "imap.fastmail.com",
-      port: 993,
-      encryption: "ssl",
-      username: "admin@example.com",
+      historyWindow: "12mo",
+      watchedFolders: ["INBOX"],
+      skipSenders: [],
+      messageFilters: { mode: "and", rules: [] },
     })
   })
 
-  it("merges IMAP patches without stale UI-owned config reconstruction", () => {
+  it("keeps selected stale folders while storing the latest folder snapshot separately", () => {
     expect(
-      applyImapConfigPatch(
-        currentConfig,
-        buildImapImportSettingsPatch({
-          historyWindow: "all",
-          watchedFolders: ["Receipts"],
-          skipSenders: [],
-        })
-      )
+      buildImapIntakeSettings({
+        historyWindow: "all",
+        watchedFolders: ["INBOX", "Old Clients"],
+        skipSenders: [],
+        messageFilters: { mode: "and", rules: [] },
+      }).watchedFolders
+    ).toEqual(["INBOX", "Old Clients"])
+
+    expect(
+      buildImapFolderSnapshot([{ path: "INBOX", messages: 12 }])
     ).toEqual({
-      ...currentConfig,
-      historyWindow: "all",
-      watchedFolders: ["Receipts"],
-      skipSenders: [],
+      availableFolders: [{ path: "INBOX", messages: 12 }],
+    })
+  })
+
+  it("coerces folder snapshots and message filters from untrusted persistence", () => {
+    expect(
+      buildImapFolderSnapshot([
+        { path: " INBOX ", messages: 12 },
+        { path: "Bad", messages: -1 },
+        { path: "", messages: 3 },
+      ])
+    ).toEqual({
+      availableFolders: [
+        { path: "INBOX", messages: 12 },
+        { path: "Bad", messages: null },
+      ],
+    })
+
+    expect(
+      normalizeImapMessageFilters({
+        mode: "or",
+        rules: [{ field: "From", operator: "is not", value: " boss@example.com " }],
+      })
+    ).toEqual({
+      mode: "and",
+      rules: [
+        {
+          id: "rule_1",
+          field: "from",
+          operator: "is_not",
+          value: "boss@example.com",
+        },
+      ],
     })
   })
 
   it("rejects invalid host, username, and port before adapters run", () => {
     expect(() =>
-      normalizeImapConfigDraft({
+      buildImapConnectionConfig({
         host: "",
         port: "70000",
         encryption: "ssl",
         username: "",
-        historyWindow: "12mo",
-        watchedFolders: [],
-        skipSenders: [],
       })
     ).toThrow("invalid_imap_config")
   })

@@ -198,13 +198,20 @@ describe("onboarding application", () => {
       {
         workspaceId: "workspace_1",
         password: "top-secret",
-        config: {
+        connection: {
           host: "imap.example.com",
           port: 993,
           encryption: "ssl",
           username: "jamie@example.co",
+        },
+        intake: {
           historyWindow: "90d",
           watchedFolders: ["INBOX"],
+          skipSenders: [],
+          messageFilters: { mode: "and", rules: [] },
+        },
+        folderSnapshot: {
+          availableFolders: [{ path: "INBOX", messages: 12 }],
         },
       },
     ])

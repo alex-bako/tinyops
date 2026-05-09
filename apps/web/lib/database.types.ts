@@ -52,6 +52,50 @@ export type Database = {
         }
         Relationships: []
       }
+      data_source_intake_configs: {
+        Row: {
+          available_folders: Json
+          created_at: string
+          history_window: string
+          id: string
+          message_filters: Json
+          skip_senders: string[]
+          source_id: string
+          updated_at: string
+          watched_folders: string[]
+        }
+        Insert: {
+          available_folders?: Json
+          created_at?: string
+          history_window?: string
+          id?: string
+          message_filters?: Json
+          skip_senders?: string[]
+          source_id: string
+          updated_at?: string
+          watched_folders?: string[]
+        }
+        Update: {
+          available_folders?: Json
+          created_at?: string
+          history_window?: string
+          id?: string
+          message_filters?: Json
+          skip_senders?: string[]
+          source_id?: string
+          updated_at?: string
+          watched_folders?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_source_intake_configs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: true
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_source_secrets: {
         Row: {
           created_at: string
@@ -447,9 +491,11 @@ export type Database = {
       }
       connect_imap_data_source: {
         Args: {
+          imap_available_folders: Json
           imap_encryption: string
           imap_history_window: string
           imap_host: string
+          imap_message_filters: Json
           imap_password: string
           imap_port: number
           imap_skip_senders: string[]
@@ -480,6 +526,10 @@ export type Database = {
         Returns: undefined
       }
       enforce_invited_user: { Args: { event: Json }; Returns: Json }
+      is_valid_imap_message_filters: {
+        Args: { filters: Json }
+        Returns: boolean
+      }
       request_data_source_sync: {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: undefined
@@ -488,14 +538,32 @@ export type Database = {
         Args: { target_invitation_id: string }
         Returns: undefined
       }
-      update_imap_data_source_config: {
+      update_imap_connection_settings: {
         Args: {
+          imap_available_folders: Json
           imap_encryption: string
-          imap_history_window: string
           imap_host: string
+          imap_password: string
           imap_port: number
-          imap_skip_senders: string[]
           imap_username: string
+          target_source_id: string
+          target_workspace_id: string
+        }
+        Returns: undefined
+      }
+      update_imap_folder_snapshot: {
+        Args: {
+          imap_available_folders: Json
+          target_source_id: string
+          target_workspace_id: string
+        }
+        Returns: undefined
+      }
+      update_imap_intake_config: {
+        Args: {
+          imap_history_window: string
+          imap_message_filters: Json
+          imap_skip_senders: string[]
           imap_watched_folders: string[]
           target_source_id: string
           target_workspace_id: string
@@ -645,3 +713,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

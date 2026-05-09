@@ -1,9 +1,15 @@
 import type {
   DataSourceStore,
-  ImapConfig,
+  ImapConnectionConfig,
+  ImapFolderSnapshot,
+  ImapIntakeSettings,
   ImapConnectionTester,
 } from "@/features/data-sources/types"
-import { normalizeImapConfigDraft } from "@/features/data-sources/imap"
+import {
+  buildDefaultImapIntakeSettings,
+  buildImapConnectionConfig,
+  buildImapFolderSnapshot,
+} from "@/features/data-sources/imap"
 import { slugify } from "@/features/workspaces/use-cases"
 import type {
   AutoSendThreshold,
@@ -160,18 +166,25 @@ export function createOnboardingApplication({
         return { status: "validation_error", error: normalized.error }
       }
 
-      let imapConfig: ImapConfig | null = null
+      let imapConnection: ImapConnectionConfig | null = null
+      let imapIntake: ImapIntakeSettings | null = null
+      let imapFolderSnapshot: ImapFolderSnapshot | null = null
       let imapPassword = ""
       if (command.source.type === "imap") {
         try {
-          imapConfig = normalizeImapConfigDraft(command.source)
+          imapConnection = buildImapConnectionConfig(command.source)
           imapPassword = command.source.password.trim()
           if (!imapPassword) {
             return { status: "validation_error", error: "invalid_imap_config" }
           }
-          await imapConnectionTester.test({
-            ...imapConfig,
+          const result = await imapConnectionTester.test({
+            ...imapConnection,
             password: imapPassword,
+          })
+          imapFolderSnapshot = buildImapFolderSnapshot(result.folders)
+          imapIntake = buildDefaultImapIntakeSettings({
+            historyWindow: command.source.historyWindow,
+            folderSnapshot: imapFolderSnapshot,
           })
         } catch (error) {
           if (isInvalidImapConfigError(error)) {
@@ -192,11 +205,13 @@ export function createOnboardingApplication({
         return { status: "validation_error", error: "onboarding_failed" }
       }
 
-      if (imapConfig) {
+      if (imapConnection && imapIntake && imapFolderSnapshot) {
         try {
           await dataSourceStore.connectImap({
             workspaceId: completed.workspaceId,
-            config: imapConfig,
+            connection: imapConnection,
+            intake: imapIntake,
+            folderSnapshot: imapFolderSnapshot,
             password: imapPassword,
           })
         } catch {

@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache"
 
 import {
-  createDataSourceApplication,
+  createDataSourceCommandApplication,
   type ImapConnectionSettingsCommand,
-  type ImapConfigCommand,
   type ImapConnectCommand,
   type ImapImportSettingsCommand,
 } from "@/features/data-sources/application"
 import { createImapFlowConnectionTester } from "@/features/data-sources/imap-connection-tester"
+import { createSupabaseImapSecretReader } from "@/features/data-sources/imap-secret-reader"
 import { createDataSourceServerContext } from "@/features/data-sources/loaders"
 import { DEFAULT_SIGNED_IN_PATH } from "@/lib/auth/route-policy"
 
@@ -22,10 +22,11 @@ async function createActionApplication() {
   const context = await createDataSourceServerContext()
   if (!context) return null
 
-  return createDataSourceApplication({
+  return createDataSourceCommandApplication({
     workspace: context.workspace,
     store: context.store,
     imapConnectionTester: createImapFlowConnectionTester(),
+    imapCredentialReader: createSupabaseImapSecretReader(),
   })
 }
 
@@ -34,18 +35,6 @@ export async function connectImapDataSourceAction(input: ImapConnectCommand) {
   if (!application) return { error: "source_action_failed" } as const
 
   const result = await application.connectImap(input)
-  if (result.data) revalidateDataSources()
-  return result
-}
-
-export async function updateImapDataSourceConfigAction(
-  sourceId: string,
-  input: ImapConfigCommand
-) {
-  const application = await createActionApplication()
-  if (!application) return { error: "source_action_failed" } as const
-
-  const result = await application.updateImapConfig(sourceId, input)
   if (result.data) revalidateDataSources()
   return result
 }
@@ -69,7 +58,16 @@ export async function updateImapImportSettingsAction(
   const application = await createActionApplication()
   if (!application) return { error: "source_action_failed" } as const
 
-  const result = await application.updateImapImportSettings(sourceId, input)
+  const result = await application.updateImapIntakeSettings(sourceId, input)
+  if (result.data) revalidateDataSources()
+  return result
+}
+
+export async function refreshImapFoldersAction(sourceId: string) {
+  const application = await createActionApplication()
+  if (!application) return { error: "source_action_failed" } as const
+
+  const result = await application.refreshImapFolders(sourceId)
   if (result.data) revalidateDataSources()
   return result
 }
