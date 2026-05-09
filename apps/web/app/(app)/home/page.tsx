@@ -2,7 +2,6 @@ import Link from "next/link"
 import {
   ArchiveIcon,
   ChevronRightIcon,
-  PlusIcon,
   SearchIcon,
   SparklesIcon,
   SunIcon,
@@ -25,13 +24,16 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
-import { ATTENTION, RECENT_CLIENTS, SOURCES, WEEK_TASKS } from "./_data"
+import { connectedSources } from "@/lib/sources"
+
+import { ATTENTION, RECENT_CLIENTS, WEEK_TASKS } from "./_data"
 import { ClientRow } from "./_components/client-row"
 import { SourceRow } from "./_components/source-row"
 import { StatRow } from "./_components/stat-row"
 import { WeekTaskRow } from "./_components/week-task-row"
 
 export default function HomePage() {
+  const homeSources = connectedSources()
   return (
     <WorkspacePageSurface>
       <WorkspacePageHeader
@@ -100,17 +102,19 @@ export default function HomePage() {
           <Section divider>
             <SectionHead
               title="Data sources"
-              count="3 connected"
+              count={`${homeSources.length} connected`}
               actions={
-                <Button variant="tertiary" size="sm">
-                  <PlusIcon />
-                  Add
+                <Button asChild variant="tertiary" size="sm">
+                  <Link href="/home/sources">
+                    All sources
+                    <ChevronRightIcon />
+                  </Link>
                 </Button>
               }
             />
             <div className="flex flex-col">
-              {SOURCES.map((s) => (
-                <SourceRow key={s.name} source={s} />
+              {homeSources.map((s) => (
+                <SourceRow key={s.id} source={s} />
               ))}
             </div>
           </Section>

@@ -32,4 +32,13 @@ describe("navigation model", () => {
       "Home",
     ])
   })
+
+  it("activates sources nav and resolves data sources crumbs", () => {
+    expect(
+      pickActiveNavItemId(flattenNavItems(NAV_GROUPS), "/home/sources")
+    ).toBe("sources")
+    expect(
+      deriveAppCrumbs("/home/sources").map((crumb) => crumb.label)
+    ).toEqual(["Home", "Data sources"])
+  })
 })

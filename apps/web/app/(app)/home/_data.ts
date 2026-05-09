@@ -5,11 +5,12 @@ import {
   type ClientDetail,
   type ClientStatus,
 } from "@/lib/clients"
+import { SOURCES, type DataSource } from "@/lib/sources"
 
-export type { ClientStatus, Client }
+export type { ClientStatus, Client, DataSource }
 export type RecentClient = ClientDetail
 
-export { RECENT_CLIENTS, ALL_CLIENTS }
+export { RECENT_CLIENTS, ALL_CLIENTS, SOURCES }
 
 export type BadgeKind = "neutral" | "active" | "warn" | "brand" | "sensitive"
 
@@ -17,14 +18,6 @@ export type AttentionItem = {
   num: number
   label: string
   badge: { kind: BadgeKind; text: string }
-}
-
-export type DataSource = {
-  icon: "mail" | "file-text" | "clipboard-list"
-  name: string
-  sub: string
-  state: string
-  active: boolean
 }
 
 export type WeekTask = {
@@ -55,30 +48,6 @@ export const ATTENTION: AttentionItem[] = [
     num: 14,
     label: "inactive participants from March",
     badge: { kind: "neutral", text: "Idle" },
-  },
-]
-
-export const SOURCES: DataSource[] = [
-  {
-    icon: "mail",
-    name: "IMAP mailbox",
-    sub: "hello@yourpractice.com",
-    state: "2m ago",
-    active: true,
-  },
-  {
-    icon: "file-text",
-    name: "march-cohort.csv",
-    sub: "142 rows · 4 new",
-    state: "3d ago",
-    active: false,
-  },
-  {
-    icon: "clipboard-list",
-    name: "Intake form",
-    sub: "203 submissions",
-    state: "1w ago",
-    active: false,
   },
 ]
 
