@@ -83,32 +83,19 @@ export type WorkspaceProfilePatch = {
   accent?: string
 }
 
-export type WorkspaceFeatureDataWithActive = WorkspaceFeatureData & {
-  activeWorkspaceId: string
-}
-
 export async function ensureWorkspaceFeatureData(
   session: WorkspaceSession,
   store: WorkspaceStore
-): Promise<WorkspaceFeatureDataWithActive> {
+): Promise<WorkspaceFeatureData> {
   const email = normalizeEmail(session.email)
   if (!email) {
     throw new Error("Workspace feature requires an authenticated email")
   }
 
-  let workspaces = await store.listWorkspaces()
-  if (workspaces.length === 0) {
-    const name = workspaceNameFromSession(session.name, email)
-    const createdWorkspace = await createPersonalWorkspaceWithUniqueHandle({
-      store,
-      email,
-      name,
-    })
-    workspaces = [createdWorkspace]
-  }
+  const workspaces = await store.listWorkspaces()
 
   const activeWorkspaceId =
-    resolveActiveWorkspaceId(workspaces, session.activeWorkspaceId) ?? ""
+    resolveActiveWorkspaceId(workspaces, session.activeWorkspaceId) ?? null
 
   return {
     workspaces,
@@ -317,12 +304,6 @@ export async function revokeWorkspaceInvitationForUser(
   await store.revokeWorkspaceInvite(input.invitationId)
 }
 
-function workspaceNameFromSession(name: string | null, email: string) {
-  const trimmed = name?.trim()
-  if (trimmed) return trimmed
-  return email.split("@")[0] ?? "Workspace"
-}
-
 export function slugify(value: string) {
   const slug = value
     .trim()
@@ -348,50 +329,10 @@ function sanitizeSensitivityPatch(
   }
 }
 
-async function createPersonalWorkspaceWithUniqueHandle({
-  store,
-  email,
-  name,
-}: {
-  store: WorkspaceStore
-  email: string
-  name: string
-}) {
-  const baseHandle = slugify(name)
-
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const handle = attempt === 0 ? baseHandle : `${baseHandle}-${attempt + 1}`
-    try {
-      return await store.createWorkspace({
-        email,
-        name,
-        handle,
-      })
-    } catch (error) {
-      if (!isWorkspaceHandleConflict(error) || attempt === 9) {
-        throw error
-      }
-    }
-  }
-
-  throw new Error("Could not create unique workspace handle")
-}
-
 function emptyUsageByWorkspaceId(
   workspaces: Workspace[]
 ): Record<string, WorkspaceUsageSnapshot> {
   return Object.fromEntries(
     workspaces.map((workspace) => [workspace.id, EMPTY_WORKSPACE_USAGE])
   )
-}
-
-function isWorkspaceHandleConflict(error: unknown) {
-  if (!(error instanceof Error)) return false
-
-  const cause = error.cause
-  if (!cause || typeof cause !== "object") return false
-
-  const code = "code" in cause ? cause.code : undefined
-  const message = "message" in cause ? cause.message : undefined
-  return code === "23505" && String(message).includes("workspaces_handle")
 }

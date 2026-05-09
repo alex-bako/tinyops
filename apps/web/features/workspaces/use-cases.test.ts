@@ -25,6 +25,9 @@ function workspace(patch: Partial<Workspace> = {}): Workspace {
     description: "Private practice",
     icon: { kind: "mark" },
     accent: "cobalt",
+    vertical: "other",
+    defaultSenderName: "",
+    initialSourceIntent: "skip",
     role: "owner",
     plan: { tier: "Team", price: "$0 / alpha", seats: 5 },
     sensitivity: {
@@ -145,7 +148,7 @@ function store({
 }
 
 describe("workspace use cases", () => {
-  it("auto-creates a personal workspace when user has none", async () => {
+  it("does not auto-create a personal workspace when user has none", async () => {
     const fakeStore = store()
 
     const data = await ensureWorkspaceFeatureData(
@@ -158,74 +161,9 @@ describe("workspace use cases", () => {
       fakeStore
     )
 
-    expect(fakeStore.created).toHaveLength(1)
-    expect(fakeStore.created[0]).toMatchObject({
-      name: "Jamie Park",
-      handle: "jamie-park",
-      role: "owner",
-    })
-    expect(data.workspaces).toHaveLength(1)
-    expect(data.activeWorkspaceId).toBe("workspace_created")
-  })
-
-  it("uses the created workspace when the post-create workspace read is stale", async () => {
-    const created = workspace({
-      id: "workspace_created",
-      name: "Jamie Park",
-      handle: "jamie-park",
-    })
-    const fakeStore = store()
-    fakeStore.listWorkspaces = async () => []
-    fakeStore.createWorkspace = async () => created
-
-    const data = await ensureWorkspaceFeatureData(
-      {
-        userId: "user_1",
-        email: "jamie@example.co",
-        name: "Jamie Park",
-        activeWorkspaceId: null,
-      },
-      fakeStore
-    )
-
-    expect(data.workspaces).toEqual([created])
-    expect(data.activeWorkspaceId).toBe("workspace_created")
-  })
-
-  it("retries personal workspace creation with a suffixed handle on collisions", async () => {
-    const fakeStore = store()
-    const handles: string[] = []
-    fakeStore.listWorkspaces = async () => fakeStore.created
-    fakeStore.createWorkspace = async (input) => {
-      handles.push(input.handle)
-      if (input.handle === "jamie-park") {
-        const conflict = new Error("Could not create workspace", {
-          cause: { code: "23505", message: "workspaces_handle_key" },
-        })
-        throw conflict
-      }
-      const created = workspace({
-        id: "workspace_created",
-        name: input.name,
-        handle: input.handle,
-      })
-      fakeStore.created.push(created)
-      return created
-    }
-
-    const data = await ensureWorkspaceFeatureData(
-      {
-        userId: "user_1",
-        email: "jamie@example.co",
-        name: "Jamie Park",
-        activeWorkspaceId: null,
-      },
-      fakeStore
-    )
-
-    expect(handles).toEqual(["jamie-park", "jamie-park-2"])
-    expect(fakeStore.created[0]).toMatchObject({ handle: "jamie-park-2" })
-    expect(data.workspaces).toHaveLength(1)
+    expect(fakeStore.created).toHaveLength(0)
+    expect(data.workspaces).toHaveLength(0)
+    expect(data.activeWorkspaceId).toBeNull()
   })
 
   it("falls back to first visible workspace when preferred active id is invalid", async () => {

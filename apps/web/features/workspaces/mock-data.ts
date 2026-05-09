@@ -13,6 +13,9 @@ export const WORKSPACES: Workspace[] = [
       "Sexual therapy practice — sensitive content, manual review enforced.",
     icon: { kind: "mark" },
     accent: "cobalt",
+    vertical: "therapy",
+    defaultSenderName: "Jamie Park",
+    initialSourceIntent: "imap",
     role: "owner",
     plan: { tier: "Solo", price: "$29 / mo", seats: 1 },
     sensitivity: {
@@ -48,6 +51,9 @@ export const WORKSPACES: Workspace[] = [
       "Online course — replay access, intake forms, monthly digests to 2,300 students.",
     icon: { kind: "letter", letter: "R", tone: "citron" },
     accent: "citron",
+    vertical: "course",
+    defaultSenderName: "Replay Lab",
+    initialSourceIntent: "forms",
     role: "admin",
     plan: { tier: "Team", price: "$89 / mo", seats: 5 },
     sensitivity: {
@@ -109,6 +115,9 @@ export const WORKSPACES: Workspace[] = [
       "Group coaching collective — three coaches, shared client roster.",
     icon: { kind: "letter", letter: "B", tone: "mint" },
     accent: "mint",
+    vertical: "coaching",
+    defaultSenderName: "Bloom Coaching",
+    initialSourceIntent: "csv",
     role: "operator",
     plan: { tier: "Team", price: "$89 / mo", seats: 5 },
     sensitivity: {

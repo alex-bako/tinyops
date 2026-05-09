@@ -10,7 +10,6 @@ import {
   slugify,
   updateWorkspaceProfileForUser,
   updateWorkspaceSensitivityForUser,
-  type WorkspaceFeatureDataWithActive,
   type WorkspaceProfilePatch,
   type WorkspaceActor,
   type WorkspaceStore,
@@ -41,7 +40,7 @@ export type WorkspaceActionError =
   | "workspace_action_failed"
 
 export type WorkspaceActionResult =
-  | { data: WorkspaceFeatureDataWithActive; error?: never }
+  | { data: WorkspaceFeatureData; error?: never }
   | { data?: never; error: WorkspaceActionError }
 
 export type WorkspaceProfileInput = WorkspaceProfilePatch
@@ -159,7 +158,9 @@ export function createWorkspaceApplication({
           },
           store
         )
-        await activeWorkspaceStore.write(data.activeWorkspaceId)
+        if (data.activeWorkspaceId) {
+          await activeWorkspaceStore.write(data.activeWorkspaceId)
+        }
         return { data }
       } catch {
         return { error: "workspace_action_failed" }
@@ -222,7 +223,9 @@ export function createWorkspaceApplication({
           },
           store
         )
-        await activeWorkspaceStore.write(data.activeWorkspaceId)
+        if (data.activeWorkspaceId) {
+          await activeWorkspaceStore.write(data.activeWorkspaceId)
+        }
         return { data }
       } catch (error) {
         return { error: mapWorkspaceActionError(error) }

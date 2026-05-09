@@ -52,27 +52,6 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       data_source_secrets: {
         Row: {
           created_at: string
@@ -217,6 +196,36 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          onboarded_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          onboarded_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          onboarded_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       workspace_invitations: {
         Row: {
           accepted_at: string | null
@@ -323,6 +332,7 @@ export type Database = {
           auto_send_threshold: string
           created_at: string
           created_by: string
+          default_sender_name: string
           description: string
           exclude_from_outbound: boolean
           handle: string
@@ -330,6 +340,7 @@ export type Database = {
           icon_letter: string | null
           icon_tone: string
           id: string
+          initial_source_intent: string
           manual_review_keywords: string[]
           name: string
           plan_price: string
@@ -337,6 +348,7 @@ export type Database = {
           plan_tier: string
           sensitivity_mode: string
           updated_at: string
+          vertical: string
         }
         Insert: {
           accent?: string
@@ -344,6 +356,7 @@ export type Database = {
           auto_send_threshold?: string
           created_at?: string
           created_by: string
+          default_sender_name?: string
           description?: string
           exclude_from_outbound?: boolean
           handle: string
@@ -351,6 +364,7 @@ export type Database = {
           icon_letter?: string | null
           icon_tone?: string
           id?: string
+          initial_source_intent?: string
           manual_review_keywords?: string[]
           name: string
           plan_price?: string
@@ -358,6 +372,7 @@ export type Database = {
           plan_tier?: string
           sensitivity_mode?: string
           updated_at?: string
+          vertical?: string
         }
         Update: {
           accent?: string
@@ -365,6 +380,7 @@ export type Database = {
           auto_send_threshold?: string
           created_at?: string
           created_by?: string
+          default_sender_name?: string
           description?: string
           exclude_from_outbound?: boolean
           handle?: string
@@ -372,6 +388,7 @@ export type Database = {
           icon_letter?: string | null
           icon_tone?: string
           id?: string
+          initial_source_intent?: string
           manual_review_keywords?: string[]
           name?: string
           plan_price?: string
@@ -379,6 +396,7 @@ export type Database = {
           plan_tier?: string
           sensitivity_mode?: string
           updated_at?: string
+          vertical?: string
         }
         Relationships: [
           {
@@ -402,6 +420,30 @@ export type Database = {
       archive_workspace: {
         Args: { target_workspace_id: string }
         Returns: undefined
+      }
+      complete_onboarding: {
+        Args: {
+          actor_email: string
+          invite_emails: string[]
+          invite_roles: string[]
+          profile_first_name: string
+          profile_last_name: string
+          profile_onboarded_at: string
+          workspace_accent: string
+          workspace_auto_send_threshold: string
+          workspace_default_sender_name: string
+          workspace_exclude_from_outbound: boolean
+          workspace_handle: string
+          workspace_icon_kind: string
+          workspace_icon_letter: string
+          workspace_icon_tone: string
+          workspace_initial_source_intent: string
+          workspace_manual_review_keywords: string[]
+          workspace_name: string
+          workspace_sensitivity_mode: string
+          workspace_vertical: string
+        }
+        Returns: string
       }
       connect_imap_data_source: {
         Args: {

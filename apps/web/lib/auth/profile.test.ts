@@ -46,10 +46,18 @@ describe("readAppProfileSession", () => {
       findProfileByUserId: vi.fn().mockResolvedValue({
         id: "user_123",
         email: "profile@example.co",
+        firstName: "Jamie",
+        lastName: "Park",
+        onboardedAt: "2026-05-10T01:02:03.000Z",
       }),
     })
 
     expect(session?.email).toBe("profile@example.co")
+    expect(session?.profile).toMatchObject({
+      firstName: "Jamie",
+      lastName: "Park",
+      onboardedAt: "2026-05-10T01:02:03.000Z",
+    })
   })
 
   it("falls back to the normalized Auth user email when the profile is missing", async () => {
