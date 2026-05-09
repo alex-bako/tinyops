@@ -30,9 +30,11 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { COHORTS } from "@/lib/clients"
 import { FILTER_TABS, type FilterId } from "../_data"
-import type { ClientListFilterPatch, ClientListFilters } from "../_view-model"
-
-type Counts = Record<FilterId, number>
+import type {
+  ClientListCounts,
+  ClientListFilterPatch,
+  ClientListFilters,
+} from "../_view-model"
 
 export function ClientsToolbar({
   filters,
@@ -41,7 +43,7 @@ export function ClientsToolbar({
 }: {
   filters: ClientListFilters
   updateFilters: (patch: ClientListFilterPatch) => void
-  counts: Counts
+  counts: ClientListCounts
 }) {
   return (
     <div

@@ -2,7 +2,12 @@
 
 import * as React from "react"
 
-import { ALL_CLIENTS, COHORTS, type CohortFilter } from "@/lib/clients"
+import {
+  ALL_CLIENTS,
+  COHORTS,
+  type ClientDetail,
+  type CohortFilter,
+} from "@/lib/clients"
 
 import { FILTER_TABS, countFor, matchesFilter, type FilterId } from "./_data"
 
@@ -13,59 +18,92 @@ type ClientListFilters = {
 }
 
 type ClientListFilterPatch = Partial<ClientListFilters>
+type ClientListCounts = Record<FilterId, number>
 
-const DEFAULT_FILTERS: ClientListFilters = {
+const DEFAULT_CLIENT_LIST_FILTERS: ClientListFilters = {
   filter: "all",
   cohort: COHORTS[0],
   query: "",
 }
 
-function useClientListView() {
-  const [filters, setFilters] = React.useState<ClientListFilters>(DEFAULT_FILTERS)
+const CLIENT_LIST_EMPTY_MESSAGE = "No clients match these filters."
 
-  const counts = React.useMemo(
-    () =>
-      Object.fromEntries(
-        FILTER_TABS.map((t) => [t.id, countFor(ALL_CLIENTS, t.id)])
-      ) as Record<FilterId, number>,
-    []
+function applyClientListFilterPatch(
+  current: ClientListFilters,
+  patch: ClientListFilterPatch
+): ClientListFilters {
+  return { ...current, ...patch }
+}
+
+function buildClientListCounts(rows: ClientDetail[]): ClientListCounts {
+  return Object.fromEntries(
+    FILTER_TABS.map((t) => [t.id, countFor(rows, t.id)])
+  ) as ClientListCounts
+}
+
+function clientMatchesQuery(c: ClientDetail, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  return c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+}
+
+function filterClientRows(
+  rows: ClientDetail[],
+  filters: ClientListFilters
+): ClientDetail[] {
+  return rows.filter((c) => {
+    if (!matchesFilter(c, filters.filter)) return false
+    if (filters.cohort !== "All cohorts" && c.cohort !== filters.cohort) {
+      return false
+    }
+    return clientMatchesQuery(c, filters.query)
+  })
+}
+
+function createClientListView(
+  sourceRows: ClientDetail[],
+  filters: ClientListFilters = DEFAULT_CLIENT_LIST_FILTERS
+) {
+  const rows = filterClientRows(sourceRows, filters)
+  return {
+    filters,
+    counts: buildClientListCounts(sourceRows),
+    rows,
+    total: sourceRows.length,
+    empty: rows.length === 0,
+    emptyMessage: CLIENT_LIST_EMPTY_MESSAGE,
+  }
+}
+
+function useClientListView() {
+  const [filters, setFilters] = React.useState<ClientListFilters>(
+    DEFAULT_CLIENT_LIST_FILTERS
   )
 
-  const rows = React.useMemo(() => {
-    const q = filters.query.trim().toLowerCase()
-    return ALL_CLIENTS.filter((c) => {
-      if (!matchesFilter(c, filters.filter)) return false
-      if (filters.cohort !== "All cohorts" && c.cohort !== filters.cohort) {
-        return false
-      }
-      if (
-        q &&
-        !c.name.toLowerCase().includes(q) &&
-        !c.email.toLowerCase().includes(q)
-      ) {
-        return false
-      }
-      return true
-    })
-  }, [filters])
+  const view = React.useMemo(
+    () => createClientListView(ALL_CLIENTS, filters),
+    [filters]
+  )
 
   const updateFilters = React.useCallback((patch: ClientListFilterPatch) => {
-    setFilters((current) => ({ ...current, ...patch }))
+    setFilters((current) => applyClientListFilterPatch(current, patch))
   }, [])
 
   const clearFilters = React.useCallback(() => {
-    setFilters(DEFAULT_FILTERS)
+    setFilters(DEFAULT_CLIENT_LIST_FILTERS)
   }, [])
 
   return {
-    filters,
+    ...view,
     updateFilters,
-    counts,
-    rows,
-    total: ALL_CLIENTS.length,
     clearFilters,
   }
 }
 
-export { useClientListView }
-export type { ClientListFilters, ClientListFilterPatch }
+export {
+  DEFAULT_CLIENT_LIST_FILTERS,
+  applyClientListFilterPatch,
+  createClientListView,
+  useClientListView,
+}
+export type { ClientListCounts, ClientListFilters, ClientListFilterPatch }
