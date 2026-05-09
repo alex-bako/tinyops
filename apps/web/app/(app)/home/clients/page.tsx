@@ -1,6 +1,5 @@
 "use client"
 
-import * as React from "react"
 import { UsersIcon } from "lucide-react"
 
 import { Kbd } from "@workspace/ui/components/kbd"
@@ -12,40 +11,13 @@ import {
 } from "@workspace/ui/components/typography"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { ALL_CLIENTS, COHORTS, type CohortFilter } from "@/lib/clients"
 import { ClientsTable } from "./_components/clients-table"
 import { ClientsToolbar } from "./_components/clients-toolbar"
-import { FILTER_TABS, countFor, matchesFilter, type FilterId } from "./_data"
+import { useClientListView } from "./_view-model"
 
 export default function ClientsPage() {
-  const [filter, setFilter] = React.useState<FilterId>("all")
-  const [cohort, setCohort] = React.useState<CohortFilter>(COHORTS[0])
-  const [query, setQuery] = React.useState("")
-
-  const counts = React.useMemo(
-    () =>
-      Object.fromEntries(
-        FILTER_TABS.map((t) => [t.id, countFor(ALL_CLIENTS, t.id)])
-      ) as Record<FilterId, number>,
-    []
-  )
-
-  const rows = React.useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return ALL_CLIENTS.filter((c) => {
-      if (!matchesFilter(c, filter)) return false
-      if (cohort !== "All cohorts" && c.cohort !== cohort) return false
-      if (q && !c.name.toLowerCase().includes(q) && !c.email.toLowerCase().includes(q))
-        return false
-      return true
-    })
-  }, [filter, cohort, query])
-
-  const clearFilters = React.useCallback(() => {
-    setFilter("all")
-    setCohort(COHORTS[0])
-    setQuery("")
-  }, [])
+  const { filters, updateFilters, counts, rows, total, clearFilters } =
+    useClientListView()
 
   return (
     <div
@@ -66,7 +38,7 @@ export default function ClientsPage() {
         >
           All clients.{" "}
           <EditorialItalic className="text-cobalt-500">
-            {ALL_CLIENTS.length}
+            {total}
           </EditorialItalic>{" "}
           in your practice.
         </H1>
@@ -82,16 +54,12 @@ export default function ClientsPage() {
       </div>
 
       <ClientsToolbar
-        filter={filter}
-        setFilter={setFilter}
-        cohort={cohort}
-        setCohort={setCohort}
-        query={query}
-        setQuery={setQuery}
+        filters={filters}
+        updateFilters={updateFilters}
         counts={counts}
       />
 
-      <ClientsTable rows={rows} total={ALL_CLIENTS.length} onClear={clearFilters} />
+      <ClientsTable rows={rows} total={total} onClear={clearFilters} />
 
       <footer
         className={cn(
@@ -100,7 +68,7 @@ export default function ClientsPage() {
         )}
       >
         <span>
-          {rows.length} of {ALL_CLIENTS.length} shown
+          {rows.length} of {total} shown
         </span>
         <span aria-hidden className="text-muted-foreground/40">
           ·

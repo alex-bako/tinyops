@@ -28,26 +28,19 @@ import {
 } from "@workspace/ui/components/select"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { COHORTS, type CohortFilter } from "@/lib/clients"
+import { COHORTS } from "@/lib/clients"
 import { FILTER_TABS, type FilterId } from "../_data"
+import type { ClientListFilterPatch, ClientListFilters } from "../_view-model"
 
 type Counts = Record<FilterId, number>
 
 export function ClientsToolbar({
-  filter,
-  setFilter,
-  cohort,
-  setCohort,
-  query,
-  setQuery,
+  filters,
+  updateFilters,
   counts,
 }: {
-  filter: FilterId
-  setFilter: (id: FilterId) => void
-  cohort: CohortFilter
-  setCohort: (c: CohortFilter) => void
-  query: string
-  setQuery: (q: string) => void
+  filters: ClientListFilters
+  updateFilters: (patch: ClientListFilterPatch) => void
   counts: Counts
 }) {
   return (
@@ -57,8 +50,8 @@ export function ClientsToolbar({
       )}
     >
       <FilterTabs
-        value={filter}
-        onValueChange={(v) => setFilter(v as FilterId)}
+        value={filters.filter}
+        onValueChange={(v) => updateFilters({ filter: v as FilterId })}
         aria-label="Filter clients"
       >
         {FILTER_TABS.map((t) => (
@@ -76,16 +69,18 @@ export function ClientsToolbar({
           </SearchFieldIcon>
           <SearchFieldInput
             variant="compact"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={filters.query}
+            onChange={(e) => updateFilters({ query: e.target.value })}
             placeholder="Filter by name or email…"
             aria-label="Filter by name or email"
           />
         </SearchField>
 
         <Select
-          value={cohort}
-          onValueChange={(v) => setCohort(v as CohortFilter)}
+          value={filters.cohort}
+          onValueChange={(v) =>
+            updateFilters({ cohort: v as ClientListFilters["cohort"] })
+          }
         >
           <SelectTrigger
             size="sm"
