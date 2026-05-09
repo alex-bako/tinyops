@@ -1,11 +1,18 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import type { SourcesPageRow } from "../_view-model"
 import { SourceRow } from "./source-row"
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+  }),
+}))
+
 const baseRow: SourcesPageRow = {
   id: "imap",
+  sourceRowId: "source_1",
   icon: "mail",
   title: "IMAP mailbox",
   sub: "hello@example.com",

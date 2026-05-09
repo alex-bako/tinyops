@@ -1,10 +1,32 @@
+"use client"
+
 import { PlugIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
+import * as React from "react"
 
 import { Button } from "@workspace/ui/components/button"
 
+import { disconnectDataSourceAction } from "@/features/data-sources/actions"
+
 import { DsSection, DsSectionHead } from "./ds-section"
 
-function DangerZone({ title }: { title: string }) {
+function DangerZone({
+  title,
+  sourceRowId,
+}: {
+  title: string
+  sourceRowId: string
+}) {
+  const { refresh } = useRouter()
+  const [pending, startTransition] = React.useTransition()
+
+  const disconnect = () => {
+    startTransition(async () => {
+      const result = await disconnectDataSourceAction(sourceRowId)
+      if (!result.error) refresh()
+    })
+  }
+
   return (
     <DsSection>
       <DsSectionHead title="Danger zone" tone="danger" />
@@ -22,6 +44,8 @@ function DangerZone({ title }: { title: string }) {
           variant="secondary"
           size="sm"
           className="ml-auto"
+          disabled={pending}
+          onClick={disconnect}
         >
           <PlugIcon />
           Disconnect

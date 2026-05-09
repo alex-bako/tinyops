@@ -2,13 +2,10 @@ import * as React from "react"
 
 import { AppShell } from "@/components/app-shell"
 import { WorkspaceFeatureProvider } from "@/features/workspaces/context"
-import { createCookieActiveWorkspaceStore } from "@/features/workspaces/active-workspace-cookie"
-import { loadWorkspaceFeatureDataForSession } from "@/features/workspaces/loaders"
-import { createSupabaseWorkspaceStore } from "@/features/workspaces/supabase-store"
+import { createWorkspaceRequestContext } from "@/features/data-sources/request-context"
+import { loadWorkspaceSourceCatalogForWorkspace } from "@/features/data-sources/loaders"
 import { loadClientNavItems } from "@/lib/client-memory/loaders"
-import { readSupabaseAppProfileSession } from "@/lib/auth/profile"
-import { loadSourceNavItems } from "@/lib/source-catalog/loaders"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import type { WorkspaceFeatureData } from "@/features/workspaces/types"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return <AuthenticatedAppShell>{children}</AuthenticatedAppShell>
@@ -19,26 +16,24 @@ export async function AuthenticatedAppShell({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createServerSupabaseClient()
-  const session = await readSupabaseAppProfileSession(supabase)
-  const workspaceStore = createSupabaseWorkspaceStore({
-    client: supabase,
-    actorUserId: session?.user.id ?? "",
-  })
-  const activeWorkspaceStore = createCookieActiveWorkspaceStore()
-  const [clientNavItems, sourceNavItems, activeWorkspaceId] = await Promise.all(
-    [loadClientNavItems(), loadSourceNavItems(), activeWorkspaceStore.read()]
-  )
-  const workspaceFeatureData = await loadWorkspaceFeatureDataForSession({
-    session,
-    store: workspaceStore,
-    activeWorkspaceId,
-  })
+  const [clientNavItems, context] = await Promise.all([
+    loadClientNavItems(),
+    createWorkspaceRequestContext(),
+  ])
+  const workspaceFeatureData =
+    context?.workspaceFeatureData ?? EMPTY_WORKSPACE_FEATURE_DATA
+  const sourceCatalog = context
+    ? await loadWorkspaceSourceCatalogForWorkspace({
+        workspace: context.activeWorkspace,
+        store: context.dataSourceStore,
+      })
+    : []
+  const sourceNavItems = sourceCatalog.map(({ id, title }) => ({ id, title }))
 
   return (
     <WorkspaceFeatureProvider data={workspaceFeatureData}>
       <AppShell
-        userEmail={session?.email}
+        userEmail={context?.session.email}
         clientNavItems={clientNavItems}
         sourceNavItems={sourceNavItems}
       >
@@ -46,4 +41,11 @@ export async function AuthenticatedAppShell({
       </AppShell>
     </WorkspaceFeatureProvider>
   )
+}
+
+const EMPTY_WORKSPACE_FEATURE_DATA: WorkspaceFeatureData = {
+  workspaces: [],
+  joinableWorkspaces: [],
+  usageByWorkspaceId: {},
+  activeWorkspaceId: null,
 }

@@ -64,7 +64,9 @@ function deriveStatus(source: DataSource): SourceStatus {
   }
   return {
     variant: "ok",
-    label: source.lastSync
+    label: source.lastSync === "queued"
+      ? "Connected · queued"
+      : source.lastSync
       ? `Connected · synced ${source.lastSync}`
       : "Connected",
   }

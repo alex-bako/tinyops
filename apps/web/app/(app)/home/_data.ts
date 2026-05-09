@@ -66,11 +66,13 @@ export const WEEK_TASKS: WeekTask[] = [
 
 export async function loadHomePageData(
   repository: ClientMemoryRepository = getClientMemoryRepository(),
-  sourceCatalog: SourceCatalogRepository = getSourceCatalogRepository()
+  sourceCatalog: SourceCatalogRepository | DataSource[] = getSourceCatalogRepository()
 ) {
   const [recentClients, sources] = await Promise.all([
     repository.getRecentClients(5),
-    sourceCatalog.listDataSources(),
+    Array.isArray(sourceCatalog)
+      ? Promise.resolve(sourceCatalog)
+      : sourceCatalog.listDataSources(),
   ])
 
   return {

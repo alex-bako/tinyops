@@ -12,6 +12,7 @@ type SourcesPageRowAction = "sync" | "connect"
 
 type SourcesPageRow = {
   id: string
+  sourceRowId?: string
   icon: DataSourceIcon
   title: string
   sub: string
@@ -38,6 +39,7 @@ type SourcesPageView = {
 function sourcePageRow(source: DataSource): SourcesPageRow {
   return {
     id: source.id,
+    sourceRowId: source.sourceRowId,
     icon: source.icon,
     title: source.title,
     sub: source.sub,

@@ -6,20 +6,24 @@ describe("sources page view", () => {
   it("builds connected and available sections from the source catalog", () => {
     const view = createSourcesPageView()
 
-    expect(view.connected.count).toBe("3")
-    expect(view.available.count).toBe("4")
-    expect(view.connected.rows.map((source) => source.id)).toEqual([
+    expect(view.connected.count).toBe("0")
+    expect(view.available.count).toBe("7")
+    expect(view.available.rows.map((source) => source.id)).toEqual([
       "imap",
       "csv",
       "forms",
+      "stripe",
+      "mailerlite",
+      "calendly",
+      "teachable",
     ])
-    expect(view.available.rows.map((source) => source.action)).toEqual([
-      "connect",
-      "connect",
-      "connect",
-      "connect",
-    ])
+    expect(view.available.rows.every((source) => source.action === "connect")).toBe(
+      true
+    )
     expect(view.available.rows.map((source) => source.href)).toEqual([
+      "/home/sources/imap",
+      "/home/sources/csv",
+      "/home/sources/forms",
       "/home/sources/stripe",
       "/home/sources/mailerlite",
       "/home/sources/calendly",
@@ -30,15 +34,15 @@ describe("sources page view", () => {
   it("keeps connected source actions and unavailable labels explicit", () => {
     const view = createSourcesPageView()
 
-    expect(view.connected.rows[0]).toMatchObject({
-      id: "imap",
-      action: "sync",
-      href: "/home/sources/imap",
-      primaryLabel: "Sync",
-      configureLabel: "Configure IMAP mailbox",
-      statusLabel: "2m ago",
-    })
     expect(view.available.rows[0]).toMatchObject({
+      id: "imap",
+      action: "connect",
+      href: "/home/sources/imap",
+      primaryLabel: "Connect",
+      configureLabel: "Configure IMAP mailbox",
+      statusLabel: "Not connected",
+    })
+    expect(view.available.rows[3]).toMatchObject({
       id: "stripe",
       action: "connect",
       href: "/home/sources/stripe",

@@ -7,13 +7,13 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
-import { getSourceCatalogRepository } from "@/lib/source-catalog/loaders"
+import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
 
 import { SourceRow } from "./_components/source-row"
 import { createSourcesPageView } from "./_view-model"
 
 export default async function SourcesPage() {
-  const sources = await getSourceCatalogRepository().listDataSources()
+  const sources = await loadWorkspaceSourceCatalog()
   const view = createSourcesPageView(sources)
 
   return (
