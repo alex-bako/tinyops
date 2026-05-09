@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  APP_ROUTES,
   NAV_GROUPS,
   deriveAppCrumbs,
   flattenNavItems,
@@ -40,5 +41,20 @@ describe("navigation model", () => {
     expect(
       deriveAppCrumbs("/home/sources").map((crumb) => crumb.label)
     ).toEqual(["Home", "Data sources"])
+  })
+
+  it("derives route nav and crumbs from the same route metadata", () => {
+    const sourceRoute = APP_ROUTES.find((route) => route.id === "sources")!
+    const sourceNav = flattenNavItems(NAV_GROUPS).find(
+      (item) => item.id === "sources"
+    )!
+
+    expect(sourceNav).toMatchObject({
+      href: sourceRoute.href,
+      label: sourceRoute.label,
+    })
+    expect(
+      deriveAppCrumbs(sourceRoute.href).map((crumb) => crumb.label)
+    ).toEqual(["Home", sourceRoute.label])
   })
 })

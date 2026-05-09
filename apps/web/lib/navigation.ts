@@ -30,38 +30,89 @@ export type Crumb = {
   href?: string
 }
 
-const HOME: Crumb = { icon: HomeIcon, label: "Home", href: "/home" }
-const CLIENTS: Crumb = {
-  icon: UsersIcon,
-  label: "Clients",
-  href: "/home/clients",
+export type AppRouteId = "home" | "clients" | "sources"
+
+export type AppRoute = {
+  id: AppRouteId
+  label: string
+  icon: LucideIcon
+  href: string
+  count?: number
+  parentId?: AppRouteId
+  navGroup?: "primary"
 }
 
-const ROUTE_CRUMBS: Record<string, Crumb[]> = {
-  "/home": [{ icon: HomeIcon, label: "Home" }],
-  "/home/clients": [HOME, { icon: UsersIcon, label: "Clients" }],
-  "/home/sources": [HOME, { icon: PlugZapIcon, label: "Data sources" }],
+const APP_ROUTES: AppRoute[] = [
+  {
+    id: "home",
+    label: "Home",
+    icon: HomeIcon,
+    href: "/home",
+    navGroup: "primary",
+  },
+  {
+    id: "clients",
+    label: "Clients",
+    icon: UsersIcon,
+    count: 142,
+    href: "/home/clients",
+    parentId: "home",
+    navGroup: "primary",
+  },
+  {
+    id: "sources",
+    label: "Data sources",
+    icon: PlugZapIcon,
+    href: "/home/sources",
+    parentId: "home",
+    navGroup: "primary",
+  },
+]
+
+function appRoute(id: AppRouteId): AppRoute {
+  const route = APP_ROUTES.find((candidate) => candidate.id === id)
+  if (!route) throw new Error(`Unknown app route: ${id}`)
+  return route
+}
+
+function routeCrumb(route: AppRoute, href?: string): Crumb {
+  return { icon: route.icon, label: route.label, href }
+}
+
+const HOME_ROUTE = appRoute("home")
+const CLIENTS_ROUTE = appRoute("clients")
+
+const HOME: Crumb = routeCrumb(HOME_ROUTE, HOME_ROUTE.href)
+const CLIENTS: Crumb = routeCrumb(CLIENTS_ROUTE, CLIENTS_ROUTE.href)
+
+function routeCrumbs(route: AppRoute): Crumb[] {
+  if (!route.parentId) return [routeCrumb(route)]
+  return [HOME, routeCrumb(route)]
+}
+
+const ROUTE_CRUMBS: Record<string, Crumb[]> = Object.fromEntries(
+  APP_ROUTES.map((route) => [route.href, routeCrumbs(route)])
+)
+
+function navItemForRoute(id: AppRouteId): NavItem {
+  const route = appRoute(id)
+  return {
+    id: route.id,
+    label: route.label,
+    icon: route.icon,
+    count: route.count,
+    href: route.href,
+  }
 }
 
 const NAV_GROUPS: NavGroup[] = [
   {
     id: "primary",
     items: [
-      { id: "home", label: "Home", icon: HomeIcon, href: "/home" },
-      {
-        id: "clients",
-        label: "Clients",
-        icon: UsersIcon,
-        count: 142,
-        href: "/home/clients",
-      },
+      navItemForRoute("home"),
+      navItemForRoute("clients"),
       { id: "tasks", label: "Tasks", icon: ListTodoIcon, count: 3 },
-      {
-        id: "sources",
-        label: "Data sources",
-        icon: PlugZapIcon,
-        href: "/home/sources",
-      },
+      navItemForRoute("sources"),
     ],
   },
   {
@@ -127,6 +178,7 @@ function deriveAppCrumbs(
 }
 
 export {
+  APP_ROUTES,
   CLIENTS,
   HOME,
   NAV_GROUPS,
