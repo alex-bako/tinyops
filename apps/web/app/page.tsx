@@ -80,10 +80,11 @@ import {
   CalloutSummary,
 } from "@workspace/ui/components/callout"
 import {
-  BigSearch,
-  BigSearchIcon,
-  BigSearchInput,
-} from "@workspace/ui/components/big-search"
+  SearchField,
+  SearchFieldIcon,
+  SearchFieldInput,
+  SearchFieldShortcut,
+} from "@workspace/ui/components/search-field"
 import {
   H1,
   H2,
@@ -414,13 +415,13 @@ export default function Page() {
               <div className="flex flex-col gap-5">
                 <div>
                   <Caption className="mb-2 block">Big search (hero)</Caption>
-                  <BigSearch>
-                    <BigSearchIcon>
+                  <SearchField>
+                    <SearchFieldIcon>
                       <Search />
-                    </BigSearchIcon>
-                    <BigSearchInput placeholder="Type a client email address…" />
-                    <Kbd>↵</Kbd>
-                  </BigSearch>
+                    </SearchFieldIcon>
+                    <SearchFieldInput placeholder="Type a client email address…" />
+                    <SearchFieldShortcut>↵</SearchFieldShortcut>
+                  </SearchField>
                 </div>
 
                 <div>

@@ -15,6 +15,11 @@ import {
   FilterTabs,
 } from "@workspace/ui/components/filter-tab"
 import {
+  SearchField,
+  SearchFieldIcon,
+  SearchFieldInput,
+} from "@workspace/ui/components/search-field"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -65,25 +70,18 @@ export function ClientsToolbar({
       </FilterTabs>
 
       <div className="ml-auto flex flex-wrap items-center gap-1.5">
-        <label
-          className={cn(
-            "inline-flex h-[26px] w-[220px] items-center gap-1.5 rounded-sm border border-input bg-background px-2",
-            "text-[12.5px] text-foreground transition-colors duration-(--dur-fast) ease-(--ease-out)",
-            "focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/15"
-          )}
-        >
-          <SearchIcon className="size-3.5 text-muted-foreground" />
-          <input
-            type="search"
+        <SearchField variant="compact" className="w-[220px]">
+          <SearchFieldIcon variant="compact">
+            <SearchIcon />
+          </SearchFieldIcon>
+          <SearchFieldInput
+            variant="compact"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Filter by name or email…"
             aria-label="Filter by name or email"
-            className={cn(
-              "min-w-0 flex-1 border-0 bg-transparent p-0 font-sans text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground/60"
-            )}
           />
-        </label>
+        </SearchField>
 
         <Select
           value={cohort}
