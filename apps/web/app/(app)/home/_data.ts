@@ -2,11 +2,12 @@ import {
   ALL_CLIENTS,
   RECENT_CLIENTS,
   type Client,
+  type ClientDetail,
   type ClientStatus,
 } from "@/lib/clients"
 
 export type { ClientStatus, Client }
-export type RecentClient = Client
+export type RecentClient = ClientDetail
 
 export { RECENT_CLIENTS, ALL_CLIENTS }
 

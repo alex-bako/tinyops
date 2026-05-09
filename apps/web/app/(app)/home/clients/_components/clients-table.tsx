@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ChevronRightIcon, SearchXIcon } from "lucide-react"
 
 import { Badge, BadgeDot } from "@workspace/ui/components/badge"
@@ -16,7 +18,7 @@ import {
 import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
 import { cn } from "@workspace/ui/lib/utils"
 
-import type { Client, ClientFlag, ClientStatus } from "@/lib/clients"
+import type { ClientDetail, ClientFlag, ClientStatus } from "@/lib/clients"
 
 function StatusCell({ status }: { status: ClientStatus }) {
   if (status === "sensitive") return <Badge variant="sensitive">Sensitive</Badge>
@@ -67,10 +69,11 @@ export function ClientsTable({
   total,
   onClear,
 }: {
-  rows: Client[]
+  rows: ClientDetail[]
   total: number
   onClear: () => void
 }) {
+  const router = useRouter()
   return (
     <Table className="mt-0">
       <TableHeader>
@@ -103,10 +106,23 @@ export function ClientsTable({
             </td>
           </tr>
         ) : (
-          rows.map((c) => (
-            <TableRow key={c.email} interactive>
+          rows.map((c) => {
+            const href = `/home/clients/${c.slug}`
+            return (
+            <TableRow
+              key={c.email}
+              interactive
+              className="cursor-pointer"
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest("a")) return
+                router.push(href)
+              }}
+            >
               <TableCell>
-                <div className="flex min-w-0 items-center gap-2.5">
+                <Link
+                  href={href}
+                  className="-m-1 flex min-w-0 items-center gap-2.5 rounded-sm p-1 no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                >
                   <TonalAvatar size="md" name={c.name} />
                   <div className="flex min-w-0 flex-col leading-[1.2]">
                     <span className="text-[13.5px] font-medium tracking-[-0.005em] text-foreground">
@@ -116,7 +132,7 @@ export function ClientsTable({
                       {c.email}
                     </span>
                   </div>
-                </div>
+                </Link>
               </TableCell>
               <TableCell>
                 <StatusCell status={c.status} />
@@ -148,7 +164,8 @@ export function ClientsTable({
                 </span>
               </TableCell>
             </TableRow>
-          ))
+            )
+          })
         )}
       </TableBody>
     </Table>

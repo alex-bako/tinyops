@@ -23,6 +23,8 @@ import {
 } from "@workspace/ui/components/breadcrumb"
 import { SidebarTrigger } from "@workspace/ui/components/sidebar"
 
+import { clientBySlug } from "@/lib/clients"
+
 export type Crumb = {
   icon?: LucideIcon
   label: string
@@ -30,6 +32,11 @@ export type Crumb = {
 }
 
 const HOME: Crumb = { icon: HomeIcon, label: "Home", href: "/home" }
+const CLIENTS: Crumb = {
+  icon: UsersIcon,
+  label: "Clients",
+  href: "/home/clients",
+}
 
 const ROUTE_CRUMBS: Record<string, Crumb[]> = {
   "/home": [{ icon: HomeIcon, label: "Home" }],
@@ -38,6 +45,13 @@ const ROUTE_CRUMBS: Record<string, Crumb[]> = {
 
 function deriveCrumbs(pathname: string): Crumb[] {
   if (ROUTE_CRUMBS[pathname]) return ROUTE_CRUMBS[pathname]!
+
+  const clientSlug = pathname.match(/^\/home\/clients\/([^/]+)\/?$/)?.[1]
+  if (clientSlug) {
+    const client = clientBySlug(clientSlug)
+    return [HOME, CLIENTS, { label: client?.name ?? clientSlug }]
+  }
+
   const match = Object.keys(ROUTE_CRUMBS)
     .filter((p) => pathname.startsWith(`${p}/`))
     .sort((a, b) => b.length - a.length)[0]
