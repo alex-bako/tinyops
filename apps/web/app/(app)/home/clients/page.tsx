@@ -16,8 +16,15 @@ import { ClientsToolbar } from "./_components/clients-toolbar"
 import { useClientListView } from "./_view-model"
 
 export default function ClientsPage() {
-  const { filters, updateFilters, counts, rows, total, clearFilters } =
-    useClientListView()
+  const {
+    filters,
+    updateFilters,
+    counts,
+    rows,
+    total,
+    emptyMessage,
+    clearFilters,
+  } = useClientListView()
 
   return (
     <div
@@ -59,7 +66,11 @@ export default function ClientsPage() {
         counts={counts}
       />
 
-      <ClientsTable rows={rows} onClear={clearFilters} />
+      <ClientsTable
+        rows={rows}
+        emptyMessage={emptyMessage}
+        onClear={clearFilters}
+      />
 
       <footer
         className={cn(

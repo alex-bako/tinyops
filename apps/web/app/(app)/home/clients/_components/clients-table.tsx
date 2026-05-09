@@ -23,9 +23,11 @@ import type { ClientDetail } from "@/lib/clients"
 
 export function ClientsTable({
   rows,
+  emptyMessage,
   onClear,
 }: {
   rows: ClientDetail[]
+  emptyMessage: string
   onClear: () => void
 }) {
   const router = useRouter()
@@ -53,7 +55,7 @@ export function ClientsTable({
                 )}
               >
                 <SearchXIcon className="size-4 text-muted-foreground/60" />
-                <span>No clients match these filters.</span>
+                <span>{emptyMessage}</span>
                 <Button variant="tertiary" size="sm" onClick={onClear}>
                   Clear filters
                 </Button>
