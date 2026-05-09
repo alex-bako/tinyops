@@ -3,6 +3,7 @@ export const AUTH_CALLBACK_PATH = "/auth/callback"
 export const DEFAULT_SIGNED_IN_PATH = "/home"
 export const CLIENTS_PATH = `${DEFAULT_SIGNED_IN_PATH}/clients`
 export const SOURCES_PATH = `${DEFAULT_SIGNED_IN_PATH}/sources`
+export const SETTINGS_PATH = `${DEFAULT_SIGNED_IN_PATH}/settings`
 
 export function isProtectedPath(pathname: string) {
   return (

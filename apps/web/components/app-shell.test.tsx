@@ -3,11 +3,24 @@ import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { AppShell } from "@/components/app-shell"
+import { WorkspaceFeatureProvider } from "@/features/workspaces/context"
+import {
+  JOINABLE_WORKSPACES,
+  WORKSPACES,
+} from "@/features/workspaces/mock-data"
 
 let pathname = "/home"
 
 vi.mock("next/navigation", () => ({
   usePathname: () => pathname,
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    prefetch: vi.fn(),
+  }),
 }))
 
 function installMatchMedia() {
@@ -32,12 +45,16 @@ describe("AppShell", () => {
     installMatchMedia()
 
     render(
-      <AppShell
-        userEmail="profile@example.co"
-        sourceNavItems={[{ id: "imap", title: "IMAP mailbox" }]}
+      <WorkspaceFeatureProvider
+        data={{ workspaces: WORKSPACES, joinableWorkspaces: JOINABLE_WORKSPACES }}
       >
-        <main>Workspace</main>
-      </AppShell>
+        <AppShell
+          userEmail="profile@example.co"
+          sourceNavItems={[{ id: "imap", title: "IMAP mailbox" }]}
+        >
+          <main>Workspace</main>
+        </AppShell>
+      </WorkspaceFeatureProvider>
     )
 
     expect(screen.getByText("profile@example.co")).toBeInTheDocument()
@@ -48,9 +65,13 @@ describe("AppShell", () => {
     installMatchMedia()
 
     render(
-      <AppShell sourceNavItems={[{ id: "imap", title: "IMAP mailbox" }]}>
-        <main>Workspace</main>
-      </AppShell>
+      <WorkspaceFeatureProvider
+        data={{ workspaces: WORKSPACES, joinableWorkspaces: JOINABLE_WORKSPACES }}
+      >
+        <AppShell sourceNavItems={[{ id: "imap", title: "IMAP mailbox" }]}>
+          <main>Workspace</main>
+        </AppShell>
+      </WorkspaceFeatureProvider>
     )
 
     expect(screen.getByText("IMAP mailbox")).toBeInTheDocument()
