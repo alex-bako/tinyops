@@ -6,7 +6,8 @@ import {
 } from "@workspace/ui/components/sidebar"
 
 import { AppSidebar } from "@/components/app-sidebar"
-import { AppTopbar, type Crumb } from "@/components/app-topbar"
+import { AppTopbar } from "@/components/app-topbar"
+import type { Crumb } from "@/lib/navigation"
 
 export function AppShell({
   crumbs,
