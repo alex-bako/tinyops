@@ -28,8 +28,8 @@ function RecordRow({
   className,
   children,
   variant = "list",
-  interactive = variant === "list",
-  showHandle = variant === "list",
+  interactive,
+  showHandle,
   asChild = false,
   ...props
 }: React.ComponentProps<"div"> & {
@@ -38,15 +38,17 @@ function RecordRow({
   showHandle?: boolean
   asChild?: boolean
 }) {
+  const isInteractive = interactive ?? asChild
+  const shouldShowHandle = showHandle ?? (isInteractive && variant === "list")
   const classes = cn(
     "group/record-row relative rounded-sm transition-[background] duration-75 text-inherit",
     rowClasses[variant],
-    interactive && "cursor-pointer hover:bg-[var(--tint-hover)] no-underline",
+    isInteractive && "cursor-pointer hover:bg-[var(--tint-hover)] no-underline",
     className
   )
   const content = (
     <>
-      {showHandle ? <RecordRowHandle /> : null}
+      {shouldShowHandle ? <RecordRowHandle /> : null}
       {children}
     </>
   )
@@ -65,7 +67,7 @@ function RecordRow({
         className: cn(classes, childClassName),
       },
       <>
-        {showHandle ? <RecordRowHandle /> : null}
+        {shouldShowHandle ? <RecordRowHandle /> : null}
         {childChildren}
       </>
     )
@@ -74,8 +76,8 @@ function RecordRow({
   return (
     <div
       data-slot="record-row"
-      role={interactive ? "button" : undefined}
-      tabIndex={interactive ? 0 : undefined}
+      role={isInteractive ? "button" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
       className={classes}
       {...props}
     >

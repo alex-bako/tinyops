@@ -23,7 +23,7 @@ const TONE_BG: Record<WeekTask["tone"], string> = {
 function WeekTaskRow({ task }: { task: WeekTask }) {
   const Icon = ICON_MAP[task.icon]
   return (
-    <RecordRow>
+    <RecordRow interactive={false}>
       <span
         aria-hidden
         className={cn(
