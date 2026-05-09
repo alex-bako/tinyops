@@ -1,4 +1,6 @@
 import type { Client } from "@/lib/clients"
+import { getClientMemoryRepository } from "@/lib/client-memory/loaders"
+import type { ClientMemoryRepository } from "@/lib/client-memory/repository"
 
 export type FilterId =
   | "all"
@@ -36,4 +38,10 @@ export function matchesFilter(c: Client, filter: FilterId): boolean {
 
 export function countFor(rows: Client[], filter: FilterId): number {
   return rows.reduce((acc, c) => acc + (matchesFilter(c, filter) ? 1 : 0), 0)
+}
+
+export function loadClientRows(
+  repository: ClientMemoryRepository = getClientMemoryRepository()
+) {
+  return repository.listClients()
 }

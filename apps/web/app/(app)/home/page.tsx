@@ -24,16 +24,14 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
-import { homeSourceRows } from "@/lib/sources"
-
-import { ATTENTION, RECENT_CLIENTS, WEEK_TASKS } from "./_data"
+import { ATTENTION, WEEK_TASKS, loadHomePageData } from "./_data"
 import { ClientRow } from "./_components/client-row"
 import { SourceRow } from "./_components/source-row"
 import { StatRow } from "./_components/stat-row"
 import { WeekTaskRow } from "./_components/week-task-row"
 
-export default function HomePage() {
-  const homeSources = homeSourceRows()
+export default async function HomePage() {
+  const { recentClients, homeSources } = await loadHomePageData()
   return (
     <WorkspacePageSurface>
       <WorkspacePageHeader
@@ -73,7 +71,7 @@ export default function HomePage() {
               }
             />
             <div className="flex flex-col">
-              {RECENT_CLIENTS.map((c) => (
+              {recentClients.map((c) => (
                 <ClientRow key={c.email} client={c} />
               ))}
             </div>

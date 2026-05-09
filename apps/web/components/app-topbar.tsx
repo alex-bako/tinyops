@@ -17,7 +17,7 @@ import {
 } from "@workspace/ui/components/breadcrumb"
 import { SidebarTrigger } from "@workspace/ui/components/sidebar"
 
-import { clientBySlug } from "@/lib/clients"
+import type { ClientNavItem } from "@/lib/client-memory/repository"
 import { deriveAppCrumbs, type Crumb } from "@/lib/navigation"
 
 function CrumbContent({ icon: Icon, label }: Crumb) {
@@ -29,12 +29,19 @@ function CrumbContent({ icon: Icon, label }: Crumb) {
   )
 }
 
-export function AppTopbar({ crumbs }: { crumbs?: Crumb[] }) {
+export function AppTopbar({
+  crumbs,
+  clientNavItems = [],
+}: {
+  crumbs?: Crumb[]
+  clientNavItems?: ClientNavItem[]
+}) {
   const pathname = usePathname() ?? "/home"
   const resolved =
     crumbs ??
     deriveAppCrumbs(pathname, {
-      resolveClientName: (slug) => clientBySlug(slug)?.name,
+      resolveClientName: (slug) =>
+        clientNavItems.find((client) => client.slug === slug)?.name,
     })
 
   return (

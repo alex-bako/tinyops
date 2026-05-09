@@ -5,6 +5,10 @@ import { getSupabaseServerEnv } from "@/lib/supabase/server-env"
 
 const ORIGINAL_ENV = process.env
 
+function setEnv(name: string, value: string) {
+  process.env[name] = value
+}
+
 describe("Supabase env adapters", () => {
   beforeEach(() => {
     process.env = { ...ORIGINAL_ENV }
@@ -35,7 +39,7 @@ describe("Supabase env adapters", () => {
 
   it("keeps service-role reads behind the server env adapter", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = " https://example.supabase.co "
-    process.env.SUPABASE_SERVICE_ROLE_KEY = " service-role "
+    setEnv("SUPABASE_SERVICE_ROLE_KEY", " service-role ")
 
     expect(getSupabaseServerEnv()).toEqual({
       url: "https://example.supabase.co",

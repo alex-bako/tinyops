@@ -1,16 +1,10 @@
-import {
-  ALL_CLIENTS,
-  RECENT_CLIENTS,
-  type Client,
-  type ClientDetail,
-  type ClientStatus,
-} from "@/lib/clients"
-import { SOURCES, type DataSource } from "@/lib/sources"
+import type { Client, ClientDetail, ClientStatus } from "@/lib/clients"
+import { getClientMemoryRepository } from "@/lib/client-memory/loaders"
+import type { ClientMemoryRepository } from "@/lib/client-memory/repository"
+import { homeSourceRows, type DataSource } from "@/lib/sources"
 
 export type { ClientStatus, Client, DataSource }
 export type RecentClient = ClientDetail
-
-export { RECENT_CLIENTS, ALL_CLIENTS, SOURCES }
 
 export type BadgeKind = "neutral" | "active" | "warn" | "brand" | "sensitive"
 
@@ -67,3 +61,17 @@ export const WEEK_TASKS: WeekTask[] = [
     badge: { kind: "neutral", text: "Scheduled" },
   },
 ]
+
+export async function loadHomePageData(
+  repository: ClientMemoryRepository = getClientMemoryRepository()
+) {
+  const [recentClients, sources] = await Promise.all([
+    repository.getRecentClients(5),
+    repository.listDataSources(),
+  ])
+
+  return {
+    recentClients,
+    homeSources: homeSourceRows(sources),
+  }
+}
