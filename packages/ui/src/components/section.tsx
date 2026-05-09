@@ -11,7 +11,7 @@ function Section({
     <section
       data-slot="section"
       className={cn(
-        "py-2",
+        "py-1",
         divider && "mt-7 border-t border-border pt-7",
         className
       )}
@@ -27,33 +27,25 @@ function SectionHead({
   className,
 }: {
   title: string
-  count?: string
+  count?: React.ReactNode
   actions?: React.ReactNode
   className?: string
 }) {
   return (
-    <div
-      className={cn(
-        "mb-3 flex items-center gap-2",
-        className
-      )}
+    <header
+      data-slot="section-head"
+      className={cn("mb-3 flex items-center gap-2", className)}
     >
-      <h3
-        className={cn(
-          "m-0 font-sans text-[13px] font-semibold uppercase tracking-[0.02em] text-muted-foreground"
-        )}
-      >
+      <h3 className="m-0 font-sans text-[13px] font-semibold uppercase tracking-[0.02em] text-muted-foreground">
         {title}
       </h3>
-      {count ? (
+      {count !== undefined && count !== null ? (
         <span className="font-mono text-[12px] text-muted-foreground/70">
           {count}
         </span>
       ) : null}
-      {actions ? (
-        <div className="ml-auto flex items-center gap-1">{actions}</div>
-      ) : null}
-    </div>
+      {actions ? <div className="ml-auto flex items-center gap-1">{actions}</div> : null}
+    </header>
   )
 }
 

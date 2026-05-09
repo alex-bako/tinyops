@@ -18,6 +18,7 @@ import {
 } from "@workspace/ui/components/search-field"
 import { Button } from "@workspace/ui/components/button"
 import { Kbd } from "@workspace/ui/components/kbd"
+import { Section, SectionHead } from "@workspace/ui/components/section"
 import {
   Body,
   EditorialItalic,
@@ -28,7 +29,6 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { ATTENTION, RECENT_CLIENTS, SOURCES, WEEK_TASKS } from "./_data"
 import { ClientRow } from "./_components/client-row"
-import { Section, SectionHead } from "./_components/section"
 import { SourceRow } from "./_components/source-row"
 import { StatRow } from "./_components/stat-row"
 import { WeekTaskRow } from "./_components/week-task-row"
@@ -77,7 +77,7 @@ export default function HomePage() {
             <SectionHead
               title="Recently viewed"
               count="5"
-              right={
+              actions={
                 <Button asChild variant="tertiary" size="sm">
                   <Link href="/home/clients">
                     All clients
@@ -117,7 +117,7 @@ export default function HomePage() {
             <SectionHead
               title="Data sources"
               count="3 connected"
-              right={
+              actions={
                 <Button variant="tertiary" size="sm">
                   <PlusIcon />
                   Add
