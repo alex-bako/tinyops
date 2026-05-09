@@ -3,13 +3,12 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@workspace/ui/lib/utils"
 
-type Tone = "email" | "form" | "sent" | "csv" | "neutral"
+type Tone = "brand" | "positive" | "attention" | "neutral"
 
 const toneDot: Record<Tone, string> = {
-  email: "before:bg-cobalt-500",
-  form: "before:bg-mint-500",
-  sent: "before:bg-citron-500",
-  csv: "before:bg-slate-500/60",
+  brand: "before:bg-cobalt-500",
+  positive: "before:bg-mint-500",
+  attention: "before:bg-citron-500",
   neutral: "before:bg-slate-300",
 }
 
@@ -38,10 +37,9 @@ const eventVariants = cva(
   {
     variants: {
       tone: {
-        email: toneDot.email,
-        form: toneDot.form,
-        sent: toneDot.sent,
-        csv: toneDot.csv,
+        brand: toneDot.brand,
+        positive: toneDot.positive,
+        attention: toneDot.attention,
         neutral: toneDot.neutral,
       },
       sensitive: {
