@@ -12,10 +12,10 @@ import {
 import type { ClientTimelineEvent, TimelineEventType } from "@/lib/clients"
 
 const TONE_OF: Record<TimelineEventType, TimelineTone> = {
-  email: "email",
-  form: "form",
-  sent: "sent",
-  csvimport: "csv",
+  email: "brand",
+  form: "positive",
+  sent: "attention",
+  csvimport: "neutral",
 }
 
 const LABEL_OF: Record<TimelineEventType, string> = {
