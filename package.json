@@ -6,6 +6,7 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
+    "test": "turbo test",
     "format": "turbo format",
     "typecheck": "turbo typecheck",
     "supabase:start": "pnpm dlx supabase@latest start",
@@ -16,12 +17,16 @@
     "supabase:types": "pnpm dlx supabase@latest gen types typescript --local > apps/web/lib/database.types.ts"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
+    "jsdom": "^29.1.1",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "turbo": "^2.8.17",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^4.1.5"
   },
   "packageManager": "pnpm@10.18.3",
   "engines": {
