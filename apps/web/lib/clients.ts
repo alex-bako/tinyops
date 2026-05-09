@@ -1,0 +1,228 @@
+export type ClientStatus = "active" | "inactive" | "sensitive" | "dnc"
+
+export type ClientFlag = "overdue" | "sensitive" | "idle" | "dnc"
+
+export type Client = {
+  name: string
+  email: string
+  cohort: string
+  status: ClientStatus
+  sources: number
+  lastContact: string
+  lastEvent: string
+  flags: ClientFlag[]
+}
+
+export const ALL_CLIENTS: Client[] = [
+  {
+    name: "Anna Smith",
+    email: "anna@example.com",
+    cohort: "March cohort",
+    status: "active",
+    sources: 3,
+    lastContact: "Feb 28",
+    lastEvent: "8d ago",
+    flags: ["overdue"],
+  },
+  {
+    name: "Mariko Tan",
+    email: "mariko.t@example.com",
+    cohort: "March cohort",
+    status: "active",
+    sources: 4,
+    lastContact: "May 5",
+    lastEvent: "3d ago",
+    flags: [],
+  },
+  {
+    name: "Luca De Rossi",
+    email: "luca.derossi@gmail.com",
+    cohort: "January cohort",
+    status: "inactive",
+    sources: 2,
+    lastContact: "Mar 30",
+    lastEvent: "5w ago",
+    flags: ["idle"],
+  },
+  {
+    name: "Sara Berger",
+    email: "s.berger@example.de",
+    cohort: "March cohort",
+    status: "sensitive",
+    sources: 5,
+    lastContact: "May 6",
+    lastEvent: "2d ago",
+    flags: ["sensitive"],
+  },
+  {
+    name: "Priya Raman",
+    email: "priya@example.com",
+    cohort: "March cohort",
+    status: "active",
+    sources: 3,
+    lastContact: "May 7",
+    lastEvent: "yesterday",
+    flags: [],
+  },
+  {
+    name: "Tomás Álvarez",
+    email: "tomas.a@example.com",
+    cohort: "February cohort",
+    status: "active",
+    sources: 3,
+    lastContact: "Apr 22",
+    lastEvent: "16d ago",
+    flags: ["overdue"],
+  },
+  {
+    name: "Hana Nakamura",
+    email: "hana.n@example.jp",
+    cohort: "March cohort",
+    status: "active",
+    sources: 2,
+    lastContact: "May 1",
+    lastEvent: "7d ago",
+    flags: [],
+  },
+  {
+    name: "Daniel Okafor",
+    email: "d.okafor@example.com",
+    cohort: "February cohort",
+    status: "active",
+    sources: 4,
+    lastContact: "Apr 18",
+    lastEvent: "20d ago",
+    flags: ["overdue"],
+  },
+  {
+    name: "Eve Kowalski",
+    email: "eve.k@example.pl",
+    cohort: "January cohort",
+    status: "dnc",
+    sources: 1,
+    lastContact: "Jan 12",
+    lastEvent: "16w ago",
+    flags: ["dnc"],
+  },
+  {
+    name: "Faisal Rahman",
+    email: "faisal@example.com",
+    cohort: "March cohort",
+    status: "active",
+    sources: 3,
+    lastContact: "May 4",
+    lastEvent: "4d ago",
+    flags: [],
+  },
+  {
+    name: "Greta Lindqvist",
+    email: "greta@example.se",
+    cohort: "February cohort",
+    status: "inactive",
+    sources: 2,
+    lastContact: "Feb 09",
+    lastEvent: "12w ago",
+    flags: ["idle"],
+  },
+  {
+    name: "Hugo Bernard",
+    email: "hugo.b@example.fr",
+    cohort: "March cohort",
+    status: "active",
+    sources: 4,
+    lastContact: "May 6",
+    lastEvent: "2d ago",
+    flags: [],
+  },
+  {
+    name: "Ines Costa",
+    email: "ines.c@example.pt",
+    cohort: "March cohort",
+    status: "sensitive",
+    sources: 4,
+    lastContact: "Apr 30",
+    lastEvent: "8d ago",
+    flags: ["sensitive", "overdue"],
+  },
+  {
+    name: "Jakob Weiss",
+    email: "j.weiss@example.de",
+    cohort: "January cohort",
+    status: "inactive",
+    sources: 2,
+    lastContact: "Feb 02",
+    lastEvent: "14w ago",
+    flags: ["idle"],
+  },
+  {
+    name: "Kalani Mahoe",
+    email: "kalani@example.com",
+    cohort: "March cohort",
+    status: "active",
+    sources: 3,
+    lastContact: "May 3",
+    lastEvent: "5d ago",
+    flags: [],
+  },
+  {
+    name: "Liam O'Connor",
+    email: "liam@example.ie",
+    cohort: "February cohort",
+    status: "active",
+    sources: 3,
+    lastContact: "Apr 25",
+    lastEvent: "13d ago",
+    flags: ["overdue"],
+  },
+  {
+    name: "Mei Chen",
+    email: "mei.chen@example.com",
+    cohort: "March cohort",
+    status: "active",
+    sources: 4,
+    lastContact: "May 6",
+    lastEvent: "2d ago",
+    flags: [],
+  },
+  {
+    name: "Noor Hassan",
+    email: "noor.h@example.com",
+    cohort: "March cohort",
+    status: "active",
+    sources: 2,
+    lastContact: "Apr 28",
+    lastEvent: "10d ago",
+    flags: [],
+  },
+  {
+    name: "Otto Lindgren",
+    email: "otto@example.fi",
+    cohort: "February cohort",
+    status: "inactive",
+    sources: 1,
+    lastContact: "Mar 11",
+    lastEvent: "8w ago",
+    flags: ["idle"],
+  },
+  {
+    name: "Petra Novak",
+    email: "p.novak@example.cz",
+    cohort: "March cohort",
+    status: "active",
+    sources: 3,
+    lastContact: "May 2",
+    lastEvent: "6d ago",
+    flags: [],
+  },
+]
+
+export const RECENT_CLIENTS: Client[] = ALL_CLIENTS.slice(0, 5)
+
+export const COHORTS = [
+  "All cohorts",
+  "March cohort",
+  "February cohort",
+  "January cohort",
+] as const
+
+export type CohortFilter = (typeof COHORTS)[number]

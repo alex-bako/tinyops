@@ -1,4 +1,8 @@
+"use client"
+
 import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   CircleSlashIcon,
   HashIcon,
@@ -37,12 +41,18 @@ type NavItem = {
   label: string
   icon: LucideIcon
   count?: number
-  isActive?: boolean
+  href?: string
 }
 
 const NAV_PRIMARY: NavItem[] = [
-  { id: "home", label: "Home", icon: HomeIcon, isActive: true },
-  { id: "clients", label: "Clients", icon: UsersIcon, count: 142 },
+  { id: "home", label: "Home", icon: HomeIcon, href: "/home" },
+  {
+    id: "clients",
+    label: "Clients",
+    icon: UsersIcon,
+    count: 142,
+    href: "/home/clients",
+  },
   { id: "tasks", label: "Tasks", icon: ListTodoIcon, count: 3 },
   { id: "sources", label: "Data sources", icon: PlugZapIcon },
 ]
@@ -62,31 +72,70 @@ const NAV_WORKSPACE: NavItem[] = [
   { id: "settings", label: "Settings", icon: Settings2Icon },
 ]
 
-function NavRow({ item }: { item: NavItem }) {
+function NavRow({
+  item,
+  activeId,
+}: {
+  item: NavItem
+  activeId: string | null
+}) {
   const Icon = item.icon
+  const active = activeId === item.id
+
+  const content = (
+    <>
+      <Icon />
+      <span>{item.label}</span>
+      {item.count != null && (
+        <span
+          className={cn(
+            "ml-auto font-normal text-sidebar-foreground/40 tabular-nums",
+            "group-data-[active=true]/menu-button:text-sidebar-foreground/65",
+            "group-hover/menu-button:text-sidebar-foreground/55",
+            "group-data-[collapsible=icon]:hidden"
+          )}
+        >
+          {item.count}
+        </span>
+      )}
+    </>
+  )
+
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton isActive={item.isActive} tooltip={item.label}>
-        <Icon />
-        <span>{item.label}</span>
-        {item.count != null && (
-          <span
-            className={cn(
-              "ml-auto font-normal text-sidebar-foreground/40 tabular-nums",
-              "group-data-[active=true]/menu-button:text-sidebar-foreground/65",
-              "group-hover/menu-button:text-sidebar-foreground/55",
-              "group-data-[collapsible=icon]:hidden"
-            )}
-          >
-            {item.count}
-          </span>
-        )}
-      </SidebarMenuButton>
+      {item.href ? (
+        <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+          <Link href={item.href}>{content}</Link>
+        </SidebarMenuButton>
+      ) : (
+        <SidebarMenuButton isActive={active} tooltip={item.label}>
+          {content}
+        </SidebarMenuButton>
+      )}
     </SidebarMenuItem>
   )
 }
 
+function pickActiveId(items: NavItem[], pathname: string): string | null {
+  let bestId: string | null = null
+  let bestLen = -1
+  for (const it of items) {
+    if (!it.href) continue
+    const matches =
+      pathname === it.href || pathname.startsWith(`${it.href}/`)
+    if (matches && it.href.length > bestLen) {
+      bestId = it.id
+      bestLen = it.href.length
+    }
+  }
+  return bestId
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname() ?? ""
+  const allItems = [...NAV_PRIMARY, ...NAV_PINNED, ...NAV_WORKSPACE]
+  const activeId = pickActiveId(allItems, pathname)
+
   return (
     <Sidebar variant="sidebar" collapsible="icon" {...props}>
       <SidebarHeader>
@@ -99,7 +148,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV_PRIMARY.map((item) => (
-                <NavRow key={item.id} item={item} />
+                <NavRow key={item.id} item={item} activeId={activeId} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -116,7 +165,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV_PINNED.map((item) => (
-                <NavRow key={item.id} item={item} />
+                <NavRow key={item.id} item={item} activeId={activeId} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -127,7 +176,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV_WORKSPACE.map((item) => (
-                <NavRow key={item.id} item={item} />
+                <NavRow key={item.id} item={item} activeId={activeId} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>

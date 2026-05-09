@@ -1,9 +1,14 @@
+"use client"
+
 import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   BellIcon,
   HelpCircleIcon,
   HomeIcon,
   MoreHorizontalIcon,
+  UsersIcon,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
@@ -24,7 +29,21 @@ export type Crumb = {
   href?: string
 }
 
-const DEFAULT_CRUMBS: Crumb[] = [{ icon: HomeIcon, label: "Home" }]
+const HOME: Crumb = { icon: HomeIcon, label: "Home", href: "/home" }
+
+const ROUTE_CRUMBS: Record<string, Crumb[]> = {
+  "/home": [{ icon: HomeIcon, label: "Home" }],
+  "/home/clients": [HOME, { icon: UsersIcon, label: "Clients" }],
+}
+
+function deriveCrumbs(pathname: string): Crumb[] {
+  if (ROUTE_CRUMBS[pathname]) return ROUTE_CRUMBS[pathname]!
+  const match = Object.keys(ROUTE_CRUMBS)
+    .filter((p) => pathname.startsWith(`${p}/`))
+    .sort((a, b) => b.length - a.length)[0]
+  if (match) return ROUTE_CRUMBS[match]!
+  return [{ icon: HomeIcon, label: "Home" }]
+}
 
 function CrumbContent({ icon: Icon, label }: Crumb) {
   return (
@@ -68,7 +87,10 @@ function TopbarIconButton({
   )
 }
 
-export function AppTopbar({ crumbs = DEFAULT_CRUMBS }: { crumbs?: Crumb[] }) {
+export function AppTopbar({ crumbs }: { crumbs?: Crumb[] }) {
+  const pathname = usePathname() ?? "/home"
+  const resolved = crumbs ?? deriveCrumbs(pathname)
+
   return (
     <header
       className={cn(
@@ -79,8 +101,8 @@ export function AppTopbar({ crumbs = DEFAULT_CRUMBS }: { crumbs?: Crumb[] }) {
 
       <Breadcrumb>
         <BreadcrumbList>
-          {crumbs.map((crumb, index) => {
-            const isLast = index === crumbs.length - 1
+          {resolved.map((crumb, index) => {
+            const isLast = index === resolved.length - 1
             return (
               <React.Fragment key={`${crumb.label}-${index}`}>
                 <BreadcrumbItem>
@@ -89,8 +111,10 @@ export function AppTopbar({ crumbs = DEFAULT_CRUMBS }: { crumbs?: Crumb[] }) {
                       <CrumbContent {...crumb} />
                     </BreadcrumbPage>
                   ) : (
-                    <BreadcrumbLink href={crumb.href}>
-                      <CrumbContent {...crumb} />
+                    <BreadcrumbLink asChild>
+                      <Link href={crumb.href}>
+                        <CrumbContent {...crumb} />
+                      </Link>
                     </BreadcrumbLink>
                   )}
                 </BreadcrumbItem>

@@ -1,3 +1,4 @@
+import Link from "next/link"
 import {
   ArchiveIcon,
   ChevronRightIcon,
@@ -18,6 +19,7 @@ import { Kbd } from "@workspace/ui/components/kbd"
 import {
   Body,
   EditorialItalic,
+  Eyebrow,
   H1,
 } from "@workspace/ui/components/typography"
 import { cn } from "@workspace/ui/lib/utils"
@@ -33,18 +35,13 @@ export default function HomePage() {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[1080px] px-6 pt-10 pb-24 md:px-16 md:pt-14"
+        "mx-auto w-full max-w-[1200px] px-6 pt-10 pb-24 md:px-14 md:pt-14"
       )}
     >
-      <div
-        className={cn(
-          "inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground",
-          "[&>svg]:size-3.5"
-        )}
-      >
+      <Eyebrow className="inline-flex items-center gap-1.5 [&>svg]:size-3.5">
         <SunIcon />
         <span>Wednesday, May 8 · Jamie&apos;s workspace</span>
-      </div>
+      </Eyebrow>
 
       <H1
         className={cn(
@@ -79,9 +76,11 @@ export default function HomePage() {
               title="Recently viewed"
               count="5"
               right={
-                <Button variant="tertiary" size="sm">
-                  All clients
-                  <ChevronRightIcon />
+                <Button asChild variant="tertiary" size="sm">
+                  <Link href="/home/clients">
+                    All clients
+                    <ChevronRightIcon />
+                  </Link>
                 </Button>
               }
             />

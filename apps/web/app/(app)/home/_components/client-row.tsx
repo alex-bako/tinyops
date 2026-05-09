@@ -7,6 +7,13 @@ import { NotionRow } from "./notion-row"
 function StatusBadge({ status }: { status: RecentClient["status"] }) {
   if (status === "sensitive") return <Badge variant="sensitive">Sensitive</Badge>
   if (status === "inactive") return <Badge variant="neutral">Inactive 90d+</Badge>
+  if (status === "dnc")
+    return (
+      <Badge variant="dnc">
+        <BadgeDot />
+        Do not contact
+      </Badge>
+    )
   return (
     <Badge variant="active">
       <BadgeDot />
@@ -30,7 +37,7 @@ function ClientRow({ client }: { client: RecentClient }) {
           <b className="font-medium text-foreground">{client.sources}</b>{" "}
           sources
         </span>
-        <span>{client.since}</span>
+        <span>{client.lastEvent}</span>
         <StatusBadge status={client.status} />
       </span>
     </NotionRow>
