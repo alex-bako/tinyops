@@ -631,7 +631,7 @@ export default function Page() {
                   <EditorialItalic className="text-cobalt-700">
                     asked for clearer replay instructions
                   </EditorialItalic>{" "}
-                  on Mar 8 and hasn't submitted feedback in six weeks.
+                  on Mar 8 and hasn&apos;t submitted feedback in six weeks.
                 </CalloutSummary>
               </Callout>
 
@@ -670,7 +670,7 @@ export default function Page() {
                   <Button variant="secondary">Hover for tooltip</Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Sourced from anna's Mar 8 email.
+                  Sourced from anna&apos;s Mar 8 email.
                 </TooltipContent>
               </Tooltip>
 
