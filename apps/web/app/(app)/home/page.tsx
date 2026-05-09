@@ -24,7 +24,7 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
-import { connectedSources } from "@/lib/sources"
+import { homeSourceRows } from "@/lib/sources"
 
 import { ATTENTION, RECENT_CLIENTS, WEEK_TASKS } from "./_data"
 import { ClientRow } from "./_components/client-row"
@@ -33,7 +33,7 @@ import { StatRow } from "./_components/stat-row"
 import { WeekTaskRow } from "./_components/week-task-row"
 
 export default function HomePage() {
-  const homeSources = connectedSources()
+  const homeSources = homeSourceRows()
   return (
     <WorkspacePageSurface>
       <WorkspacePageHeader

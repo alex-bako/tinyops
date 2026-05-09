@@ -1,15 +1,13 @@
 import { RecordRow } from "@workspace/ui/components/record-row"
 
-import type { DataSource } from "@/lib/sources"
-import { SOURCE_ICON_MAP } from "@/lib/sources"
+import { SourceIcon } from "@/components/source-icon"
+import type { HomeSourceRow } from "@/lib/sources"
 
-function SourceRow({ source }: { source: DataSource }) {
-  const Icon = SOURCE_ICON_MAP[source.icon]
-  const lastSync = source.stats[0]?.value
+function SourceRow({ source }: { source: HomeSourceRow }) {
   return (
     <RecordRow variant="source" interactive={false}>
       <span className="inline-flex size-6 items-center justify-center rounded-xs text-muted-foreground">
-        <Icon className="size-3.5" />
+        <SourceIcon icon={source.icon} className="size-3.5" />
       </span>
       <div className="flex min-w-0 flex-col leading-[1.3]">
         <span className="text-[13.5px] text-foreground">{source.title}</span>
@@ -24,7 +22,7 @@ function SourceRow({ source }: { source: DataSource }) {
             className="inline-block size-1.5 rounded-full bg-mint-500"
           />
         )}
-        {source.connected ? lastSync : "Not connected"}
+        {source.status}
       </span>
     </RecordRow>
   )
