@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
+import { Button } from "@workspace/ui/components/button"
 import { Form, FormRow } from "@workspace/ui/components/form-row"
 import {
   SegmentedControl,
@@ -64,18 +65,31 @@ export function SectionSensitivity({
   workspace: Workspace
   onUpdateSensitivity: (patch: Partial<WorkspaceSensitivity>) => void
 }) {
-  const s = workspace.sensitivity
+  const [draft, setDraft] = React.useState<WorkspaceSensitivity>(
+    workspace.sensitivity
+  )
+  const s = draft
+
+  React.useEffect(() => {
+    setDraft(workspace.sensitivity)
+  }, [workspace.id, workspace.sensitivity])
 
   const setMode = (mode: SensitivityMode) =>
-    onUpdateSensitivity({ mode })
+    setDraft((current) => ({ ...current, mode }))
   const setThreshold = (autoSendThreshold: AutoSendThreshold) =>
-    onUpdateSensitivity({ autoSendThreshold })
+    setDraft((current) => ({ ...current, autoSendThreshold }))
   const toggleExclude = () =>
-    onUpdateSensitivity({ excludeFromOutbound: !s.excludeFromOutbound })
+    setDraft((current) => ({
+      ...current,
+      excludeFromOutbound: !current.excludeFromOutbound,
+    }))
   const removeKeyword = (keyword: string) =>
-    onUpdateSensitivity({
-      manualReviewKeywords: s.manualReviewKeywords.filter((k) => k !== keyword),
-    })
+    setDraft((current) => ({
+      ...current,
+      manualReviewKeywords: current.manualReviewKeywords.filter(
+        (k) => k !== keyword
+      ),
+    }))
 
   return (
     <div>
@@ -198,6 +212,23 @@ export function SectionSensitivity({
           </div>
         </FormRow>
       </Form>
+
+      <div className="mt-7 flex items-center justify-end gap-2 border-t border-border pt-4">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setDraft(workspace.sensitivity)}
+        >
+          Discard
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => onUpdateSensitivity(draft)}
+        >
+          Save policy
+        </Button>
+      </div>
     </div>
   )
 }

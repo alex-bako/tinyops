@@ -1,21 +1,25 @@
 import { describe, expect, it } from "vitest"
 
-import { createWorkspaceFeatureState } from "@/features/workspaces/commands"
+import { createWorkspaceFeatureState } from "@/features/workspaces/state"
+import {
+  JOINABLE_WORKSPACES,
+  WORKSPACES,
+  WORKSPACE_USAGE_BY_ID,
+} from "@/features/workspaces/mock-data"
 import { WORKSPACE_NAV_GROUPS } from "@/features/workspaces/navigation"
 import {
   buildSettingsRailView,
   buildSidebarNavGroups,
   buildWorkspaceSwitcherView,
 } from "@/features/workspaces/view-models"
-import { createMockWorkspaceRepository } from "@/features/workspaces/mock-repository"
 
 describe("workspace view models", () => {
   it("builds switcher rows without importing mock data in UI modules", async () => {
-    const repository = createMockWorkspaceRepository()
     const state = createWorkspaceFeatureState({
-      workspaces: await repository.listWorkspaces(),
-      joinableWorkspaces: await repository.listJoinableWorkspaces(),
-      preferredActiveId: "course-lab",
+      workspaces: WORKSPACES,
+      joinableWorkspaces: JOINABLE_WORKSPACES,
+      usageByWorkspaceId: WORKSPACE_USAGE_BY_ID,
+      activeWorkspaceId: "course-lab",
     })
 
     const view = buildWorkspaceSwitcherView(state, {
@@ -31,11 +35,11 @@ describe("workspace view models", () => {
   })
 
   it("builds settings rail by role policy", async () => {
-    const repository = createMockWorkspaceRepository()
     const state = createWorkspaceFeatureState({
-      workspaces: await repository.listWorkspaces(),
+      workspaces: WORKSPACES,
       joinableWorkspaces: [],
-      preferredActiveId: "course-lab",
+      usageByWorkspaceId: WORKSPACE_USAGE_BY_ID,
+      activeWorkspaceId: "course-lab",
     })
 
     expect(
@@ -50,14 +54,17 @@ describe("workspace view models", () => {
   })
 
   it("hydrates sidebar counts from active workspace", async () => {
-    const repository = createMockWorkspaceRepository()
     const state = createWorkspaceFeatureState({
-      workspaces: await repository.listWorkspaces(),
+      workspaces: WORKSPACES,
       joinableWorkspaces: [],
-      preferredActiveId: "bloom-coaching",
+      usageByWorkspaceId: WORKSPACE_USAGE_BY_ID,
+      activeWorkspaceId: "bloom-coaching",
     })
 
-    const groups = buildSidebarNavGroups(WORKSPACE_NAV_GROUPS, state.active)
+    const groups = buildSidebarNavGroups(
+      WORKSPACE_NAV_GROUPS,
+      state.activeUsage
+    )
     const clients = groups
       .flatMap((group) => group.items)
       .find((item) => item.id === "clients")

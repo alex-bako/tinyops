@@ -12,13 +12,16 @@ import {
 
 import { ROLE_DEFS } from "@/features/workspaces/catalog"
 import { canViewBilling } from "@/features/workspaces/policy"
-import type { WorkspaceFeatureState } from "@/features/workspaces/commands"
+import type { WorkspaceFeatureState } from "@/features/workspaces/state"
 import type {
   JoinableWorkspace,
   RoleDef,
   Workspace,
+  WorkspaceInvite,
+  WorkspaceMember,
   WorkspaceRole,
   WorkspaceSidebarCounts,
+  WorkspaceUsageSnapshot,
 } from "@/features/workspaces/types"
 import type { NavGroup, NavItem } from "@/lib/navigation"
 
@@ -78,14 +81,19 @@ export type WorkspaceSwitcherView = {
   active: WorkspaceSwitcherRow
   activeRole: RoleDef
   switchRows: WorkspaceSwitcherRow[]
-  invitationRows: JoinableWorkspace[]
+  invitationRows: JoinableWorkspaceView[]
+}
+
+export type JoinableWorkspaceView = JoinableWorkspace & {
+  hint: string
 }
 
 export type WorkspaceSwitcherRow = Pick<
   Workspace,
-  "id" | "name" | "handle" | "icon" | "type" | "role"
+  "id" | "name" | "handle" | "icon" | "role"
 > & {
   roleDef: RoleDef
+  type: string
 }
 
 export function buildWorkspaceSwitcherView(
@@ -111,7 +119,7 @@ export function buildWorkspaceSwitcherView(
     name: workspace.name,
     handle: workspace.handle,
     icon: workspace.icon,
-    type: workspace.type,
+    type: workspaceTypeLabel(workspace),
     role: workspace.role,
     roleDef: ROLE_DEFS[workspace.role],
   })
@@ -127,22 +135,30 @@ export function buildWorkspaceSwitcherView(
       .filter((workspace) => workspace.id !== state.active.id)
       .filter((workspace) => matches(workspace.name, workspace.handle))
       .map(toRow),
-    invitationRows: state.joinableWorkspaces.filter((workspace) =>
-      matches(workspace.name, workspace.handle)
-    ),
+    invitationRows: state.joinableWorkspaces
+      .filter((workspace) => matches(workspace.name, workspace.handle))
+      .map((workspace) => ({
+        ...workspace,
+        hint: `Invited by ${nameFromEmail(workspace.invitedByEmail)}`,
+      })),
   }
 }
 
 export function buildSidebarNavGroups(
   groups: NavGroup[],
-  workspace: Workspace
+  usage: WorkspaceUsageSnapshot
 ): NavGroup[] {
   return groups.map((group) => ({
     ...group,
     items: group.items.map((item) =>
-      withWorkspaceCount(item, workspace.sidebarCounts)
+      withWorkspaceCount(item, usage.sidebarCounts)
     ),
   }))
+}
+
+export function workspaceTypeLabel(workspace: Workspace): string {
+  const members = workspace.members.length
+  return `${workspace.plan.tier} · ${members} ${members === 1 ? "member" : "members"}`
 }
 
 function withWorkspaceCount(
@@ -152,4 +168,62 @@ function withWorkspaceCount(
   const key = COUNT_KEYS[item.id]
   if (!key) return item
   return { ...item, count: counts[key] }
+}
+
+export type WorkspaceMemberRow = WorkspaceMember & {
+  joined: string
+  lastActive: string
+}
+
+export type WorkspaceInviteRow = WorkspaceInvite & {
+  invitedAt: string
+  invitedBy: string
+}
+
+export function buildWorkspaceMemberRows(
+  workspace: Workspace
+): WorkspaceMemberRow[] {
+  return workspace.members.map((member) => ({
+    ...member,
+    joined: formatDate(member.joinedAt),
+    lastActive: member.you ? "Now" : formatDate(member.lastActiveAt),
+  }))
+}
+
+export function buildWorkspaceInviteRows(
+  workspace: Workspace,
+  now?: () => Date
+): WorkspaceInviteRow[] {
+  return workspace.invites.map((invite) => ({
+    ...invite,
+    invitedAt: formatRelativeDate(invite.createdAt, now),
+    invitedBy: nameFromEmail(invite.invitedByEmail),
+  }))
+}
+
+function nameFromEmail(email: string | null | undefined) {
+  return email?.split("@")[0] || "member"
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "Never"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date)
+}
+
+function formatRelativeDate(value: string, now: (() => Date) | undefined) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  const elapsed = (now?.() ?? new Date()).getTime() - date.getTime()
+  const days = Math.max(0, Math.floor(elapsed / 86_400_000))
+  if (days === 0) return "Today"
+  if (days === 1) return "1d ago"
+  return `${days}d ago`
 }

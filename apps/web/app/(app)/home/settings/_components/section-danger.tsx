@@ -1,26 +1,33 @@
 "use client"
 
 import * as React from "react"
-import {
-  ArchiveIcon,
-  LogOutIcon,
-  Trash2Icon,
-  UserCogIcon,
-} from "lucide-react"
+import { ArchiveIcon, LogOutIcon, Trash2Icon, UserCogIcon } from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
 import { Button } from "@workspace/ui/components/button"
 
 import { canLeaveWorkspace } from "@/features/workspaces/policy"
-import type { Workspace } from "@/features/workspaces/types"
+import type {
+  Workspace,
+  WorkspaceUsageSnapshot,
+} from "@/features/workspaces/types"
 
-export function SectionDanger({ workspace }: { workspace: Workspace }) {
+export function SectionDanger({
+  workspace,
+  usage,
+  onArchive,
+}: {
+  workspace: Workspace
+  usage: WorkspaceUsageSnapshot
+  onArchive: (workspaceId: string) => void
+}) {
   const isOwner = workspace.role === "owner"
   const canLeave = canLeaveWorkspace(workspace)
+  const { counts } = usage
   return (
     <div>
       <div className="mb-6">
-        <h2 className="mb-1.5 font-sans text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-foreground">
+        <h2 className="mb-1.5 font-sans text-[22px] leading-[1.2] font-bold tracking-[-0.02em] text-foreground">
           Danger zone
         </h2>
         <p className="m-0 max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">
@@ -32,8 +39,8 @@ export function SectionDanger({ workspace }: { workspace: Workspace }) {
         title="Leave this workspace"
         description={
           <>
-            You&apos;ll lose access to{" "}
-            {workspace.counts.clients.toLocaleString()} clients tracked here.
+            You&apos;ll lose access to {counts.clients.toLocaleString()} clients
+            tracked here.
           </>
         }
         action={
@@ -60,7 +67,11 @@ export function SectionDanger({ workspace }: { workspace: Workspace }) {
             title="Archive workspace"
             description="Hides it from the switcher. Data is retained. Reversible."
             action={
-              <Button variant="secondary" size="sm">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onArchive(workspace.id)}
+              >
                 <ArchiveIcon />
                 Archive
               </Button>
@@ -71,14 +82,18 @@ export function SectionDanger({ workspace }: { workspace: Workspace }) {
             title="Delete this workspace"
             description={
               <>
-                Permanently removes{" "}
-                {workspace.counts.clients.toLocaleString()} clients,{" "}
-                {workspace.counts.sources} data sources, and the audit log.
-                Cannot be undone.
+                Permanently removes {counts.clients.toLocaleString()} clients,{" "}
+                {counts.sources} data sources, and the audit log. Cannot be
+                undone.
               </>
             }
             action={
-              <Button variant="primary" size="sm" className="bg-coral-700 hover:bg-coral-700/90">
+              <Button
+                variant="primary"
+                size="sm"
+                disabled
+                className="bg-coral-700 hover:bg-coral-700/90"
+              >
                 <Trash2Icon />
                 Delete…
               </Button>
@@ -105,8 +120,7 @@ function DangerRow({
     <div
       className={cn(
         "mt-3 flex items-center gap-3 rounded-md border border-border px-3.5 py-3 first:mt-0",
-        tone === "destructive" &&
-          "border-coral-500/50 bg-coral-500/[0.08]"
+        tone === "destructive" && "border-coral-500/50 bg-coral-500/[0.08]"
       )}
     >
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">

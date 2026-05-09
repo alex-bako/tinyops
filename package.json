@@ -14,6 +14,7 @@
     "supabase:status": "pnpm dlx supabase@latest status",
     "supabase:reset": "pnpm dlx supabase@latest db reset",
     "supabase:migration:new": "pnpm dlx supabase@latest migration new",
+    "supabase:test:workspace-rpc": "docker exec -i supabase_db_tinyops psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/workspace_rpc_contract.sql",
     "supabase:types": "pnpm dlx supabase@latest gen types typescript --local > apps/web/lib/database.types.ts"
   },
   "devDependencies": {

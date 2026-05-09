@@ -8,7 +8,6 @@ import {
   canRemoveMember,
   canViewBilling,
 } from "@/features/workspaces/policy"
-import { DEFAULT_PERMISSIONS } from "@/features/workspaces/catalog"
 import type { Workspace, WorkspaceMember } from "@/features/workspaces/types"
 
 const member = (patch: Partial<WorkspaceMember> = {}): WorkspaceMember => ({
@@ -16,8 +15,8 @@ const member = (patch: Partial<WorkspaceMember> = {}): WorkspaceMember => ({
   name: "Devon Nguyen",
   email: "devon@example.com",
   role: "operator",
-  joined: "Jan 2026",
-  lastActive: "Now",
+  joinedAt: "Jan 2026",
+  lastActiveAt: "Now",
   ...patch,
 })
 
@@ -28,11 +27,8 @@ const workspace = (patch: Partial<Workspace> = {}): Workspace => ({
   description: "Team workspace",
   icon: { kind: "mark" },
   accent: "cobalt",
-  type: "Team",
   role: "owner",
   plan: { tier: "Team", price: "$89 / mo", seats: 5 },
-  counts: { clients: 1, sources: 1, drafts: 1 },
-  sidebarCounts: { clients: 1, tasks: 1, march: 1, feedback: 1, dnc: 1 },
   sensitivity: {
     mode: "balanced",
     autoSendThreshold: "low-and-medium",
@@ -41,7 +37,6 @@ const workspace = (patch: Partial<Workspace> = {}): Workspace => ({
   },
   members: [member({ id: "u1", role: "owner", you: true })],
   invites: [],
-  permissions: DEFAULT_PERMISSIONS,
   ...patch,
 })
 
@@ -69,7 +64,11 @@ describe("workspace policy", () => {
     expect(canRemoveMember("admin", member({ role: "operator" }))).toBe(true)
 
     expect(canChangeMemberRole("owner", member({ role: "owner" }))).toBe(false)
-    expect(canChangeMemberRole("admin", member({ role: "operator" }))).toBe(true)
-    expect(canChangeMemberRole("viewer", member({ role: "operator" }))).toBe(false)
+    expect(canChangeMemberRole("admin", member({ role: "operator" }))).toBe(
+      true
+    )
+    expect(canChangeMemberRole("viewer", member({ role: "operator" }))).toBe(
+      false
+    )
   })
 })

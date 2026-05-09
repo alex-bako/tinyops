@@ -34,16 +34,17 @@ export type WorkspaceMember = {
   name: string
   email: string
   role: WorkspaceRole
-  joined: string
-  lastActive: string
+  joinedAt: string
+  lastActiveAt: string | null
   you?: boolean
 }
 
 export type WorkspaceInvite = {
+  id: string
   email: string
   role: WorkspaceRole
-  invitedAt: string
-  invitedBy: string
+  createdAt: string
+  invitedByEmail: string | null
 }
 
 export type WorkspacePlan = {
@@ -64,6 +65,16 @@ export type WorkspaceSidebarCounts = {
   march: number
   feedback: number
   dnc: number
+}
+
+export type WorkspaceUsageSnapshot = {
+  counts: WorkspaceCounts
+  sidebarCounts: WorkspaceSidebarCounts
+}
+
+export const EMPTY_WORKSPACE_USAGE: WorkspaceUsageSnapshot = {
+  counts: { clients: 0, sources: 0, drafts: 0 },
+  sidebarCounts: { clients: 0, tasks: 0, march: 0, feedback: 0, dnc: 0 },
 }
 
 export type CapabilityId =
@@ -87,23 +98,29 @@ export type Workspace = {
   description: string
   icon: WorkspaceIconKind
   accent: WorkspaceTone
-  type: string
   role: WorkspaceRole
   plan: WorkspacePlan
-  counts: WorkspaceCounts
-  sidebarCounts: WorkspaceSidebarCounts
   sensitivity: WorkspaceSensitivity
   members: WorkspaceMember[]
   invites: WorkspaceInvite[]
-  permissions: Permissions
+}
+
+export type WorkspaceFeatureData = {
+  workspaces: Workspace[]
+  joinableWorkspaces: JoinableWorkspace[]
+  usageByWorkspaceId: Record<string, WorkspaceUsageSnapshot>
+  activeWorkspaceId?: string | null
 }
 
 export type JoinableWorkspace = {
+  invitationId: string
+  workspaceId: string
   name: string
   handle: string
   icon: WorkspaceIconKind
   members: number
-  hint: string
+  role: Exclude<WorkspaceRole, "owner">
+  invitedByEmail: string | null
 }
 
 export type RoleDef = {

@@ -6,14 +6,13 @@ import { InfoIcon } from "lucide-react"
 import { cn } from "@workspace/ui/lib/utils"
 import { PermissionPill } from "@workspace/ui/components/permission-pill"
 
-import { CAPABILITIES, ROLE_DEFS, ROLE_ORDER } from "@/features/workspaces/catalog"
-import { canEditRolePermissions } from "@/features/workspaces/policy"
-import type {
-  CapabilityId,
-  Permissions,
-  Workspace,
-  WorkspaceRole,
-} from "@/features/workspaces/types"
+import {
+  CAPABILITIES,
+  DEFAULT_PERMISSIONS,
+  ROLE_DEFS,
+  ROLE_ORDER,
+} from "@/features/workspaces/catalog"
+import type { Permissions, Workspace } from "@/features/workspaces/types"
 
 const TONE_BORDER: Record<string, string> = {
   cobalt: "border-t-cobalt-500",
@@ -23,29 +22,18 @@ const TONE_BORDER: Record<string, string> = {
   slate: "border-t-slate-700",
 }
 
-export function SectionRoles({
-  workspace,
-  onToggleCapability,
-}: {
-  workspace: Workspace
-  onToggleCapability: (role: WorkspaceRole, capability: CapabilityId) => void
-}) {
-  const canEdit = canEditRolePermissions(workspace.role)
-  const perms: Permissions = workspace.permissions
-
-  const toggle = (role: WorkspaceRole, cap: CapabilityId) => {
-    onToggleCapability(role, cap)
-  }
+export function SectionRoles({ workspace }: { workspace: Workspace }) {
+  const canEdit = false
+  const perms: Permissions = DEFAULT_PERMISSIONS
 
   return (
     <div>
       <div className="mb-6">
-        <h2 className="mb-1.5 font-sans text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-foreground">
+        <h2 className="mb-1.5 font-sans text-[22px] leading-[1.2] font-bold tracking-[-0.02em] text-foreground">
           Roles &amp; permissions
         </h2>
         <p className="m-0 max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">
-          What each role can do. Owner permissions are fixed; the rest are
-          tunable per workspace.
+          What each built-in role can do. Owner permissions are fixed.
         </p>
       </div>
 
@@ -79,7 +67,7 @@ export function SectionRoles({
       </div>
 
       <div className="overflow-hidden rounded-md border border-border">
-        <div className="grid grid-cols-[minmax(220px,1.6fr)_repeat(5,1fr)] items-center bg-[var(--tint-hover)] text-[11.5px] font-medium uppercase tracking-[0.04em] text-muted-foreground">
+        <div className="grid grid-cols-[minmax(220px,1.6fr)_repeat(5,1fr)] items-center bg-[var(--tint-hover)] text-[11.5px] font-medium tracking-[0.04em] text-muted-foreground uppercase">
           <span className="px-2.5 py-2">Capability</span>
           {ROLE_ORDER.map((r) => (
             <span key={r} className="px-2.5 py-2 text-center">
@@ -98,12 +86,12 @@ export function SectionRoles({
             <span className="cap-text inline-flex items-center gap-2 px-2.5 py-2.5 text-foreground">
               {c.label}
               {c.sensitive ? (
-                <span className="rounded-xs bg-coral-500/15 px-1.5 py-px text-[10px] font-medium uppercase tracking-[0.04em] text-coral-700">
+                <span className="rounded-xs bg-coral-500/15 px-1.5 py-px text-[10px] font-medium tracking-[0.04em] text-coral-700 uppercase">
                   sensitive
                 </span>
               ) : null}
               {c.destructive ? (
-                <span className="rounded-xs bg-coral-500/20 px-1.5 py-px text-[10px] font-medium uppercase tracking-[0.04em] text-coral-700">
+                <span className="rounded-xs bg-coral-500/20 px-1.5 py-px text-[10px] font-medium tracking-[0.04em] text-coral-700 uppercase">
                   destructive
                 </span>
               ) : null}
@@ -119,7 +107,7 @@ export function SectionRoles({
                   <PermissionPill
                     on={on}
                     locked={locked}
-                    onToggle={() => toggle(r, c.id)}
+                    onToggle={() => undefined}
                   />
                 </span>
               )
@@ -130,8 +118,8 @@ export function SectionRoles({
 
       <div className="mt-5 inline-flex items-center gap-2 rounded-md bg-[var(--tint-hover)] px-3 py-2.5 text-[12.5px] text-muted-foreground">
         <InfoIcon className="size-3.5" />
-        Custom roles are coming. For now, tune individual capabilities per
-        built-in role.
+        Built-in role capabilities are fixed for now. Custom role tuning comes
+        after workspace billing and audit logs.
       </div>
     </div>
   )

@@ -16,11 +16,8 @@ import {
 } from "@workspace/ui/components/select"
 import { WorkspaceIcon } from "@workspace/ui/components/workspace-icon"
 
-import type {
-  Workspace,
-  WorkspaceTone,
-} from "@/features/workspaces/types"
-import type { WorkspaceProfilePatch } from "@/features/workspaces/commands"
+import type { Workspace, WorkspaceTone } from "@/features/workspaces/types"
+import type { WorkspaceProfilePatch } from "@/features/workspaces/use-cases"
 
 const ACCENT_OPTIONS: { id: WorkspaceTone; hex: string }[] = [
   { id: "cobalt", hex: "#2563EB" },
@@ -37,6 +34,37 @@ export function SectionGeneral({
   workspace: Workspace
   onUpdateProfile: (patch: WorkspaceProfilePatch) => void
 }) {
+  const [draft, setDraft] = React.useState<WorkspaceProfilePatch>(() => ({
+    name: workspace.name,
+    handle: workspace.handle,
+    description: workspace.description,
+    accent: workspace.accent,
+  }))
+
+  React.useEffect(() => {
+    setDraft({
+      name: workspace.name,
+      handle: workspace.handle,
+      description: workspace.description,
+      accent: workspace.accent,
+    })
+  }, [
+    workspace.id,
+    workspace.name,
+    workspace.handle,
+    workspace.description,
+    workspace.accent,
+  ])
+
+  const reset = () => {
+    setDraft({
+      name: workspace.name,
+      handle: workspace.handle,
+      description: workspace.description,
+      accent: workspace.accent,
+    })
+  }
+
   return (
     <div>
       <SectionHead
@@ -51,11 +79,11 @@ export function SectionGeneral({
           <div className="flex items-center gap-3.5">
             <WorkspaceIcon icon={workspace.icon} size={48} />
             <div className="flex gap-1.5">
-              <Button variant="secondary" size="sm">
+              <Button variant="secondary" size="sm" disabled>
                 <UploadIcon />
                 Upload image
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" disabled>
                 <TypeIcon />
                 Use a letter
               </Button>
@@ -69,15 +97,17 @@ export function SectionGeneral({
               <button
                 key={a.id}
                 type="button"
-                onClick={() => onUpdateProfile({ accent: a.id })}
+                onClick={() =>
+                  setDraft((current) => ({ ...current, accent: a.id }))
+                }
                 title={a.id}
                 aria-label={`${a.id} accent`}
-                aria-pressed={workspace.accent === a.id}
+                aria-pressed={draft.accent === a.id}
                 style={{ background: a.hex }}
                 className={cn(
                   "inline-block size-[22px] rounded-full border-2 border-transparent shadow-[inset_0_0_0_1px_rgba(15,23,42,0.10)] transition-transform duration-(--dur-fast)",
                   "hover:scale-[1.08]",
-                  workspace.accent === a.id && "border-foreground"
+                  draft.accent === a.id && "border-foreground"
                 )}
               />
             ))}
@@ -86,8 +116,10 @@ export function SectionGeneral({
 
         <FormRow label="Workspace name" help="Visible to all members.">
           <Input
-            value={workspace.name}
-            onChange={(e) => onUpdateProfile({ name: e.target.value })}
+            value={draft.name ?? ""}
+            onChange={(e) =>
+              setDraft((current) => ({ ...current, name: e.target.value }))
+            }
           />
         </FormRow>
 
@@ -97,9 +129,9 @@ export function SectionGeneral({
               tinyops.app/
             </span>
             <Input
-              value={workspace.handle}
+              value={draft.handle ?? ""}
               onChange={(e) =>
-                onUpdateProfile({ handle: e.target.value })
+                setDraft((current) => ({ ...current, handle: e.target.value }))
               }
               className="rounded-l-none font-mono"
             />
@@ -112,9 +144,14 @@ export function SectionGeneral({
         >
           <textarea
             rows={2}
-            value={workspace.description}
-            onChange={(e) => onUpdateProfile({ description: e.target.value })}
-            className="min-h-[64px] w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 font-sans text-[14px] leading-[1.55] outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+            value={draft.description ?? ""}
+            onChange={(e) =>
+              setDraft((current) => ({
+                ...current,
+                description: e.target.value,
+              }))
+            }
+            className="min-h-[64px] w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 font-sans text-[14px] leading-[1.55] transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
           />
         </FormRow>
 
@@ -123,22 +160,24 @@ export function SectionGeneral({
           help="Name and reply-to attached to drafts."
         >
           <FormGrid className="gap-3">
-            <Input placeholder="Sender name" defaultValue="Jamie Park" />
+            <Input
+              placeholder="Sender name"
+              defaultValue="Jamie Park"
+              disabled
+            />
             <Input
               placeholder="reply@…"
               defaultValue={`hello@${workspace.handle}.com`}
               className="font-mono"
+              disabled
             />
           </FormGrid>
         </FormRow>
 
-        <FormRow
-          label="Time zone"
-          help="Used to schedule sends and reports."
-        >
+        <FormRow label="Time zone" help="Used to schedule sends and reports.">
           <div className="flex flex-wrap gap-3">
             <Select defaultValue="ny">
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-[220px]" disabled>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -149,7 +188,7 @@ export function SectionGeneral({
               </SelectContent>
             </Select>
             <Select defaultValue="en-us">
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px]" disabled>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -165,13 +204,17 @@ export function SectionGeneral({
 
       <div className="mt-7 flex items-center gap-2 border-t border-border pt-4">
         <span className="flex-1 text-[12px] text-muted-foreground">
-          Changes save automatically.
+          Review changes before saving.
         </span>
-        <Button variant="secondary" size="sm">
+        <Button variant="secondary" size="sm" onClick={reset}>
           <RotateCcwIcon />
           Discard
         </Button>
-        <Button variant="primary" size="sm">
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => onUpdateProfile(draft)}
+        >
           <CheckIcon />
           Save changes
         </Button>
@@ -189,7 +232,7 @@ function SectionHead({
 }) {
   return (
     <div className="mb-6">
-      <h2 className="mb-1.5 font-sans text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-foreground">
+      <h2 className="mb-1.5 font-sans text-[22px] leading-[1.2] font-bold tracking-[-0.02em] text-foreground">
         {title}
       </h2>
       <p className="m-0 max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">

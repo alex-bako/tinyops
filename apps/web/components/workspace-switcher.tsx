@@ -67,6 +67,10 @@ export function WorkspaceSwitcher({
     commands.switchWorkspace(id)
     setOpen(false)
   }
+  const goAccept = (invitationId: string) => {
+    commands.acceptInvitation(invitationId)
+    setOpen(false)
+  }
 
   return (
     <SidebarMenu>
@@ -186,6 +190,7 @@ export function WorkspaceSwitcher({
                     </div>
                     <button
                       type="button"
+                      onClick={() => goAccept(ws.invitationId)}
                       className="rounded-xs bg-cobalt-500 px-2.5 py-1 text-[11.5px] font-medium text-white transition-colors duration-(--dur-fast) hover:bg-cobalt-700"
                     >
                       Accept
@@ -201,7 +206,10 @@ export function WorkspaceSwitcher({
               icon={<PlusIcon className="size-3.5" />}
               label="Create or join a workspace"
               kbd="⌘⇧N"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false)
+                push("/home/workspaces/new")
+              }}
             />
             <ActionRow
               icon={<Settings2Icon className="size-3.5" />}
