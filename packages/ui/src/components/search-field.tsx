@@ -24,28 +24,30 @@ const inputClasses: Record<SearchFieldVariant, string> = {
     "min-w-0 flex-1 border-0 bg-transparent p-0 font-sans text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground/60",
 }
 
-const SearchFieldVariantContext =
-  React.createContext<SearchFieldVariant>("hero")
-
-function useSearchFieldVariant(variant?: SearchFieldVariant) {
-  const inheritedVariant = React.useContext(SearchFieldVariantContext)
-  return variant ?? inheritedVariant
-}
-
 function SearchField({
   className,
   variant = "hero",
+  children,
   ...props
 }: React.ComponentProps<"div"> & { variant?: SearchFieldVariant }) {
   return (
-    <SearchFieldVariantContext.Provider value={variant}>
-      <div
-        data-slot="search-field"
-        data-variant={variant}
-        className={cn(fieldClasses[variant], className)}
-        {...props}
-      />
-    </SearchFieldVariantContext.Provider>
+    <div
+      data-slot="search-field"
+      data-variant={variant}
+      className={cn(fieldClasses[variant], className)}
+      {...props}
+    >
+      {React.Children.map(children, (child) => {
+        if (!React.isValidElement<{ variant?: SearchFieldVariant }>(child)) {
+          return child
+        }
+        if (child.props.variant) return child
+        if (child.type !== SearchFieldIcon && child.type !== SearchFieldInput) {
+          return child
+        }
+        return React.cloneElement(child, { variant })
+      })}
+    </div>
   )
 }
 
@@ -54,7 +56,7 @@ function SearchFieldIcon({
   variant,
   ...props
 }: React.ComponentProps<"span"> & { variant?: SearchFieldVariant }) {
-  const resolvedVariant = useSearchFieldVariant(variant)
+  const resolvedVariant = variant ?? "hero"
   return (
     <span
       data-slot="search-field-icon"
@@ -70,7 +72,7 @@ function SearchFieldInput({
   variant,
   ...props
 }: React.ComponentProps<"input"> & { variant?: SearchFieldVariant }) {
-  const resolvedVariant = useSearchFieldVariant(variant)
+  const resolvedVariant = variant ?? "hero"
   return (
     <input
       data-slot="search-field-input"
