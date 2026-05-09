@@ -4,7 +4,6 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { ChevronRightIcon, SearchXIcon } from "lucide-react"
 
-import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
   Table,
@@ -17,7 +16,11 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 
 import { ClientIdentityLink } from "@/components/client-identity"
-import { ClientFlagBadges, ClientStatusBadge } from "@/components/client-state-badge"
+import {
+  ClientCohortBadge,
+  ClientFlagBadges,
+  ClientStatusBadge,
+} from "@/components/client-state-badge"
 import type { ClientDetail } from "@/lib/clients"
 
 export function ClientsTable({
@@ -89,7 +92,7 @@ export function ClientsTable({
                 <ClientStatusBadge status={c.status} />
               </TableCell>
               <TableCell>
-                <Badge variant="tag">{c.cohort}</Badge>
+                <ClientCohortBadge cohort={c.cohort} surface="tag" />
               </TableCell>
               <TableCell className="text-right font-mono text-[12.5px] tabular-nums text-foreground">
                 {c.sources}

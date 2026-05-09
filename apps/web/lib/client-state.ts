@@ -16,6 +16,8 @@ export type ClientStateBadge = {
   dot?: boolean
 }
 
+export type ClientCohortBadgeSurface = "detail" | "tag"
+
 export function clientStatusBadge(status: ClientStatus): ClientStateBadge & {
   kind: ClientStatusBadgeKind
 } {
@@ -40,6 +42,16 @@ export function clientFlagBadges(flags: ClientFlag[]): ClientStateBadge[] {
     badges.push({ kind: "dnc", label: "DNC", dot: true })
   }
   return badges
+}
+
+export function clientCohortBadge(
+  cohort: string,
+  surface: ClientCohortBadgeSurface = "detail"
+): ClientStateBadge {
+  return {
+    kind: surface === "tag" ? "tag" : "neutral",
+    label: cohort,
+  }
 }
 
 export function clientDetailFlagBadges(flags: ClientFlag[]): ClientStateBadge[] {

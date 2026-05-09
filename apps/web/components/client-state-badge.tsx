@@ -3,8 +3,10 @@ import * as React from "react"
 import { Badge, BadgeDot } from "@workspace/ui/components/badge"
 
 import {
+  clientCohortBadge,
   clientFlagBadges,
   clientStatusBadge,
+  type ClientCohortBadgeSurface,
   type ClientStateBadge,
 } from "@/lib/client-state"
 import type { ClientFlag, ClientStatus } from "@/lib/clients"
@@ -22,14 +24,23 @@ function ClientStatusBadge({ status }: { status: ClientStatus }) {
   return <ClientStateBadgeView badge={clientStatusBadge(status)} />
 }
 
-function ClientFlagBadges({
-  flags,
+function ClientCohortBadge({
+  cohort,
+  surface = "detail",
+}: {
+  cohort: string
+  surface?: ClientCohortBadgeSurface
+}) {
+  return <ClientStateBadgeView badge={clientCohortBadge(cohort, surface)} />
+}
+
+function ClientStateBadgeList({
+  badges,
   empty,
 }: {
-  flags: ClientFlag[]
+  badges: ClientStateBadge[]
   empty?: React.ReactNode
 }) {
-  const badges = clientFlagBadges(flags)
   if (badges.length === 0) return empty ?? null
   return (
     <span className="inline-flex flex-wrap gap-1">
@@ -40,4 +51,20 @@ function ClientFlagBadges({
   )
 }
 
-export { ClientStateBadgeView, ClientStatusBadge, ClientFlagBadges }
+function ClientFlagBadges({
+  flags,
+  empty,
+}: {
+  flags: ClientFlag[]
+  empty?: React.ReactNode
+}) {
+  return <ClientStateBadgeList badges={clientFlagBadges(flags)} empty={empty} />
+}
+
+export {
+  ClientCohortBadge,
+  ClientFlagBadges,
+  ClientStateBadgeList,
+  ClientStateBadgeView,
+  ClientStatusBadge,
+}

@@ -1,6 +1,7 @@
 import type { TimelineTone } from "@workspace/ui/components/timeline"
 
 import {
+  clientCohortBadge,
   clientDetailFlagBadges,
   clientStatusBadge,
   type ClientStateBadge,
@@ -91,7 +92,7 @@ function createClientDetailView(client: ClientDetail): ClientDetailView {
       location: client.location,
       badges: [
         clientStatusBadge(client.status),
-        { kind: "neutral", label: client.cohort },
+        clientCohortBadge(client.cohort),
         ...clientDetailFlagBadges(client.flags),
       ],
     },
