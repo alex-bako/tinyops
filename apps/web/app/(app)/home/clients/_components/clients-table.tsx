@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ChevronRightIcon, SearchXIcon } from "lucide-react"
 
-import { Badge, BadgeDot } from "@workspace/ui/components/badge"
+import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
   Table,
@@ -18,51 +18,8 @@ import {
 import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
 import { cn } from "@workspace/ui/lib/utils"
 
-import type { ClientDetail, ClientFlag, ClientStatus } from "@/lib/clients"
-
-function StatusCell({ status }: { status: ClientStatus }) {
-  if (status === "sensitive") return <Badge variant="sensitive">Sensitive</Badge>
-  if (status === "inactive")
-    return <Badge variant="neutral">Inactive 90d+</Badge>
-  if (status === "dnc")
-    return (
-      <Badge variant="dnc">
-        <BadgeDot />
-        Do not contact
-      </Badge>
-    )
-  return (
-    <Badge variant="active">
-      <BadgeDot />
-      Active
-    </Badge>
-  )
-}
-
-function FlagPills({ flags }: { flags: ClientFlag[] }) {
-  if (flags.length === 0) {
-    return (
-      <span className="font-mono text-[11.5px] text-muted-foreground/50">
-        —
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex flex-wrap gap-1">
-      {flags.includes("overdue") && <Badge variant="warn">Overdue</Badge>}
-      {flags.includes("sensitive") && (
-        <Badge variant="sensitive">Sensitive</Badge>
-      )}
-      {flags.includes("idle") && <Badge variant="neutral">Idle</Badge>}
-      {flags.includes("dnc") && (
-        <Badge variant="dnc">
-          <BadgeDot />
-          DNC
-        </Badge>
-      )}
-    </span>
-  )
-}
+import { ClientFlagBadges, ClientStatusBadge } from "@/components/client-state-badge"
+import type { ClientDetail } from "@/lib/clients"
 
 export function ClientsTable({
   rows,
@@ -135,7 +92,7 @@ export function ClientsTable({
                 </Link>
               </TableCell>
               <TableCell>
-                <StatusCell status={c.status} />
+                <ClientStatusBadge status={c.status} />
               </TableCell>
               <TableCell>
                 <Badge variant="tag">{c.cohort}</Badge>
@@ -150,7 +107,14 @@ export function ClientsTable({
                 {c.lastEvent}
               </TableCell>
               <TableCell>
-                <FlagPills flags={c.flags} />
+                <ClientFlagBadges
+                  flags={c.flags}
+                  empty={
+                    <span className="font-mono text-[11.5px] text-muted-foreground/50">
+                      —
+                    </span>
+                  }
+                />
               </TableCell>
               <TableCell className="w-[60px] text-right">
                 <span
