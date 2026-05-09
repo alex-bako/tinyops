@@ -23,11 +23,9 @@ import type { ClientDetail } from "@/lib/clients"
 
 export function ClientsTable({
   rows,
-  total,
   onClear,
 }: {
   rows: ClientDetail[]
-  total: number
   onClear: () => void
 }) {
   const router = useRouter()

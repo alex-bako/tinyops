@@ -76,7 +76,8 @@ function TimelineHead({
     <div
       data-slot="timeline-head"
       className={cn(
-        "mb-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-[12px]"
+        "mb-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-[12px]",
+        className
       )}
       {...props}
     />

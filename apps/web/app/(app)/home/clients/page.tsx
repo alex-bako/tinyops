@@ -59,7 +59,7 @@ export default function ClientsPage() {
         counts={counts}
       />
 
-      <ClientsTable rows={rows} total={total} onClear={clearFilters} />
+      <ClientsTable rows={rows} onClear={clearFilters} />
 
       <footer
         className={cn(
