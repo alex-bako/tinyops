@@ -1,3 +1,9 @@
+import {
+  clientDetailFlagBadges,
+  clientStatusBadge,
+  type ClientStateBadge,
+} from "@/lib/client-state"
+
 export type ClientStatus = "active" | "inactive" | "sensitive" | "dnc"
 
 export type ClientFlag = "overdue" | "sensitive" | "idle" | "dnc"
@@ -62,10 +68,7 @@ export type ClientTimelineEvent = {
   sensitive?: boolean
 }
 
-export type ClientBadge = {
-  kind: "active" | "neutral" | "warn" | "sensitive" | "dnc" | "tag"
-  label: string
-}
+export type ClientBadge = ClientStateBadge
 
 export type ClientDetail = Client & {
   slug: string
@@ -250,26 +253,6 @@ function joinedFor(cohort: string): string {
   return "2026"
 }
 
-type StatusBadgeKind = "active" | "neutral" | "sensitive" | "dnc"
-
-function statusBadge(status: ClientStatus): { kind: StatusBadgeKind; label: string } {
-  if (status === "sensitive") return { kind: "sensitive", label: "Sensitive" }
-  if (status === "inactive") return { kind: "neutral", label: "Inactive 90d+" }
-  if (status === "dnc") return { kind: "dnc", label: "Do not contact" }
-  return { kind: "active", label: "Active" }
-}
-
-function flagBadges(flags: ClientFlag[]): ClientBadge[] {
-  const out: ClientBadge[] = []
-  if (flags.includes("overdue"))
-    out.push({ kind: "warn", label: "Overdue check-in" })
-  if (flags.includes("idle"))
-    out.push({ kind: "neutral", label: "Idle 60d+" })
-  if (flags.includes("sensitive"))
-    out.push({ kind: "sensitive", label: "Sensitive notes" })
-  return out
-}
-
 function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
   const sourcesList = ["IMAP", c.sources >= 3 ? "Forms" : null, c.sources >= 4 ? "CSV" : null]
     .filter((s): s is string => Boolean(s))
@@ -289,7 +272,7 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
     return `${c.name.split(" ")[0]} is active in the ${c.cohort.toLowerCase()}. Last contact ${c.lastContact}; latest event ${c.lastEvent}. Engagement looks healthy.`
   })()
 
-  const sb = statusBadge(c.status)
+  const sb = clientStatusBadge(c.status)
   const props: ClientProperty[] = [
     {
       key: "Status",
@@ -298,7 +281,7 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
         kind: "badge",
         variant: sb.kind,
         label: sb.label,
-        dot: c.status === "active" || c.status === "dnc",
+        dot: sb.dot,
       },
     },
     { key: "Cohort", icon: "hash", value: { kind: "tags", values: [c.cohort] } },
@@ -344,7 +327,11 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
   return {
     joined: joinedFor(c.cohort),
     location: locationFor(c.email),
-    badges: [statusBadge(c.status), { kind: "neutral", label: c.cohort }, ...flagBadges(c.flags)],
+    badges: [
+      clientStatusBadge(c.status),
+      { kind: "neutral", label: c.cohort },
+      ...clientDetailFlagBadges(c.flags),
+    ],
     memory: {
       summary,
       confidence: c.status === "active" ? 0.62 : 0.41,

@@ -7,34 +7,12 @@ import {
   SendIcon,
 } from "lucide-react"
 
-import { Badge, BadgeDot } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
 import { cn } from "@workspace/ui/lib/utils"
 
-import type { ClientBadge, ClientDetail } from "@/lib/clients"
-
-function HeaderBadge({ badge }: { badge: ClientBadge }) {
-  if (badge.kind === "active")
-    return (
-      <Badge variant="active">
-        <BadgeDot />
-        {badge.label}
-      </Badge>
-    )
-  if (badge.kind === "dnc")
-    return (
-      <Badge variant="dnc">
-        <BadgeDot />
-        {badge.label}
-      </Badge>
-    )
-  if (badge.kind === "sensitive")
-    return <Badge variant="sensitive">{badge.label}</Badge>
-  if (badge.kind === "warn") return <Badge variant="warn">{badge.label}</Badge>
-  if (badge.kind === "tag") return <Badge variant="tag">{badge.label}</Badge>
-  return <Badge variant="neutral">{badge.label}</Badge>
-}
+import { ClientStateBadgeView } from "@/components/client-state-badge"
+import type { ClientDetail } from "@/lib/clients"
 
 export function ClientHeader({ client }: { client: ClientDetail }) {
   return (
@@ -67,7 +45,7 @@ export function ClientHeader({ client }: { client: ClientDetail }) {
         </div>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           {client.badges.map((b) => (
-            <HeaderBadge key={`${b.kind}-${b.label}`} badge={b} />
+            <ClientStateBadgeView key={`${b.kind}-${b.label}`} badge={b} />
           ))}
         </div>
       </div>

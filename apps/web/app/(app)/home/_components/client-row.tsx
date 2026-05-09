@@ -1,28 +1,11 @@
 import Link from "next/link"
 
-import { Badge, BadgeDot } from "@workspace/ui/components/badge"
 import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
+
+import { ClientStatusBadge } from "@/components/client-state-badge"
 
 import type { RecentClient } from "../_data"
 import { NotionRow } from "./notion-row"
-
-function StatusBadge({ status }: { status: RecentClient["status"] }) {
-  if (status === "sensitive") return <Badge variant="sensitive">Sensitive</Badge>
-  if (status === "inactive") return <Badge variant="neutral">Inactive 90d+</Badge>
-  if (status === "dnc")
-    return (
-      <Badge variant="dnc">
-        <BadgeDot />
-        Do not contact
-      </Badge>
-    )
-  return (
-    <Badge variant="active">
-      <BadgeDot />
-      Active
-    </Badge>
-  )
-}
 
 function ClientRow({ client }: { client: RecentClient }) {
   return (
@@ -41,7 +24,7 @@ function ClientRow({ client }: { client: RecentClient }) {
             sources
           </span>
           <span>{client.lastEvent}</span>
-          <StatusBadge status={client.status} />
+          <ClientStatusBadge status={client.status} />
         </span>
       </Link>
     </NotionRow>
