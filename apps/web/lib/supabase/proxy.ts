@@ -6,35 +6,17 @@ import {
   getSupabasePublishableKey,
   getSupabaseUrl,
 } from "@/lib/supabase/env"
+import {
+  resolveAuthRedirect,
+  resolveMagicLinkCodeRedirect,
+} from "@/lib/auth/route-policy"
 
-export function isProtectedPath(pathname: string) {
-  return pathname === "/home" || pathname.startsWith("/home/")
-}
-
-export function isPublicAuthPath(pathname: string) {
-  return pathname === "/login" || pathname.startsWith("/auth/")
-}
-
-export function resolveAuthRedirect({
-  pathname,
-  hasUser,
-}: {
-  pathname: string
-  hasUser: boolean
-}) {
-  if (!hasUser && isProtectedPath(pathname)) return "/login"
-  if (hasUser && pathname === "/login") return "/home"
-  return null
-}
-
-export function resolveMagicLinkCodeRedirect(pathname: string, search: string) {
-  if (pathname !== "/") return null
-
-  const params = new URLSearchParams(search)
-  if (!params.has("code")) return null
-
-  return `/auth/callback?${params.toString()}`
-}
+export {
+  isProtectedPath,
+  isPublicAuthPath,
+  resolveAuthRedirect,
+  resolveMagicLinkCodeRedirect,
+} from "@/lib/auth/route-policy"
 
 function redirectWithSessionCookies(
   request: NextRequest,

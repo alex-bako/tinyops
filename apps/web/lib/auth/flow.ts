@@ -2,7 +2,7 @@ import { normalizeEmail } from "@/lib/auth/email"
 import {
   buildAuthCallbackUrl,
   safeSignedInPath,
-} from "@/lib/auth/redirect"
+} from "@/lib/auth/route-policy"
 import type { AuthenticatedUser } from "@/lib/auth/profile"
 
 type SendMagicLinkResult = {

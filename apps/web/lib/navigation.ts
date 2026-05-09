@@ -10,6 +10,12 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
+import {
+  CLIENTS_PATH,
+  DEFAULT_SIGNED_IN_PATH,
+  SOURCES_PATH,
+} from "@/lib/auth/route-policy"
+
 export type NavItem = {
   id: string
   label: string
@@ -47,7 +53,7 @@ const APP_ROUTES: AppRoute[] = [
     id: "home",
     label: "Home",
     icon: HomeIcon,
-    href: "/home",
+    href: DEFAULT_SIGNED_IN_PATH,
     navGroup: "primary",
   },
   {
@@ -55,7 +61,7 @@ const APP_ROUTES: AppRoute[] = [
     label: "Clients",
     icon: UsersIcon,
     count: 142,
-    href: "/home/clients",
+    href: CLIENTS_PATH,
     parentId: "home",
     navGroup: "primary",
   },
@@ -63,7 +69,7 @@ const APP_ROUTES: AppRoute[] = [
     id: "sources",
     label: "Data sources",
     icon: PlugZapIcon,
-    href: "/home/sources",
+    href: SOURCES_PATH,
     parentId: "home",
     navGroup: "primary",
   },
