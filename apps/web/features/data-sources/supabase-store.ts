@@ -30,6 +30,13 @@ const DATA_SOURCE_COLUMNS = `
   config,
   created_at,
   updated_at,
+  data_source_intake_configs (
+    history_window,
+    watched_folders,
+    skip_senders,
+    message_filters,
+    available_folders
+  ),
   data_source_secrets (
     purpose,
     masked_value,
@@ -107,14 +114,16 @@ export function createSupabaseDataSourceStore({
     async connectImap(input) {
       const { data, error } = await client.rpc("connect_imap_data_source", {
         target_workspace_id: input.workspaceId,
-        imap_host: input.config.host,
-        imap_port: input.config.port,
-        imap_encryption: input.config.encryption,
-        imap_username: input.config.username,
+        imap_host: input.connection.host,
+        imap_port: input.connection.port,
+        imap_encryption: input.connection.encryption,
+        imap_username: input.connection.username,
         imap_password: input.password,
-        imap_history_window: input.config.historyWindow,
-        imap_watched_folders: input.config.watchedFolders,
-        imap_skip_senders: input.config.skipSenders,
+        imap_history_window: input.intake.historyWindow,
+        imap_watched_folders: input.intake.watchedFolders,
+        imap_skip_senders: input.intake.skipSenders,
+        imap_message_filters: input.intake.messageFilters,
+        imap_available_folders: input.folderSnapshot.availableFolders,
       })
 
       if (error) throwDataSourceStoreError(error, "Could not connect IMAP")
@@ -125,21 +134,57 @@ export function createSupabaseDataSourceStore({
       })
     },
 
-    async updateImapConfig(input) {
-      const { error } = await client.rpc("update_imap_data_source_config", {
+    async updateImapConnection(input) {
+      const { error } = await client.rpc("update_imap_connection_settings", {
         target_source_id: input.sourceId,
         target_workspace_id: input.workspaceId,
-        imap_host: input.config.host,
-        imap_port: input.config.port,
-        imap_encryption: input.config.encryption,
-        imap_username: input.config.username,
-        imap_history_window: input.config.historyWindow,
-        imap_watched_folders: input.config.watchedFolders,
-        imap_skip_senders: input.config.skipSenders,
+        imap_host: input.connection.host,
+        imap_port: input.connection.port,
+        imap_encryption: input.connection.encryption,
+        imap_username: input.connection.username,
+        imap_password: input.password ?? "",
+        imap_available_folders: input.folderSnapshot.availableFolders,
       })
 
       if (error) {
-        throwDataSourceStoreError(error, "Could not update IMAP config")
+        throwDataSourceStoreError(error, "Could not update IMAP connection")
+      }
+
+      return requireImapById({
+        workspaceId: input.workspaceId,
+        sourceId: input.sourceId,
+      })
+    },
+
+    async updateImapIntake(input) {
+      const { error } = await client.rpc("update_imap_intake_config", {
+        target_source_id: input.sourceId,
+        target_workspace_id: input.workspaceId,
+        imap_history_window: input.intake.historyWindow,
+        imap_watched_folders: input.intake.watchedFolders,
+        imap_skip_senders: input.intake.skipSenders,
+        imap_message_filters: input.intake.messageFilters,
+      })
+
+      if (error) {
+        throwDataSourceStoreError(error, "Could not update IMAP intake")
+      }
+
+      return requireImapById({
+        workspaceId: input.workspaceId,
+        sourceId: input.sourceId,
+      })
+    },
+
+    async updateImapFolderSnapshot(input) {
+      const { error } = await client.rpc("update_imap_folder_snapshot", {
+        target_source_id: input.sourceId,
+        target_workspace_id: input.workspaceId,
+        imap_available_folders: input.folderSnapshot.availableFolders,
+      })
+
+      if (error) {
+        throwDataSourceStoreError(error, "Could not update IMAP folders")
       }
 
       return requireImapById({

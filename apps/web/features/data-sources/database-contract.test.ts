@@ -1,13 +1,20 @@
-import { readFileSync } from "node:fs"
+import { readFileSync, readdirSync } from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
 
 function migrationSource() {
-  const root = path.join(process.cwd(), "..", "..")
-  return readFileSync(
-    path.join(root, "supabase", "migrations", "20260509004000_data_sources.sql"),
-    "utf8"
+  const migrationsDir = path.join(
+    process.cwd(),
+    "..",
+    "..",
+    "supabase",
+    "migrations"
   )
+  return readdirSync(migrationsDir)
+    .filter((file) => file.endsWith(".sql"))
+    .sort()
+    .map((file) => readFileSync(path.join(migrationsDir, file), "utf8"))
+    .join("\n")
 }
 
 describe("data sources database contract", () => {
@@ -18,6 +25,7 @@ describe("data sources database contract", () => {
     expect(migration).toMatch(/create table public\.data_sources \(/)
     expect(migration).toMatch(/create table public\.data_source_secrets \(/)
     expect(migration).toMatch(/create table public\.data_source_sync_states \(/)
+    expect(migration).toMatch(/create table public\.data_source_intake_configs \(/)
     expect(migration).toMatch(
       /alter table public\.data_sources enable row level security;/
     )
@@ -26,6 +34,9 @@ describe("data sources database contract", () => {
     )
     expect(migration).toMatch(
       /alter table public\.data_source_sync_states enable row level security;/
+    )
+    expect(migration).toMatch(
+      /alter table public\.data_source_intake_configs enable row level security;/
     )
   })
 
@@ -40,6 +51,11 @@ describe("data sources database contract", () => {
     const migration = migrationSource()
 
     expect(migration).toMatch(/function public\.connect_imap_data_source/)
+    expect(migration).toMatch(/function public\.update_imap_connection_settings/)
+    expect(migration).toMatch(/function public\.update_imap_intake_config/)
+    expect(migration).toMatch(/function public\.update_imap_folder_snapshot/)
+    expect(migration).toMatch(/function public\.is_valid_imap_message_filters/)
+    expect(migration).toMatch(/data_source_intake_configs/)
     expect(migration).toMatch(/vault\.create_secret/)
     expect(migration).toMatch(/insert into public\.data_source_secrets/)
     expect(migration).toMatch(/imap_password/)

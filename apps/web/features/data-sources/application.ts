@@ -1,14 +1,16 @@
 import { canManageSources } from "@/features/data-sources/policy"
 import {
-  applyImapConfigPatch,
-  buildImapConnectionPatch,
-  buildImapImportSettingsPatch,
-  normalizeImapConfigDraft,
+  buildDefaultImapIntakeSettings,
+  buildImapConnectionConfig,
+  buildImapFolderSnapshot,
+  buildImapIntakeSettings,
   type ImapConnectionSettingsCommand,
-  type ImapImportSettingsCommand,
+  type ImapConnectCommandDraft,
+  type ImapIntakeSettingsCommand,
 } from "@/features/data-sources/imap"
 import type {
-  DataSourceStore,
+  DataSourceCommandStore,
+  DataSourceReader,
   DataSourceWorkspace,
   ImapConnectionTester,
 } from "@/features/data-sources/types"
@@ -24,33 +26,55 @@ export type DataSourceActionResult<T> =
   | { data: T; error?: never }
   | { data?: never; error: DataSourceActionError }
 
-export type ImapConfigCommand = {
-  host: string
-  port: number | string
-  encryption: string
-  username: string
-  historyWindow: string
-  watchedFolders: string[]
-  skipSenders: string[]
-}
-
-export type ImapConnectCommand = ImapConfigCommand & {
-  password: string
-}
+export type ImapConnectCommand = ImapConnectCommandDraft
+export type ImapImportSettingsCommand = ImapIntakeSettingsCommand
 
 export type {
   ImapConnectionSettingsCommand,
-  ImapImportSettingsCommand,
+  ImapIntakeSettingsCommand,
 }
 
-export function createDataSourceApplication({
+export type ImapCredentialReader = {
+  readImapPassword(input: {
+    workspaceId: string
+    sourceId: string
+  }): Promise<string>
+}
+
+export type ImapSecretReader = ImapCredentialReader
+
+export function createDataSourceQueryApplication({
+  workspace,
+  reader,
+}: {
+  workspace: DataSourceWorkspace
+  reader: DataSourceReader
+}) {
+  return {
+    async listDataSources() {
+      return reader.listForWorkspace(workspace.id)
+    },
+
+    async findDataSource(sourceType: string) {
+      if (!isSourceType(sourceType)) return null
+      return reader.findForWorkspace({
+        workspaceId: workspace.id,
+        sourceType,
+      })
+    },
+  }
+}
+
+export function createDataSourceCommandApplication({
   workspace,
   store,
   imapConnectionTester,
+  imapCredentialReader,
 }: {
   workspace: DataSourceWorkspace
-  store: DataSourceStore
+  store: DataSourceCommandStore
   imapConnectionTester: ImapConnectionTester
+  imapCredentialReader: ImapCredentialReader
 }) {
   async function runManaged<T>(
     operation: () => Promise<T>
@@ -77,42 +101,42 @@ export function createDataSourceApplication({
     return source
   }
 
-  return {
-    async listDataSources() {
-      return store.listForWorkspace(workspace.id)
-    },
+  async function readStoredPassword(sourceId: string) {
+    const password = await imapCredentialReader.readImapPassword({
+      workspaceId: workspace.id,
+      sourceId,
+    })
+    if (!password.trim()) throw new Error("invalid_imap_config")
+    return password
+  }
 
-    async findDataSource(sourceType: string) {
-      if (!isSourceType(sourceType)) return null
-      return store.findForWorkspace({
-        workspaceId: workspace.id,
-        sourceType,
-      })
-    },
+  return {
+    ...createDataSourceQueryApplication({ workspace, reader: store }),
 
     async connectImap(input: ImapConnectCommand) {
       return runManaged(async () => {
-        const config = normalizeImapConfigDraft(input)
+        const connection = buildImapConnectionConfig(input)
         const password = input.password.trim()
         if (!password) throw new Error("invalid_imap_config")
 
-        await imapConnectionTester.test({ ...config, password })
+        const { folders } = await imapConnectionTester.test({
+          ...connection,
+          password,
+        })
+        const folderSnapshot = buildImapFolderSnapshot(folders)
+        const intake = buildDefaultImapIntakeSettings({
+          historyWindow: input.historyWindow,
+          folderSnapshot,
+        })
+
         return store.connectImap({
           workspaceId: workspace.id,
-          config,
+          connection,
+          intake,
+          folderSnapshot,
           password,
         })
       })
-    },
-
-    async updateImapConfig(sourceId: string, input: ImapConfigCommand) {
-      return runManaged(async () =>
-        store.updateImapConfig({
-          workspaceId: workspace.id,
-          sourceId,
-          config: normalizeImapConfigDraft(input),
-        })
-      )
     },
 
     async updateImapConnectionSettings(
@@ -120,43 +144,52 @@ export function createDataSourceApplication({
       input: ImapConnectionSettingsCommand
     ) {
       return runManaged(async () => {
-        const source = await loadImapSource(sourceId)
-        const config = applyImapConfigPatch(
-          source.config,
-          buildImapConnectionPatch(input)
-        )
-        const password = input.password?.trim() ?? ""
+        await loadImapSource(sourceId)
+        const connection = buildImapConnectionConfig(input)
+        const submittedPassword = input.password?.trim()
+        const password = submittedPassword || (await readStoredPassword(sourceId))
+        const { folders } = await imapConnectionTester.test({
+          ...connection,
+          password,
+        })
 
-        if (password) {
-          await imapConnectionTester.test({ ...config, password })
-          return store.connectImap({
-            workspaceId: workspace.id,
-            config,
-            password,
-          })
-        }
-
-        return store.updateImapConfig({
+        return store.updateImapConnection({
           workspaceId: workspace.id,
           sourceId,
-          config,
+          connection,
+          password: submittedPassword || undefined,
+          folderSnapshot: buildImapFolderSnapshot(folders),
         })
       })
     },
 
-    async updateImapImportSettings(
+    async updateImapIntakeSettings(
       sourceId: string,
       input: ImapImportSettingsCommand
     ) {
       return runManaged(async () => {
-        const source = await loadImapSource(sourceId)
-        return store.updateImapConfig({
+        await loadImapSource(sourceId)
+        return store.updateImapIntake({
           workspaceId: workspace.id,
           sourceId,
-          config: applyImapConfigPatch(
-            source.config,
-            buildImapImportSettingsPatch(input)
-          ),
+          intake: buildImapIntakeSettings(input),
+        })
+      })
+    },
+
+    async refreshImapFolders(sourceId: string) {
+      return runManaged(async () => {
+        const source = await loadImapSource(sourceId)
+        const password = await readStoredPassword(sourceId)
+        const { folders } = await imapConnectionTester.test({
+          ...source.connection,
+          password,
+        })
+
+        return store.updateImapFolderSnapshot({
+          workspaceId: workspace.id,
+          sourceId,
+          folderSnapshot: buildImapFolderSnapshot(folders),
         })
       })
     },
@@ -176,6 +209,8 @@ export function createDataSourceApplication({
     },
   }
 }
+
+export const createDataSourceApplication = createDataSourceCommandApplication
 
 function isSourceType(value: string): value is "imap" {
   return value === "imap"

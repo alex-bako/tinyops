@@ -12,5 +12,7 @@ export function sourceAdapterKey(source: DataSource) {
     source.imap?.historyWindow ?? "",
     source.imap?.watchedFolders.join("\u0000") ?? "",
     source.imap?.skipSenders.join("\u0000") ?? "",
+    source.imap?.availableFolders.map((folder) => folder.path).join("\u0000") ?? "",
+    JSON.stringify(source.imap?.messageFilters ?? null),
   ].join("|")
 }

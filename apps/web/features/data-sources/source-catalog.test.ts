@@ -11,14 +11,23 @@ function imapSource(patch: Partial<ImapDataSource> = {}): ImapDataSource {
     displayName: "IMAP mailbox",
     status: "connected",
     configVersion: 1,
-    config: {
+    connection: {
       host: "imap.example.com",
       port: 993,
       encryption: "ssl",
       username: "hello@example.com",
+    },
+    intake: {
       historyWindow: "12mo",
       watchedFolders: ["INBOX", "Clients"],
       skipSenders: ["*@noreply.*"],
+      messageFilters: { mode: "and", rules: [] },
+    },
+    folderSnapshot: {
+      availableFolders: [
+        { path: "INBOX", messages: 1204 },
+        { path: "Clients", messages: 412 },
+      ],
     },
     secret: { purpose: "imap_password", maskedValue: "••••cret" },
     sync: {
@@ -57,6 +66,10 @@ describe("workspace source catalog", () => {
         username: "hello@example.com",
         passwordMasked: "••••cret",
         watchedFolders: ["INBOX", "Clients"],
+        availableFolders: [
+          { path: "INBOX", messages: 1204 },
+          { path: "Clients", messages: 412 },
+        ],
       },
       stats: [
         { id: "synced", label: "Sync", value: "Queued" },

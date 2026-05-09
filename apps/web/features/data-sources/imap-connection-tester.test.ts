@@ -42,9 +42,6 @@ describe("imap connection tester", () => {
         encryption: "ssl",
         username: "hello@example.com",
         password: "top-secret",
-        historyWindow: "12mo",
-        watchedFolders: ["INBOX"],
-        skipSenders: [],
       })
     ).resolves.toEqual({
       folders: [
@@ -59,6 +56,7 @@ describe("imap connection tester", () => {
           host: "imap.example.com",
           port: 993,
           secure: true,
+          doSTARTTLS: false,
           auth: { user: "hello@example.com", pass: "top-secret" },
           logger: false,
         },
@@ -66,6 +64,52 @@ describe("imap connection tester", () => {
       ["connect"],
       ["list"],
       ["logout"],
+    ])
+  })
+
+  it("requests STARTTLS when configured", async () => {
+    const calls: unknown[] = []
+    class FakeImapFlow {
+      constructor(options: unknown) {
+        calls.push(["constructor", options])
+      }
+
+      async connect() {
+        calls.push(["connect"])
+      }
+
+      async list() {
+        calls.push(["list"])
+        return []
+      }
+
+      async logout() {
+        calls.push(["logout"])
+      }
+
+      close() {
+        calls.push(["close"])
+      }
+    }
+
+    const tester = createImapFlowConnectionTester({
+      ImapFlow: FakeImapFlow,
+    })
+
+    await tester.test({
+      host: "imap.example.com",
+      port: 143,
+      encryption: "starttls",
+      username: "hello@example.com",
+      password: "top-secret",
+    })
+
+    expect(calls[0]).toEqual([
+      "constructor",
+      expect.objectContaining({
+        secure: false,
+        doSTARTTLS: true,
+      }),
     ])
   })
 })

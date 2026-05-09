@@ -1,6 +1,5 @@
 import type { Workspace } from "@/features/workspaces/types"
-import { createDataSourceApplication } from "@/features/data-sources/application"
-import { createImapFlowConnectionTester } from "@/features/data-sources/imap-connection-tester"
+import { createDataSourceQueryApplication } from "@/features/data-sources/application"
 import { createWorkspaceRequestContext } from "@/features/data-sources/request-context"
 import { composeWorkspaceSourceCatalog } from "@/features/data-sources/source-catalog"
 import type { DataSourceStore } from "@/features/data-sources/types"
@@ -21,10 +20,9 @@ export async function loadWorkspaceSourceCatalogForWorkspace({
   workspace: Pick<Workspace, "id" | "role">
   store: DataSourceStore
 }): Promise<DataSource[]> {
-  const application = createDataSourceApplication({
+  const application = createDataSourceQueryApplication({
     workspace,
-    store,
-    imapConnectionTester: createImapFlowConnectionTester(),
+    reader: store,
   })
   const sources = await application.listDataSources()
   return composeWorkspaceSourceCatalog(sources)

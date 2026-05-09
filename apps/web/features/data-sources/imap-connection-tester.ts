@@ -9,6 +9,7 @@ type ImapFlowConstructor = new (options: {
   host: string
   port: number
   secure: boolean
+  doSTARTTLS: boolean
   auth: { user: string; pass: string }
   logger: false
 }) => {
@@ -31,6 +32,7 @@ export function createImapFlowConnectionTester({
         host: input.host,
         port: input.port,
         secure: input.encryption === "ssl",
+        doSTARTTLS: input.encryption === "starttls",
         auth: {
           user: input.username,
           pass: input.password,

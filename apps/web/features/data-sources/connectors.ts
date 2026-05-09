@@ -1,5 +1,7 @@
 import type {
   ImapDataSource,
+  ImapFolder,
+  ImapMessageFilters,
   WorkspaceDataSource,
 } from "@/features/data-sources/types"
 
@@ -54,6 +56,8 @@ export type DataSourceImapSettings = {
   historyWindow: "30d" | "90d" | "12mo" | "all"
   watchedFolders: string[]
   skipSenders: string[]
+  messageFilters: ImapMessageFilters
+  availableFolders: ImapFolder[]
   passwordMasked?: string
   syncStatus?: "idle" | "queued" | "running" | "error"
   lastError?: string | null
@@ -226,7 +230,7 @@ function connectedImapSource(
   return {
     ...catalogSource,
     sourceRowId: source.id,
-    sub: source.config.username,
+    sub: source.connection.username,
     connected: true,
     health: imapHealth(source),
     lastSync: syncLabel.toLowerCase(),
@@ -236,16 +240,18 @@ function connectedImapSource(
       {
         id: "window",
         label: "Window",
-        value: historyWindowLabel(source.config.historyWindow),
+        value: historyWindowLabel(source.intake.historyWindow),
       },
       {
         id: "events",
         label: "Folders",
-        value: String(source.config.watchedFolders.length),
+        value: String(source.intake.watchedFolders.length),
       },
     ],
     imap: {
-      ...source.config,
+      ...source.connection,
+      ...source.intake,
+      ...source.folderSnapshot,
       passwordMasked: source.secret?.maskedValue,
       syncStatus: source.sync.status,
       lastError: source.sync.lastError,
@@ -268,7 +274,7 @@ function syncStatusLabel(source: ImapDataSource) {
   return "Ready"
 }
 
-function historyWindowLabel(value: ImapDataSource["config"]["historyWindow"]) {
+function historyWindowLabel(value: ImapDataSource["intake"]["historyWindow"]) {
   if (value === "30d") return "30 days"
   if (value === "90d") return "90 days"
   if (value === "all") return "All"

@@ -1,13 +1,18 @@
 import type { Json } from "@/lib/database.types"
 import {
+  buildImapConnectionConfig,
+  buildImapFolderSnapshot,
+  buildImapIntakeSettings,
   coerceImapHistoryWindow,
-  normalizeImapConfigDraft,
+  type ImapMessageFiltersCommand,
 } from "@/features/data-sources/imap"
 import type {
   DataSourceSecret,
   DataSourceSyncState,
-  ImapConfig,
+  ImapConnectionConfig,
   ImapDataSource,
+  ImapFolderSnapshot,
+  ImapIntakeSettings,
   WorkspaceDataSource,
 } from "@/features/data-sources/types"
 
@@ -21,8 +26,17 @@ export type DataSourceRow = {
   config: Json
   created_at: string
   updated_at: string
+  data_source_intake_configs?: DataSourceIntakeConfigRow | DataSourceIntakeConfigRow[] | null
   data_source_secrets?: DataSourceSecretRow[] | null
   data_source_sync_states?: DataSourceSyncStateRow | DataSourceSyncStateRow[] | null
+}
+
+export type DataSourceIntakeConfigRow = {
+  history_window: string
+  watched_folders: string[]
+  skip_senders: string[]
+  message_filters: Json
+  available_folders: Json
 }
 
 export type DataSourceSecretRow = {
@@ -51,7 +65,12 @@ export function mapDataSourceRow(row: DataSourceRow): WorkspaceDataSource {
     displayName: row.display_name,
     status: coerceStatus(row.status),
     configVersion: 1,
-    config: mapImapConfig(row.config),
+    connection: mapImapConnectionConfig(row.config),
+    intake: mapImapIntakeSettings(row.data_source_intake_configs, row.config),
+    folderSnapshot: mapImapFolderSnapshot(
+      row.data_source_intake_configs,
+      row.config
+    ),
     secret: mapSecret(row.data_source_secrets),
     sync: mapSyncState(row.data_source_sync_states),
     createdAt: row.created_at,
@@ -59,20 +78,41 @@ export function mapDataSourceRow(row: DataSourceRow): WorkspaceDataSource {
   } satisfies ImapDataSource
 }
 
-function mapImapConfig(config: Json): ImapConfig {
-  if (!config || typeof config !== "object" || Array.isArray(config)) {
-    throw new Error("Invalid IMAP config")
-  }
+function mapImapConnectionConfig(config: Json): ImapConnectionConfig {
+  const value = jsonObject(config)
+  if (!value) throw new Error("Invalid IMAP config")
 
-  return normalizeImapConfigDraft({
-    host: stringValue(config.host),
-    port: numberValue(config.port, 993),
-    encryption: stringValue(config.encryption),
-    username: stringValue(config.username),
-    historyWindow: stringValue(config.historyWindow),
-    watchedFolders: stringArray(config.watchedFolders, ["INBOX"]),
-    skipSenders: stringArray(config.skipSenders, []),
+  return buildImapConnectionConfig({
+    host: stringValue(value.host),
+    port: numberValue(value.port, 993),
+    encryption: stringValue(value.encryption),
+    username: stringValue(value.username),
   })
+}
+
+function mapImapIntakeSettings(
+  rowOrRows: DataSourceRow["data_source_intake_configs"],
+  legacyConfig: Json
+): ImapIntakeSettings {
+  const row = Array.isArray(rowOrRows) ? rowOrRows[0] : rowOrRows
+  const legacy = jsonObject(legacyConfig)
+
+  return buildImapIntakeSettings({
+    historyWindow: row?.history_window ?? stringValue(legacy?.historyWindow),
+    watchedFolders:
+      row?.watched_folders ?? stringArray(legacy?.watchedFolders, ["INBOX"]),
+    skipSenders: row?.skip_senders ?? stringArray(legacy?.skipSenders, []),
+    messageFilters: messageFiltersValue(row?.message_filters ?? legacy?.messageFilters),
+  })
+}
+
+function mapImapFolderSnapshot(
+  rowOrRows: DataSourceRow["data_source_intake_configs"],
+  legacyConfig: Json
+): ImapFolderSnapshot {
+  const row = Array.isArray(rowOrRows) ? rowOrRows[0] : rowOrRows
+  const legacy = jsonObject(legacyConfig)
+  return buildImapFolderSnapshot(row?.available_folders ?? legacy?.availableFolders)
 }
 
 function mapSecret(
@@ -111,6 +151,16 @@ function coerceSyncStatus(value: string | undefined): DataSourceSyncState["statu
   return "queued"
 }
 
+function jsonObject(value: Json | undefined): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+function jsonObjectOrNull(value: Json | undefined): Record<string, unknown> | null {
+  return jsonObject(value)
+}
+
 function stringValue(value: unknown) {
   return typeof value === "string" ? value : ""
 }
@@ -125,8 +175,10 @@ function stringArray(value: unknown, fallback: string[]) {
     : fallback
 }
 
-function jsonObjectOrNull(value: Json | undefined): Record<string, unknown> | null {
+function messageFiltersValue(
+  value: unknown
+): ImapMessageFiltersCommand | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value
-    : null
+    ? (value as ImapMessageFiltersCommand)
+    : undefined
 }

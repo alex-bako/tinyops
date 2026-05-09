@@ -169,7 +169,7 @@ set role authenticated;
 
 select pg_temp.expect_error(
   format(
-    'select public.connect_imap_data_source(%L::uuid, %L, %L, %L, %L, %L, %L, %L::text[], %L::text[])',
+    'select public.connect_imap_data_source(%L::uuid, %L, %L, %L, %L, %L, %L, %L::text[], %L::text[], %L::jsonb, %L::jsonb)',
     current_setting('tinyops.workspace_id'),
     '',
     70000,
@@ -178,10 +178,31 @@ select pg_temp.expect_error(
     'secret',
     '12mo',
     array['INBOX'],
-    array[]::text[]
+    array[]::text[],
+    '{"mode":"and","rules":[]}',
+    '[]'
   ),
   'invalid_imap_config',
   'invalid IMAP config'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_imap_data_source(%L::uuid, %L, %L, %L, %L, %L, %L, %L::text[], %L::text[], %L::jsonb, %L::jsonb)',
+    current_setting('tinyops.workspace_id'),
+    'imap.example.com',
+    993,
+    'ssl',
+    'owner@example.com',
+    'secret',
+    '12mo',
+    array['INBOX'],
+    array[]::text[],
+    '{"mode":"or","rules":[{"id":"rule_1","field":"subject","operator":"contains","value":"invoice"}]}',
+    '[]'
+  ),
+  'invalid_imap_config',
+  'invalid IMAP message filters'
 );
 
 select public.connect_imap_data_source(
@@ -193,7 +214,9 @@ select public.connect_imap_data_source(
   'top-secret',
   '12mo',
   array[' INBOX ', 'Clients', ''],
-  array[' *@noreply.* ', '']
+  array[' *@noreply.* ', ''],
+  '{"mode":"and","rules":[{"id":"rule_1","field":"subject","operator":"does_not_contain","value":"invoice"}]}'::jsonb,
+  '[{"path":"INBOX","messages":1204},{"path":"Clients","messages":412}]'::jsonb
 ) as source_id \gset
 
 select set_config('tinyops.source_id', :'source_id', false);
@@ -213,14 +236,26 @@ select pg_temp.assert_true(
   (
     select config @> jsonb_build_object(
       'host', 'imap.example.com',
-      'username', 'owner@example.com',
-      'watchedFolders', array['INBOX', 'Clients']::text[],
-      'skipSenders', array['*@noreply.*']::text[]
+      'username', 'owner@example.com'
     )
+    and not (config ? 'watchedFolders')
+    and not (config ? 'skipSenders')
     from public.data_sources
     where id = current_setting('tinyops.source_id')::uuid
   ),
-  'connect normalizes IMAP config'
+  'connect stores IMAP connection config separately'
+);
+
+select pg_temp.assert_true(
+  (
+    select watched_folders = array['INBOX', 'Clients']::text[]
+      and skip_senders = array['*@noreply.*']::text[]
+      and message_filters @> '{"mode":"and"}'::jsonb
+      and available_folders @> '[{"path":"INBOX","messages":1204}]'::jsonb
+    from public.data_source_intake_configs
+    where source_id = current_setting('tinyops.source_id')::uuid
+  ),
+  'connect normalizes IMAP intake config'
 );
 
 select pg_temp.assert_true(
@@ -255,7 +290,9 @@ select pg_temp.assert_true(
     'new-secret',
     '90d',
     array['INBOX']::text[],
-    array[]::text[]
+    array[]::text[],
+    '{"mode":"and","rules":[]}'::jsonb,
+    '[{"path":"INBOX","messages":1}]'::jsonb
   ) = current_setting('tinyops.source_id')::uuid,
   'second connect updates the active IMAP source'
 );
@@ -278,16 +315,54 @@ select pg_temp.as_user(
 );
 set role authenticated;
 
-select public.update_imap_data_source_config(
+select public.update_imap_connection_settings(
   current_setting('tinyops.workspace_id')::uuid,
   current_setting('tinyops.source_id')::uuid,
   'imap3.example.com',
   993,
   'ssl',
   'admin@example.com',
+  'rotated-pass',
+  '[{"path":"Receipts","messages":9}]'::jsonb
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 1
+    from public.data_source_intake_configs
+    where source_id = current_setting('tinyops.source_id')::uuid
+      and history_window = '90d'
+      and watched_folders = array['INBOX']::text[]
+      and message_filters @> '{"mode":"and"}'::jsonb
+  ),
+  'connection update preserves existing intake config'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 1
+    from public.data_source_secrets
+    where source_id = current_setting('tinyops.source_id')::uuid
+      and purpose = 'imap_password'
+      and masked_value = '****pass'
+      and replaced_at is null
+  ),
+  'connection update rotates active IMAP password secret'
+);
+
+select public.update_imap_intake_config(
+  current_setting('tinyops.workspace_id')::uuid,
+  current_setting('tinyops.source_id')::uuid,
   '30d',
   array['Receipts']::text[],
-  array['notifications@example.com']::text[]
+  array['notifications@example.com']::text[],
+  '{"mode":"and","rules":[]}'::jsonb
+);
+
+select public.update_imap_folder_snapshot(
+  current_setting('tinyops.workspace_id')::uuid,
+  current_setting('tinyops.source_id')::uuid,
+  '[{"path":"Receipts","messages":10}]'::jsonb
 );
 
 select public.request_data_source_sync(
