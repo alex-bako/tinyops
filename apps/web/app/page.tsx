@@ -158,7 +158,7 @@ const PALETTE: { name: string; vars: { token: string; value: string }[] }[] = [
   },
 ]
 
-function Section({
+function ShowcaseSection({
   eyebrow,
   title,
   description,
@@ -223,7 +223,7 @@ export default function Page() {
           </header>
 
           {/* Colors */}
-          <Section
+          <ShowcaseSection
             eyebrow="01 — Color"
             title="A clean cream paper, one electric primary, one playful pop."
             description="Cobalt does the heavy lifting. Citron is the rare ping. Coral signals care, never alarm. Mint confirms. Slate carries everything else."
@@ -256,10 +256,10 @@ export default function Page() {
                 </div>
               ))}
             </div>
-          </Section>
+          </ShowcaseSection>
 
           {/* Typography */}
-          <Section
+          <ShowcaseSection
             eyebrow="02 — Typography"
             title="Geist does almost everything. Instrument Serif italic appears once a page, max."
           >
@@ -302,10 +302,10 @@ export default function Page() {
                 </EditorialItalic>
               </Row>
             </div>
-          </Section>
+          </ShowcaseSection>
 
           {/* Buttons */}
-          <Section
+          <ShowcaseSection
             eyebrow="03 — Buttons"
             title="One primary action per screen. Everything else is ghost or tertiary."
             description="Buttons rest at 4px radius — tight, document-like. The page should read as content first."
@@ -367,10 +367,10 @@ export default function Page() {
                 </Button>
               </Row>
             </div>
-          </Section>
+          </ShowcaseSection>
 
           {/* Inputs / Form */}
-          <Section
+          <ShowcaseSection
             eyebrow="04 — Inputs"
             title="Hairline border on cream. Cobalt ring on focus."
           >
@@ -463,10 +463,10 @@ export default function Page() {
                 </div>
               </div>
             </div>
-          </Section>
+          </ShowcaseSection>
 
           {/* Tabs / Toggle */}
-          <Section
+          <ShowcaseSection
             eyebrow="05 — Selection"
             title="Tabs and segmented controls."
           >
@@ -513,10 +513,10 @@ export default function Page() {
                 </ToggleGroup>
               </div>
             </div>
-          </Section>
+          </ShowcaseSection>
 
           {/* Badges */}
-          <Section
+          <ShowcaseSection
             eyebrow="06 — Badges"
             title="Small, square, document-friendly. Pill shape is reserved for in-text status dots."
           >
@@ -563,10 +563,10 @@ export default function Page() {
                 <Badge variant="tag">CSV</Badge>
               </Row>
             </div>
-          </Section>
+          </ShowcaseSection>
 
           {/* Avatars */}
-          <Section
+          <ShowcaseSection
             eyebrow="07 — Avatars"
             title="Deterministic monogram. The same name always gets the same color."
           >
@@ -594,10 +594,10 @@ export default function Page() {
                 <TonalAvatar name="Anna Smith" tone="slate" />
               </Row>
             </div>
-          </Section>
+          </ShowcaseSection>
 
           {/* Kbd */}
-          <Section
+          <ShowcaseSection
             eyebrow="08 — Keyboard"
             title="Mono-cased key chips for shortcut hints."
           >
@@ -612,10 +612,10 @@ export default function Page() {
                 <Kbd>Esc</Kbd> to dismiss
               </Body>
             </Row>
-          </Section>
+          </ShowcaseSection>
 
           {/* Callout */}
-          <Section
+          <ShowcaseSection
             eyebrow="09 — Callout"
             title="A left rule, a stamp, a sentence. The AI memory lives here."
             description="Inferences are flagged separately from facts. The AI cites the events it's grounded in."
@@ -657,10 +657,10 @@ export default function Page() {
                 </CalloutSummary>
               </Callout>
             </div>
-          </Section>
+          </ShowcaseSection>
 
           {/* Overlays */}
-          <Section
+          <ShowcaseSection
             eyebrow="10 — Overlays"
             title="Floating UI. Shadows live here, not on resting cards."
           >
@@ -723,7 +723,7 @@ export default function Page() {
                 </DialogContent>
               </Dialog>
             </div>
-          </Section>
+          </ShowcaseSection>
 
           {/* Footer */}
           <Separator className="mt-16" />

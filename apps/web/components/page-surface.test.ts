@@ -19,6 +19,14 @@ describe("workspace page surface", () => {
     )
   })
 
+  it("applies the narrow workspace width", () => {
+    render(
+      React.createElement(WorkspacePageSurface, { width: "narrow" }, "Narrow")
+    )
+
+    expect(screen.getByText("Narrow")).toHaveClass("max-w-[640px]")
+  })
+
   it("renders page header text with an icon", () => {
     render(
       React.createElement(WorkspacePageHeader, {
