@@ -24,31 +24,42 @@ const inputClasses: Record<SearchFieldVariant, string> = {
     "min-w-0 flex-1 border-0 bg-transparent p-0 font-sans text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground/60",
 }
 
+const SearchFieldVariantContext =
+  React.createContext<SearchFieldVariant>("hero")
+
+function useSearchFieldVariant(variant?: SearchFieldVariant) {
+  const inheritedVariant = React.useContext(SearchFieldVariantContext)
+  return variant ?? inheritedVariant
+}
+
 function SearchField({
   className,
   variant = "hero",
   ...props
 }: React.ComponentProps<"div"> & { variant?: SearchFieldVariant }) {
   return (
-    <div
-      data-slot="search-field"
-      data-variant={variant}
-      className={cn(fieldClasses[variant], className)}
-      {...props}
-    />
+    <SearchFieldVariantContext.Provider value={variant}>
+      <div
+        data-slot="search-field"
+        data-variant={variant}
+        className={cn(fieldClasses[variant], className)}
+        {...props}
+      />
+    </SearchFieldVariantContext.Provider>
   )
 }
 
 function SearchFieldIcon({
   className,
-  variant = "hero",
+  variant,
   ...props
 }: React.ComponentProps<"span"> & { variant?: SearchFieldVariant }) {
+  const resolvedVariant = useSearchFieldVariant(variant)
   return (
     <span
       data-slot="search-field-icon"
-      data-variant={variant}
-      className={cn(iconClasses[variant], className)}
+      data-variant={resolvedVariant}
+      className={cn(iconClasses[resolvedVariant], className)}
       {...props}
     />
   )
@@ -56,15 +67,16 @@ function SearchFieldIcon({
 
 function SearchFieldInput({
   className,
-  variant = "hero",
+  variant,
   ...props
 }: React.ComponentProps<"input"> & { variant?: SearchFieldVariant }) {
+  const resolvedVariant = useSearchFieldVariant(variant)
   return (
     <input
       data-slot="search-field-input"
-      data-variant={variant}
+      data-variant={resolvedVariant}
       type="search"
-      className={cn(inputClasses[variant], className)}
+      className={cn(inputClasses[resolvedVariant], className)}
       {...props}
     />
   )
