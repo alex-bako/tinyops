@@ -60,6 +60,7 @@ export type DataSourceSyncRunRecorder = {
     workspaceId: string
     persistedCounts: PersistedConnectorRecords
     cursor?: Json | null
+    diagnostics?: Json | null
   }): Promise<void>
   fail(input: {
     runId: string | null

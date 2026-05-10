@@ -14,6 +14,7 @@ import type {
   SyncFailure,
 } from "@/features/data-sources/domain/sync"
 import { syncFailure } from "@/features/data-sources/domain/sync"
+import { createNoopLogger, type LoggerPort } from "@/lib/logging"
 
 type ConnectorFactoryInput = {
   source: ImapDataSource
@@ -24,23 +25,40 @@ type ConnectorFactoryInput = {
 export function createImapSourceSyncAdapter({
   dataSourceReader,
   imapCredentialReader,
-  connectorFactory = ({ source, password, manualReviewKeywords }) =>
-    createImapConnector({
-      source,
-      password,
-      ownerEmails: [source.connection.username],
-      manualReviewKeywords,
-    }),
+  connectorFactory,
   manualReviewKeywordsForWorkspace = async () => [],
+  logger = createNoopLogger(),
 }: {
   dataSourceReader: DataSourceReader
   imapCredentialReader: ImapSyncCredentialReader
   connectorFactory?: (input: ConnectorFactoryInput) => ConnectorIngestionPort
   manualReviewKeywordsForWorkspace?: (workspaceId: string) => Promise<string[]>
+  logger?: LoggerPort
 }): SourceSyncAdapter {
+  const createConnector =
+    connectorFactory ??
+    (({ source, password, manualReviewKeywords }: ConnectorFactoryInput) =>
+      createImapConnector({
+        source,
+        password,
+        ownerEmails: [source.connection.username],
+        manualReviewKeywords,
+        logger: logger.child({
+          component: "imap_source_sync_adapter",
+          sourceId: source.id,
+          workspaceId: source.workspaceId,
+        }),
+      }))
+
   return {
     sourceType: "imap",
     async prepare({ job }) {
+      const prepareLogger = logger.child({
+        component: "imap_source_sync_adapter",
+        sourceId: job.sourceId,
+        workspaceId: job.workspaceId,
+      })
+      prepareLogger.debug({ event: "imap.adapter.prepare" }, "preparing IMAP adapter")
       const source = await loadClaimedImapSource({ dataSourceReader, job })
       if (!source) {
         return {
@@ -66,7 +84,7 @@ export function createImapSourceSyncAdapter({
 
       return {
         ok: true,
-        value: connectorFactory({
+        value: createConnector({
           source,
           password: passwordResult.value,
           manualReviewKeywords,

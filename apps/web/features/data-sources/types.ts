@@ -78,6 +78,7 @@ export type DataSourceSyncRun = {
   errorMessage: string | null
   causeMessage: string | null
   persistedCounts: Record<string, unknown> | null
+  diagnostics?: Record<string, unknown> | null
 }
 
 export type ImapDataSource = {

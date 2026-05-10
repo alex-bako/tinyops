@@ -14,6 +14,7 @@ import { createSupabaseImapSecretReader } from "@/features/data-sources/imap-sec
 import { createDataSourceServerContext } from "@/features/data-sources/loaders"
 import { dispatchDataSourceSyncWorker } from "@/features/data-sources/sync-dispatcher"
 import { DEFAULT_SIGNED_IN_PATH } from "@/lib/auth/route-policy"
+import { getLogger } from "@/lib/logging"
 import {
   getOptionalSyncWorkerSecret,
   getOptionalTinyOpsAppBaseUrl,
@@ -103,20 +104,26 @@ export async function requestDataSourceSyncAction(sourceId: string) {
 }
 
 async function scheduleDataSourceSyncDispatch() {
+  const logger = getLogger().child({ component: "data_source_actions" })
   try {
     const result = await dispatchDataSourceSyncWorker({
       baseUrl: getOptionalTinyOpsAppBaseUrl(),
       secret: getOptionalSyncWorkerSecret(),
     })
     if (result.dispatched && !result.ok) {
-      console.warn("data_source_sync_dispatch_failed", {
-        status: result.status,
-      })
+      logger.warn(
+        { event: "data_source_sync_dispatch_failed", status: result.status },
+        "data source sync dispatch failed"
+      )
     }
   } catch (error) {
-    console.warn("data_source_sync_dispatch_failed", {
-      message: safeDispatchErrorMessage(error),
-    })
+    logger.warn(
+      {
+        event: "data_source_sync_dispatch_failed",
+        message: safeDispatchErrorMessage(error),
+      },
+      "data source sync dispatch failed"
+    )
   }
 }
 

@@ -64,6 +64,7 @@ export type DataSourceSyncRunRow = {
   error_message: string | null
   cause_message: string | null
   persisted_counts: Json
+  diagnostics: Json
 }
 
 export function mapDataSourceRow(row: DataSourceRow): WorkspaceDataSource {
@@ -170,6 +171,7 @@ function mapSyncRuns(
       errorMessage: row.error_message,
       causeMessage: row.cause_message,
       persistedCounts: jsonObjectOrNull(row.persisted_counts),
+      diagnostics: jsonObjectOrNull(row.diagnostics),
     }))
 }
 

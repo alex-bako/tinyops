@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   createDataSourceSyncRuntime: vi.fn(),
   runNext: vi.fn(),
+  logError: vi.fn(),
 }))
 
 vi.mock("@/lib/supabase/server-env", () => ({
@@ -11,6 +12,17 @@ vi.mock("@/lib/supabase/server-env", () => ({
 
 vi.mock("@/features/data-sources/adapters/sync-runtime", () => ({
   createDataSourceSyncRuntime: mocks.createDataSourceSyncRuntime,
+}))
+
+vi.mock("@/lib/logging", () => ({
+  getLogger: () => ({
+    child: () => ({
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: mocks.logError,
+    }),
+  }),
 }))
 
 import { POST } from "./route"
@@ -77,9 +89,6 @@ describe("sync run route", () => {
   })
 
   it("returns 500 and logs safe context for claimed sync failures", async () => {
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined)
     mocks.runNext.mockResolvedValue({
       claimed: true,
       sourceId: "source_1",
@@ -102,13 +111,16 @@ describe("sync run route", () => {
       sourceId: "source_1",
     })
     expect(response.status).toBe(500)
-    expect(consoleError).toHaveBeenCalledWith("data_source_sync_failed", {
-      code: "secret_read_failed",
-      message: "Could not read IMAP password",
-      sourceId: "source_1",
-      workspaceId: "workspace_1",
-      causeMessage: "PGRST106 Invalid schema: vault",
-    })
-    consoleError.mockRestore()
+    expect(mocks.logError).toHaveBeenCalledWith(
+      {
+        event: "data_source_sync_failed",
+        code: "secret_read_failed",
+        message: "Could not read IMAP password",
+        sourceId: "source_1",
+        workspaceId: "workspace_1",
+        causeMessage: "PGRST106 Invalid schema: vault",
+      },
+      "data source sync failed"
+    )
   })
 })

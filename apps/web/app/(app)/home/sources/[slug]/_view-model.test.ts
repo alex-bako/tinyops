@@ -135,6 +135,14 @@ describe("source detail view", () => {
             errorMessage: null,
             causeMessage: null,
             persistedCounts: { clients: 1, rawRecords: 2, timelineEvents: 2 },
+            diagnostics: {
+              folders: [{ path: "INBOX", searched: 3, accepted: 1, skipped: 2 }],
+              skips: { skip_sender: 1, filter_rejected: 1 },
+              ingestion: {
+                attempted: 1,
+                persisted: { clients: 1, rawRecords: 2, timelineEvents: 2 },
+              },
+            },
           },
           {
             trigger: "immediate",
@@ -158,7 +166,7 @@ describe("source detail view", () => {
         startedAt: "2026-05-10T08:03:00.000Z",
         finishedAt: "2026-05-10T08:03:04.000Z",
         label: "Succeeded",
-        detail: "1 client, 2 records, 2 events",
+        detail: "1 imported from 3 scanned, 2 skipped",
       },
       {
         trigger: "immediate",

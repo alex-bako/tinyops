@@ -57,6 +57,7 @@ export type ConnectorIngestionResult = {
   records: NormalizedConnectorRecord[]
   truncated: boolean
   cursor?: Json
+  diagnostics?: Json
 }
 
 export type ConnectorIngestionPort = {
