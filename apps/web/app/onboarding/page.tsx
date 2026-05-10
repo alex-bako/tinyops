@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow"
@@ -7,6 +8,11 @@ import { readSupabaseAppProfileSession } from "@/lib/auth/profile"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+  title: "Set up your workspace",
+  description: "Tell us how you work so TinyOps can fit in.",
+}
 
 export default async function OnboardingPage() {
   const supabase = await createServerSupabaseClient()

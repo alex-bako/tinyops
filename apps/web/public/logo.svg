@@ -1,7 +1,8 @@
-<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="180" height="44" viewBox="0 0 180 44" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect x="2" y="2" width="40" height="40" rx="11" fill="#2563EB"></rect>
   <path d="M11 22 H30" stroke="#82A3FF" stroke-width="2" stroke-linecap="round"></path>
   <circle cx="11" cy="22" r="2.4" fill="#DCE6FF"></circle>
   <circle cx="20.5" cy="22" r="2.4" fill="#DCE6FF"></circle>
   <circle cx="32" cy="22" r="5.5" fill="#BEF264"></circle>
+  <text x="54" y="30" font-family="Geist, system-ui, sans-serif" font-size="22" font-weight="600" fill="#0F172A" letter-spacing="-1.2">tinyops</text>
 </svg>

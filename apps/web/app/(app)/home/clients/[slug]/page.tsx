@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeftIcon, FilterIcon, EyeOffIcon, PlusIcon } from "lucide-react"
@@ -14,6 +15,21 @@ import { NotesEmpty } from "./_components/notes-empty"
 import { Properties } from "./_components/properties"
 import { TimelineSection } from "./_components/timeline-section"
 import { createClientDetailView } from "./_view-model"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+  const repository = await loadClientMemoryRepository()
+  const client = await repository.findClientBySlug(slug)
+  if (!client) return { title: "Client" }
+  return {
+    title: client.name,
+    description: `What I know about ${client.name} — timeline, memory, next actions.`,
+  }
+}
 
 export default async function ClientDetailPage({
   params,
