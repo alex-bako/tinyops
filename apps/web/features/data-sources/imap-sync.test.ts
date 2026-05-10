@@ -230,6 +230,50 @@ describe("IMAP sync connector", () => {
     })
   })
 
+  it("returns aggregate diagnostics for scanned, accepted, and skipped messages", async () => {
+    const connector = createImapConnector({
+      source: source(),
+      password: "top-secret",
+      ownerEmails: ["owner@example.com"],
+      manualReviewKeywords: [],
+      ImapFlow: fakeImapFlow({
+        11: rawReplayEmail,
+        12: rawNoreplyEmail,
+        13: rawSensitiveGroupEmail,
+      }),
+      now: new Date("2026-05-10T00:00:00.000Z"),
+    })
+
+    const result = await connector.sync({
+      workspaceId: "workspace_1",
+      sourceId: "source_1",
+      limit: 10,
+    })
+
+    expect(result.records).toHaveLength(1)
+    expect(result.diagnostics).toMatchObject({
+      folders: [
+        {
+          path: "INBOX",
+          uidValidity: "42",
+          startUid: 11,
+          endUid: 13,
+          searched: 3,
+          fetched: 3,
+          accepted: 1,
+          skipped: 2,
+          truncated: false,
+        },
+      ],
+      skips: {
+        skip_sender: 1,
+        filter_rejected: 1,
+      },
+    })
+    expect(JSON.stringify(result.diagnostics)).not.toContain("anna@example.com")
+    expect(JSON.stringify(result.diagnostics)).not.toContain("Replay access")
+  })
+
   it("does not advance a later folder cursor past records returned in the batch", async () => {
     const connector = createImapConnector({
       source: source({

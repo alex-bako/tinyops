@@ -52,6 +52,11 @@ describe("supabase data source sync run recorder", () => {
       workspaceId: "workspace_1",
       persistedCounts: { clients: 1, rawRecords: 2, timelineEvents: 3 },
       cursor: { folders: { INBOX: { lastUid: 11 } } },
+      diagnostics: {
+        folders: [{ path: "INBOX", searched: 3, accepted: 1, skipped: 2 }],
+        skips: { filter_rejected: 2 },
+        ingestion: { attempted: 1, persisted: { rawRecords: 2 } },
+      },
     })
     await recorder.fail({
       runId: "run_1",
@@ -85,6 +90,11 @@ describe("supabase data source sync run recorder", () => {
           finished_at: expect.any(String),
           persisted_counts: { clients: 1, rawRecords: 2, timelineEvents: 3 },
           cursor: { folders: { INBOX: { lastUid: 11 } } },
+          diagnostics: {
+            folders: [{ path: "INBOX", searched: 3, accepted: 1, skipped: 2 }],
+            skips: { filter_rejected: 2 },
+            ingestion: { attempted: 1, persisted: { rawRecords: 2 } },
+          },
         },
       },
       {

@@ -1,7 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalEnv": ["SYNC_WORKER_SECRET", "TINYOPS_APP_BASE_URL"],
+  "globalEnv": [
+    "NODE_ENV",
+    "SYNC_WORKER_SECRET",
+    "TINYOPS_APP_BASE_URL",
+    "TINYOPS_LOG_LEVEL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

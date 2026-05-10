@@ -58,6 +58,7 @@ export function createSupabaseDataSourceSyncRunRecorder({
           finished_at: new Date().toISOString(),
           persisted_counts: input.persistedCounts as unknown as Json,
           cursor: (input.cursor ?? null) as Json | null,
+          diagnostics: (input.diagnostics ?? null) as Json | null,
         })
         .eq("id", input.runId)
 

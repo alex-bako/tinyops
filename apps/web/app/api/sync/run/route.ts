@@ -3,11 +3,13 @@ import { NextResponse } from "next/server"
 import type { SyncFailure } from "@/features/data-sources/domain/sync"
 import { createDataSourceSyncRuntime } from "@/features/data-sources/adapters/sync-runtime"
 import { isAuthorizedSyncWorkerRequest } from "@/features/data-sources/sync-route-auth"
+import { getLogger } from "@/lib/logging"
 import { getSyncWorkerSecret } from "@/lib/supabase/server-env"
 
 export const runtime = "nodejs"
 
 export async function POST(request: Request) {
+  const logger = getLogger().child({ component: "sync_run_route" })
   if (
     !isAuthorizedSyncWorkerRequest({
       authorization: request.headers.get("authorization"),
@@ -24,7 +26,10 @@ export async function POST(request: Request) {
   }
 
   if ("failure" in result) {
-    console.error("data_source_sync_failed", logContext(result.failure))
+    logger.error(
+      { event: "data_source_sync_failed", ...logContext(result.failure) },
+      "data source sync failed"
+    )
     return NextResponse.json(
       {
         status: "failed",

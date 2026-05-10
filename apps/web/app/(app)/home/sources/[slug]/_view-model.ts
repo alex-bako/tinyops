@@ -153,6 +153,9 @@ function syncAttemptDetail(
   }
 
   if (run.status === "succeeded") {
+    const diagnosticDetail = syncDiagnosticDetail(run.diagnostics)
+    if (diagnosticDetail) return diagnosticDetail
+
     const clients = numberCount(run.persistedCounts?.clients)
     const rawRecords = numberCount(run.persistedCounts?.rawRecords)
     const timelineEvents = numberCount(run.persistedCounts?.timelineEvents)
@@ -165,12 +168,44 @@ function syncAttemptDetail(
   return undefined
 }
 
+function syncDiagnosticDetail(diagnostics: Record<string, unknown> | null | undefined) {
+  if (!diagnostics) return null
+  const folders = Array.isArray(diagnostics.folders)
+    ? diagnostics.folders.filter(isRecord)
+    : []
+  const scanned = folders.reduce(
+    (total, folder) => total + numberCount(folder.searched),
+    0
+  )
+  if (scanned === 0) return null
+
+  const skipped = folders.reduce(
+    (total, folder) => total + numberCount(folder.skipped),
+    0
+  )
+  const ingestion = isRecord(diagnostics.ingestion) ? diagnostics.ingestion : null
+  const imported =
+    numberCount(ingestion?.attempted) ||
+    folders.reduce((total, folder) => total + numberCount(folder.accepted), 0)
+
+  return `${imported} ${plural("import", imported)} from ${scanned} scanned, ${skipped} ${plural(
+    "skipped",
+    skipped
+  )}`
+}
+
 function numberCount(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0
 }
 
 function plural(label: string, count: number) {
+  if (label === "import") return count === 1 ? "imported" : "imported"
+  if (label === "skipped") return "skipped"
   return count === 1 ? label : `${label}s`
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
 }
 
 export { createSourceDetailView }

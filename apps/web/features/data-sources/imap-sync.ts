@@ -9,11 +9,13 @@ import type {
 } from "@/features/clients/ingestion"
 import { matchesIntakeFilters } from "@/features/data-sources/imap-intake-filters"
 import {
+  addressEmails,
   buildImapConnectorRecord,
   ownerEmailSet,
   type ParsedMailLike,
 } from "@/features/data-sources/imap-record-normalizer"
 import type { ImapDataSource } from "@/features/data-sources/types"
+import { createNoopLogger, type LoggerPort } from "@/lib/logging"
 import type { Json } from "@/lib/database.types"
 
 type ImapFlowConstructor = new (options: {
@@ -49,6 +51,29 @@ type ImapCursor = {
   >
 }
 
+type ImapSkipReason =
+  | "missing_source"
+  | "skip_sender"
+  | "no_external_participant"
+  | "filter_rejected"
+
+type ImapFolderDiagnostics = {
+  path: string
+  uidValidity: string
+  startUid?: number
+  endUid?: number
+  searched: number
+  fetched: number
+  accepted: number
+  skipped: number
+  truncated: boolean
+}
+
+type ImapSyncDiagnostics = {
+  folders: ImapFolderDiagnostics[]
+  skips: Record<string, number>
+}
+
 export function createImapConnector({
   source,
   password,
@@ -56,6 +81,7 @@ export function createImapConnector({
   manualReviewKeywords,
   ImapFlow: ImapFlowClient = ImapFlow as ImapFlowConstructor,
   now = new Date(),
+  logger = createNoopLogger(),
 }: {
   source: ImapDataSource
   password: string
@@ -63,8 +89,15 @@ export function createImapConnector({
   manualReviewKeywords: string[]
   ImapFlow?: ImapFlowConstructor
   now?: Date
+  logger?: LoggerPort
 }): ConnectorIngestionPort {
   async function collect(input: ConnectorIngestionInput, preview: boolean) {
+    const syncLogger = logger.child({
+      component: "imap_sync",
+      sourceId: source.id,
+      workspaceId: source.workspaceId,
+      preview,
+    })
     const client = new ImapFlowClient({
       host: source.connection.host,
       port: source.connection.port,
@@ -79,6 +112,7 @@ export function createImapConnector({
 
     let connected = false
     try {
+      syncLogger.debug({ event: "imap.connection.open" }, "opening IMAP connection")
       await client.connect()
       connected = true
       const result = await collectFromFolders({
@@ -89,6 +123,7 @@ export function createImapConnector({
         manualReviewKeywords,
         now,
         preview,
+        logger: syncLogger,
       })
       await client.logout()
       return result
@@ -117,6 +152,7 @@ async function collectFromFolders({
   manualReviewKeywords,
   now,
   preview,
+  logger,
 }: {
   client: ImapSyncClient
   source: ImapDataSource
@@ -125,11 +161,13 @@ async function collectFromFolders({
   manualReviewKeywords: string[]
   now: Date
   preview: boolean
+  logger: LoggerPort
 }): Promise<ConnectorIngestionResult> {
   const limit = input.limit ?? 50
   const cursor = readCursor(preview ? null : source.sync.cursor)
   const nextCursor: ImapCursor = { folders: { ...(cursor.folders ?? {}) } }
   const records: NormalizedConnectorRecord[] = []
+  const diagnostics: ImapSyncDiagnostics = { folders: [], skips: {} }
   let truncated = false
 
   for (const folder of source.intake.watchedFolders) {
@@ -153,6 +191,16 @@ async function collectFromFolders({
     })
     const batchUids = uids.slice(0, remaining)
     let lastProcessedUid = lastUid
+    const folderDiagnostics: ImapFolderDiagnostics = {
+      path: folder,
+      uidValidity,
+      ...(batchUids[0] !== undefined ? { startUid: batchUids[0] } : {}),
+      searched: uids.length,
+      fetched: 0,
+      accepted: 0,
+      skipped: 0,
+      truncated: false,
+    }
 
     for await (const message of client.fetch(
       batchUids,
@@ -160,8 +208,14 @@ async function collectFromFolders({
       { uid: true }
     )) {
       lastProcessedUid = message.uid
-      if (!message.source) continue
+      folderDiagnostics.fetched += 1
+      folderDiagnostics.endUid = message.uid
+      if (!message.source) {
+        skipMessage(diagnostics, folderDiagnostics, "missing_source")
+        continue
+      }
       const parsed = (await simpleParser(message.source)) as ParsedMailLike
+      const skippedSender = shouldSkipSender(source, parsed)
       const record = buildImapConnectorRecord({
         source,
         uid: message.uid,
@@ -173,20 +227,46 @@ async function collectFromFolders({
         manualReviewKeywords,
         fallbackDate: now,
       })
-      if (!record) continue
-      if (!matchesIntakeFilters(source, parsed, record.bodyText)) continue
+      if (!record) {
+        skipMessage(
+          diagnostics,
+          folderDiagnostics,
+          skippedSender ? "skip_sender" : "no_external_participant"
+        )
+        continue
+      }
+      if (!matchesIntakeFilters(source, parsed, record.bodyText)) {
+        skipMessage(diagnostics, folderDiagnostics, "filter_rejected")
+        continue
+      }
       records.push(record)
+      folderDiagnostics.accepted += 1
       if (records.length >= limit) break
     }
 
     const fullyProcessedBatch = lastProcessedUid === (batchUids.at(-1) ?? lastUid)
     const folderExhausted = fullyProcessedBatch && uids.length <= batchUids.length
     truncated = truncated || !folderExhausted
+    folderDiagnostics.truncated = !folderExhausted
     nextCursor.folders![folder] = {
       uidValidity,
       lastUid: lastProcessedUid,
       exhausted: folderExhausted,
     }
+    diagnostics.folders.push(folderDiagnostics)
+    logger.info(
+      {
+        event: "imap.folder.scanned",
+        folder,
+        uidValidity,
+        searched: folderDiagnostics.searched,
+        fetched: folderDiagnostics.fetched,
+        accepted: folderDiagnostics.accepted,
+        skipped: folderDiagnostics.skipped,
+        truncated: folderDiagnostics.truncated,
+      },
+      "IMAP folder scanned"
+    )
 
     if (records.length >= limit) {
       truncated = true
@@ -198,7 +278,17 @@ async function collectFromFolders({
     records,
     truncated,
     cursor: nextCursor as Json,
+    diagnostics: diagnostics as Json,
   }
+}
+
+function skipMessage(
+  diagnostics: ImapSyncDiagnostics,
+  folder: ImapFolderDiagnostics,
+  reason: ImapSkipReason
+) {
+  folder.skipped += 1
+  diagnostics.skips[reason] = (diagnostics.skips[reason] ?? 0) + 1
 }
 
 async function searchFolderUids({
@@ -223,6 +313,21 @@ async function searchFolderUids({
   return found
     .filter((uid) => uid > lastUid)
     .sort((a, b) => a - b)
+}
+
+function shouldSkipSender(source: ImapDataSource, parsed: ParsedMailLike) {
+  return addressEmails(parsed.from).some((email) =>
+    source.intake.skipSenders.some((pattern) => matchesEmailPattern(pattern, email))
+  )
+}
+
+function matchesEmailPattern(pattern: string, email: string) {
+  const escaped = pattern
+    .trim()
+    .toLowerCase()
+    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+    .replaceAll("*", ".*")
+  return new RegExp(`^${escaped}$`).test(email)
 }
 
 function readCursor(value: unknown): ImapCursor {

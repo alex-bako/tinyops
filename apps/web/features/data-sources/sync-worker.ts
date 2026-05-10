@@ -18,6 +18,8 @@ import {
   syncFailure,
   syncFailureMessage,
 } from "@/features/data-sources/domain/sync"
+import { createNoopLogger, type LoggerPort } from "@/lib/logging"
+import type { Json } from "@/lib/database.types"
 
 export type SourceSyncAdapter = {
   sourceType: ConnectorSourceType
@@ -34,6 +36,7 @@ type DataSourceSyncWorkerConfig = {
   ingestionWriter: ClientIngestionWriter
   runRecorder: DataSourceSyncRunRecorder
   sourceSyncAdapters: SourceSyncAdapter[]
+  logger?: LoggerPort
 }
 
 export type DataSourceSyncWorkerResult =
@@ -67,6 +70,7 @@ export function createDataSourceSyncWorker({
   ingestionWriter,
   runRecorder,
   sourceSyncAdapters,
+  logger = createNoopLogger(),
 }: DataSourceSyncWorkerConfig) {
   return {
     async runNext({
@@ -74,8 +78,24 @@ export function createDataSourceSyncWorker({
     }: {
       trigger?: DataSourceSyncTrigger
     } = {}): Promise<DataSourceSyncWorkerResult> {
+      const startedAt = Date.now()
+      const runLogger = logger.child({
+        component: "data_source_sync_worker",
+        workerId,
+        trigger,
+      })
       const job = await jobStore.claimNext({ workerId, leaseSeconds })
-      if (!job) return { claimed: false }
+      if (!job) {
+        runLogger.debug({ event: "sync.queue.idle" }, "sync queue idle")
+        return { claimed: false }
+      }
+
+      const jobLogger = runLogger.child({
+        sourceId: job.sourceId,
+        workspaceId: job.workspaceId,
+        sourceType: job.sourceType,
+      })
+      jobLogger.info({ event: "sync.job.claimed" }, "sync job claimed")
 
       let runId: string | null = null
       try {
@@ -83,6 +103,7 @@ export function createDataSourceSyncWorker({
           phase: "start",
           sourceId: job.sourceId,
           workspaceId: job.workspaceId,
+          logger: jobLogger,
           action: async () => {
             const run = await runRecorder.start({
               sourceId: job.sourceId,
@@ -93,6 +114,7 @@ export function createDataSourceSyncWorker({
             runId = run.runId
           },
         })
+        const syncLogger = runId ? jobLogger.child({ runId }) : jobLogger
 
         const adapter = sourceSyncAdapters.find(
           (candidate) => candidate.sourceType === job.sourceType
@@ -101,17 +123,20 @@ export function createDataSourceSyncWorker({
           return failClaimedSync({
             jobStore,
             runRecorder,
+            logger: syncLogger,
             job,
             runId,
             failure: syncFailure("sync_failed", job),
           })
         }
 
+        syncLogger.debug({ event: "sync.adapter.prepare" }, "preparing source adapter")
         const connectorResult = await adapter.prepare({ job })
         if (!connectorResult.ok) {
           return failClaimedSync({
             jobStore,
             runRecorder,
+            logger: syncLogger,
             job,
             runId,
             failure: withJobContext(connectorResult.error, job),
@@ -127,6 +152,13 @@ export function createDataSourceSyncWorker({
             limit: batchSize,
           },
         })
+        const diagnostics = syncDiagnostics({
+          connectorDiagnostics: result.diagnostics,
+          attemptedRecords: result.records.length,
+          persisted: result.persisted,
+          hasMore: result.truncated,
+          durationMs: Date.now() - startedAt,
+        })
 
         await jobStore.complete({
           sourceId: job.sourceId,
@@ -138,6 +170,7 @@ export function createDataSourceSyncWorker({
           phase: "succeed",
           sourceId: job.sourceId,
           workspaceId: job.workspaceId,
+          logger: syncLogger,
           action: () =>
             runRecorder.succeed({
               runId,
@@ -145,8 +178,18 @@ export function createDataSourceSyncWorker({
               workspaceId: job.workspaceId,
               persistedCounts: result.persisted,
               cursor: result.cursor,
+              diagnostics,
             }),
         })
+        syncLogger.info(
+          {
+            event: "sync.job.completed",
+            persisted: result.persisted,
+            hasMore: result.truncated,
+            durationMs: diagnostics.durationMs,
+          },
+          "sync job completed"
+        )
 
         return {
           claimed: true,
@@ -159,6 +202,7 @@ export function createDataSourceSyncWorker({
         return failClaimedSync({
           jobStore,
           runRecorder,
+          logger: jobLogger,
           job,
           runId,
           failure: syncFailureFromError(error, job),
@@ -198,16 +242,27 @@ export function createDataSourceSyncWorker({
 async function failClaimedSync({
   jobStore,
   runRecorder,
+  logger,
   job,
   runId,
   failure,
 }: {
   jobStore: DataSourceSyncJobStore
   runRecorder: DataSourceSyncRunRecorder
+  logger: LoggerPort
   job: DataSourceSyncJob
   runId: string | null
   failure: SyncFailure
 }): Promise<DataSourceSyncWorkerResult> {
+  logger.error(
+    {
+      event: "sync.job.failed",
+      code: failure.code,
+      message: failure.message,
+      causeMessage: safeRecordErrorMessage(failure.cause),
+    },
+    "sync job failed"
+  )
   await jobStore.fail({
     sourceId: job.sourceId,
     leaseToken: job.leaseToken,
@@ -217,6 +272,7 @@ async function failClaimedSync({
     phase: "fail",
     sourceId: job.sourceId,
     workspaceId: job.workspaceId,
+    logger,
     action: () =>
       runRecorder.fail({
         runId,
@@ -233,26 +289,63 @@ async function failClaimedSync({
   }
 }
 
+function syncDiagnostics({
+  connectorDiagnostics,
+  attemptedRecords,
+  persisted,
+  hasMore,
+  durationMs,
+}: {
+  connectorDiagnostics?: Json
+  attemptedRecords: number
+  persisted: Awaited<ReturnType<ClientIngestionWriter["persist"]>>
+  hasMore: boolean
+  durationMs: number
+}) {
+  const diagnostics = jsonObject(connectorDiagnostics)
+  return {
+    ...diagnostics,
+    ingestion: {
+      attempted: attemptedRecords,
+      persisted,
+    },
+    hasMore,
+    durationMs,
+  } satisfies Record<string, Json | undefined>
+}
+
+function jsonObject(value: Json | undefined): Record<string, Json | undefined> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, Json | undefined>)
+    : {}
+}
+
 async function recordSyncRun({
   phase,
   sourceId,
   workspaceId,
+  logger,
   action,
 }: {
   phase: "start" | "succeed" | "fail"
   sourceId: string
   workspaceId: string
+  logger: LoggerPort
   action: () => Promise<void>
 }) {
   try {
     await action()
   } catch (error) {
-    console.warn("data_source_sync_run_record_failed", {
-      phase,
-      sourceId,
-      workspaceId,
-      message: safeRecordErrorMessage(error),
-    })
+    logger.warn(
+      {
+        event: "data_source_sync_run_record_failed",
+        phase,
+        sourceId,
+        workspaceId,
+        message: safeRecordErrorMessage(error),
+      },
+      "data source sync run record failed"
+    )
   }
 }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 
 import { createDataSourceSyncRuntime } from "@/features/data-sources/adapters/sync-runtime"
 import { isAuthorizedSyncWorkerRequest } from "@/features/data-sources/sync-route-auth"
+import { getLogger } from "@/lib/logging"
 import { getCronSecret } from "@/lib/supabase/server-env"
 
 export const runtime = "nodejs"
@@ -9,6 +10,7 @@ export const runtime = "nodejs"
 const CRON_BATCH_SIZE = 5
 
 export async function GET(request: Request) {
+  const logger = getLogger().child({ component: "sync_drain_route" })
   if (
     !isAuthorizedSyncWorkerRequest({
       authorization: request.headers.get("authorization"),
@@ -32,7 +34,10 @@ export async function GET(request: Request) {
       failed: result.failed,
     })
   } catch (error) {
-    console.error("data_source_sync_drain_failed", safeRouteError(error))
+    logger.error(
+      { event: "data_source_sync_drain_failed", ...safeRouteError(error) },
+      "data source sync drain failed"
+    )
     return NextResponse.json({ error: "sync_drain_failed" }, { status: 500 })
   }
 }

@@ -62,7 +62,8 @@ const DATA_SOURCE_COLUMNS = `
     error_code,
     error_message,
     cause_message,
-    persisted_counts
+    persisted_counts,
+    diagnostics
   )
 `
 

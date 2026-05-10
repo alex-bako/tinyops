@@ -100,6 +100,7 @@ describe("data sources database contract", () => {
     expect(migration).toMatch(/trigger text not null/)
     expect(migration).toMatch(/status text not null/)
     expect(migration).toMatch(/persisted_counts jsonb/)
+    expect(migration).toMatch(/diagnostics jsonb/)
     expect(migration).toMatch(/cause_message text/)
     expect(migration).toMatch(
       /alter table public\.data_source_sync_runs enable row level security;/

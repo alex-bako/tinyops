@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 
 import {
   createDataSourceSyncWorker,
   type SourceSyncAdapter,
 } from "@/features/data-sources/sync-worker"
 import type { NormalizedConnectorRecord } from "@/features/clients/ingestion"
+import type { LoggerPort } from "@/lib/logging"
 
 const normalizedRecord: NormalizedConnectorRecord = {
   workspaceId: "workspace_1",
@@ -33,6 +34,28 @@ function noopRunRecorder() {
   }
 }
 
+function captureLogger(events: unknown[]): LoggerPort {
+  const logger: LoggerPort = {
+    child(bindings) {
+      events.push({ method: "child", bindings })
+      return logger
+    },
+    debug(context, message) {
+      events.push({ level: "debug", context, message })
+    },
+    info(context, message) {
+      events.push({ level: "info", context, message })
+    },
+    warn(context, message) {
+      events.push({ level: "warn", context, message })
+    },
+    error(context, message) {
+      events.push({ level: "error", context, message })
+    },
+  }
+  return logger
+}
+
 describe("data source sync worker", () => {
   it("claims a job, prepares the matching source adapter, persists records, and completes the lease", async () => {
     const calls: unknown[] = []
@@ -53,6 +76,10 @@ describe("data source sync worker", () => {
                 records: [normalizedRecord],
                 truncated: false,
                 cursor: { folders: { INBOX: { lastUid: 11 } } },
+                diagnostics: {
+                  folders: [{ path: "INBOX", searched: 1, accepted: 1 }],
+                  skips: {},
+                },
               }
             },
           },
@@ -147,6 +174,16 @@ describe("data source sync worker", () => {
           workspaceId: "workspace_1",
           persistedCounts: { clients: 1, rawRecords: 1, timelineEvents: 1 },
           cursor: { folders: { INBOX: { lastUid: 11 } } },
+          diagnostics: {
+            folders: [{ path: "INBOX", searched: 1, accepted: 1 }],
+            skips: {},
+            ingestion: {
+              attempted: 1,
+              persisted: { clients: 1, rawRecords: 1, timelineEvents: 1 },
+            },
+            hasMore: false,
+            durationMs: expect.any(Number),
+          },
         },
       },
     ])
@@ -292,9 +329,10 @@ describe("data source sync worker", () => {
 
   it("does not fail a completed sync when run-history success recording fails", async () => {
     const calls: unknown[] = []
-    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+    const logEvents: unknown[] = []
     const worker = createDataSourceSyncWorker({
       workerId: "worker_1",
+      logger: captureLogger(logEvents),
       jobStore: {
         async claimNext() {
           return {
@@ -369,14 +407,15 @@ describe("data source sync worker", () => {
     expect(calls).not.toContainEqual(
       expect.objectContaining({ method: "recordFail" })
     )
-    expect(consoleWarn).toHaveBeenCalledWith(
-      "data_source_sync_run_record_failed",
-      expect.objectContaining({
+    expect(logEvents).toContainEqual({
+      level: "warn",
+      context: expect.objectContaining({
+        event: "data_source_sync_run_record_failed",
         phase: "succeed",
         sourceId: "source_1",
-      })
-    )
-    consoleWarn.mockRestore()
+      }),
+      message: "data source sync run record failed",
+    })
   })
 
   it("runs batches up to the requested cap and stops when the queue is idle", async () => {

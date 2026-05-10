@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     readImapPasswordForSync: vi.fn(),
   })),
   dispatchDataSourceSyncWorker: vi.fn(),
+  logWarn: vi.fn(),
   requestHeaders: new Headers({
     host: "app.example.com",
     "x-forwarded-proto": "https",
@@ -46,6 +47,17 @@ vi.mock("@/features/data-sources/imap-secret-reader", () => ({
 
 vi.mock("@/features/data-sources/sync-dispatcher", () => ({
   dispatchDataSourceSyncWorker: mocks.dispatchDataSourceSyncWorker,
+}))
+
+vi.mock("@/lib/logging", () => ({
+  getLogger: () => ({
+    child: () => ({
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: mocks.logWarn,
+      error: vi.fn(),
+    }),
+  }),
 }))
 
 vi.mock("@/lib/supabase/server-env", () => ({
@@ -190,6 +202,13 @@ describe("data source server actions", () => {
       data: undefined,
     })
     await expect(mocks.afterCallbacks[0]?.()).resolves.toBeUndefined()
+    expect(mocks.logWarn).toHaveBeenCalledWith(
+      {
+        event: "data_source_sync_dispatch_failed",
+        message: "network down",
+      },
+      "data source sync dispatch failed"
+    )
   })
 
   it("uses the trusted app base URL instead of request host headers for dispatch", async () => {

@@ -17,10 +17,12 @@ import {
   type SupabaseSyncRunRecorderClient,
 } from "@/features/data-sources/sync-run-recorder"
 import { createDataSourceSyncWorker } from "@/features/data-sources/sync-worker"
+import { getLogger } from "@/lib/logging"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
 export function createDataSourceSyncRuntime() {
   const client = createSupabaseAdminClient()
+  const logger = getLogger().child({ component: "data_source_sync_runtime" })
   const rpcClient = client as unknown as SupabaseSyncJobStoreClient &
     SupabaseClientIngestionWriterClient &
     SupabaseImapSecretReaderClient
@@ -40,7 +42,9 @@ export function createDataSourceSyncRuntime() {
       createImapSourceSyncAdapter({
         dataSourceReader,
         imapCredentialReader,
+        logger,
       }),
     ],
+    logger,
   })
 }
