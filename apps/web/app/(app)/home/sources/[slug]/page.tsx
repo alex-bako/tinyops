@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeftIcon } from "lucide-react"
@@ -16,6 +17,22 @@ import { SourceHeader } from "./_components/source-header"
 import { SyncAttemptsBlock } from "./_components/sync-attempts-block"
 import { createSourceDetailView } from "./_view-model"
 import { getSourceUi } from "./source-registry"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+  const source = (await loadWorkspaceSourceCatalog()).find(
+    (candidate) => candidate.id === slug
+  )
+  if (!source) return { title: "Data source" }
+  return {
+    title: source.title,
+    description: `Sync status and history for ${source.title}.`,
+  }
+}
 
 export default async function SourceDetailPage({
   params,

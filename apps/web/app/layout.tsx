@@ -1,8 +1,18 @@
+import type { Metadata } from "next"
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google"
 
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils"
+
+export const metadata: Metadata = {
+  title: {
+    default: "TinyOps",
+    template: "%s · TinyOps",
+  },
+  description:
+    "Private AI memory and operations for tiny businesses that manage clients across scattered tools.",
+}
 
 const fontSans = Geist({
   subsets: ["latin"],

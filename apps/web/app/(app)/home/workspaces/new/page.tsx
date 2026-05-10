@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { PlusIcon } from "lucide-react"
 
 import {
@@ -6,6 +7,11 @@ import {
 } from "@/components/page-surface"
 
 import { CreateWorkspaceForm } from "./_components/create-workspace-form"
+
+export const metadata: Metadata = {
+  title: "New workspace",
+  description: "Start a fresh workspace.",
+}
 
 export default function NewWorkspacePage() {
   return (

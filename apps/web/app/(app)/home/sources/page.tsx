@@ -1,7 +1,14 @@
+import type { Metadata } from "next"
 import { PlugZapIcon, PlusIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 import { Section, SectionHead } from "@workspace/ui/components/section"
+
+export const metadata: Metadata = {
+  title: "Data sources",
+  description:
+    "Connectors that feed client memory — inboxes, sheets, forms.",
+}
 
 import {
   WorkspacePageHeader,

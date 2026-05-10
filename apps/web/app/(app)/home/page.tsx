@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import {
   ArchiveIcon,
@@ -8,6 +9,11 @@ import {
   UploadIcon,
   UserPlusIcon,
 } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Home",
+  description: "Search a client. See what needs attention.",
+}
 
 import {
   SearchField,
