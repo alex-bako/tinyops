@@ -26,10 +26,12 @@ vi.mock("@/components/app-shell", () => ({
   AppShell: ({
     children,
     userEmail,
+    clientNavItems,
     sourceNavItems,
   }: {
     children: React.ReactNode
     userEmail?: string | null
+    clientNavItems?: { slug: string; name: string }[]
     sourceNavItems?: { id: string; title: string }[]
   }) =>
     React.createElement(
@@ -38,6 +40,7 @@ vi.mock("@/components/app-shell", () => ({
         "data-testid": "app-shell",
         "data-email": userEmail ?? "",
         "data-source-count": sourceNavItems?.length ?? 0,
+        "data-client-count": clientNavItems?.length ?? 0,
       },
       children
     ),
@@ -65,8 +68,29 @@ describe("AuthenticatedAppShell", () => {
 
   it("passes profile email and active workspace source nav to the shell", async () => {
     const dataSourceStore = {}
+    const supabase = clientStoreWithRows([
+      {
+        id: "client_1",
+        workspace_id: WORKSPACES[0]!.id,
+        primary_email: "anna@example.com",
+        display_name: "Anna",
+        slug: "anna",
+        status: "active",
+        tags: [],
+        first_seen_at: "2026-05-10T00:00:00.000Z",
+        last_seen_at: "2026-05-10T00:00:00.000Z",
+        last_contacted_at: "2026-05-10T00:00:00.000Z",
+        do_not_contact: false,
+        unsubscribe_status: "subscribed",
+        consent_status: "unknown",
+        sensitivity_level: 0,
+        created_at: "2026-05-10T00:00:00.000Z",
+        updated_at: "2026-05-10T00:00:00.000Z",
+        timeline_events: [],
+      },
+    ])
     vi.mocked(createWorkspaceRequestContext).mockResolvedValue({
-      supabase: {} as never,
+      supabase: supabase as never,
       session: {
         user: { id: "user_123", email: "auth@example.co" },
         profile: {
@@ -118,6 +142,10 @@ describe("AuthenticatedAppShell", () => {
       "data-source-count",
       "1"
     )
+    expect(screen.getByTestId("app-shell")).toHaveAttribute(
+      "data-client-count",
+      "1"
+    )
   })
 
   it("redirects to onboarding when the profile is not onboarded", async () => {
@@ -153,3 +181,25 @@ describe("AuthenticatedAppShell", () => {
     expect(loadWorkspaceSourceCatalogForWorkspace).not.toHaveBeenCalled()
   })
 })
+
+function clientStoreWithRows(rows: unknown[]) {
+  return {
+    from(table: string) {
+      if (table !== "clients") throw new Error(`unexpected table: ${table}`)
+      return {
+        select() {
+          return this
+        },
+        eq() {
+          return this
+        },
+        order() {
+          return this
+        },
+        async limit() {
+          return { data: rows, error: null }
+        },
+      }
+    },
+  }
+}

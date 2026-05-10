@@ -14,6 +14,22 @@ import type {
   DataSourceWorkspace,
   ImapConnectionTester,
 } from "@/features/data-sources/types"
+import type {
+  Result,
+  SyncFailure,
+} from "@/features/data-sources/domain/sync"
+
+export type {
+  Result,
+  SyncFailure,
+  SyncFailureCode,
+} from "@/features/data-sources/domain/sync"
+export {
+  isSyncFailureCode,
+  safeSyncFailureCauseMessage,
+  serializeSyncFailure,
+  syncFailureMessage,
+} from "@/features/data-sources/domain/sync"
 
 export type DataSourceActionError =
   | "invalid_imap_config"
@@ -41,7 +57,14 @@ export type ImapCredentialReader = {
   }): Promise<string>
 }
 
-export type ImapSecretReader = ImapCredentialReader
+export type ImapSyncCredentialReader = {
+  readImapPasswordForSync(input: {
+    workspaceId: string
+    sourceId: string
+  }): Promise<Result<string, SyncFailure>>
+}
+
+export type ImapSecretReader = ImapCredentialReader & ImapSyncCredentialReader
 
 export function createDataSourceQueryApplication({
   workspace,

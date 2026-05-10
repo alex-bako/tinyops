@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest"
+
+import { createWorkspaceClientMemoryRepository } from "@/features/clients/repository"
+import type { ClientProfile, ClientReader } from "@/features/clients/types"
+
+const profile: ClientProfile = {
+  id: "client_1",
+  workspaceId: "workspace_1",
+  primaryEmail: "anna@example.com",
+  displayName: "Anna Smith",
+  slug: "anna-smith",
+  status: "active",
+  tags: ["March cohort"],
+  firstSeenAt: "2026-02-10T00:00:00.000Z",
+  lastSeenAt: "2026-05-07T08:00:00.000Z",
+  lastContactedAt: "2026-05-07T08:00:00.000Z",
+  doNotContact: false,
+  unsubscribeStatus: "subscribed",
+  consentStatus: "unknown",
+  sensitivityLevel: 0,
+  createdAt: "2026-02-10T00:00:00.000Z",
+  updatedAt: "2026-05-07T08:00:00.000Z",
+  timeline: [],
+}
+
+describe("workspace client memory repository", () => {
+  it("binds legacy client memory repository calls to the active workspace", async () => {
+    const calls: unknown[] = []
+    const reader: ClientReader = {
+      async listClients(workspaceId) {
+        calls.push({ method: "listClients", workspaceId })
+        return [profile]
+      },
+      async getRecentClients(workspaceId, limit) {
+        calls.push({ method: "getRecentClients", workspaceId, limit })
+        return []
+      },
+      async findClientBySlug(input) {
+        calls.push({ method: "findClientBySlug", ...input })
+        return null
+      },
+      async searchClients() {
+        return []
+      },
+    }
+
+    const repository = createWorkspaceClientMemoryRepository({
+      workspaceId: "workspace_1",
+      reader,
+    })
+
+    await expect(repository.listClients()).resolves.toEqual([
+      expect.objectContaining({
+        email: "anna@example.com",
+        lastContact: "May 7",
+      }),
+    ])
+    await repository.getRecentClients(3)
+    await repository.findClientBySlug("anna-smith")
+
+    expect(calls).toEqual([
+      { method: "listClients", workspaceId: "workspace_1" },
+      { method: "getRecentClients", workspaceId: "workspace_1", limit: 3 },
+      {
+        method: "findClientBySlug",
+        workspaceId: "workspace_1",
+        slug: "anna-smith",
+      },
+    ])
+  })
+})

@@ -72,4 +72,67 @@ describe("data sources database contract", () => {
     expect(migration).toMatch(/function public\.disconnect_data_source/)
     expect(migration).toMatch(/function public\.request_data_source_sync/)
   })
+
+  it("claims and completes queued sync jobs through service-role RPCs", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(/function public\.claim_next_data_source_sync/)
+    expect(migration).toMatch(/source_type text/)
+    expect(migration).toMatch(/for update skip locked/)
+    expect(migration).toMatch(
+      /function public\.complete_data_source_sync\(\s*target_source_id uuid,\s*lease_token text,/
+    )
+    expect(migration).toMatch(
+      /function public\.fail_data_source_sync\(\s*target_source_id uuid,\s*lease_token text,/
+    )
+    expect(migration).toMatch(/sync_lease_not_owned/)
+    expect(migration).toMatch(
+      /grant execute on function public\.claim_next_data_source_sync/
+    )
+  })
+
+  it("stores data source sync run history with member-readable RLS", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(/create table public\.data_source_sync_runs \(/)
+    expect(migration).toMatch(/source_id uuid not null/)
+    expect(migration).toMatch(/workspace_id uuid not null/)
+    expect(migration).toMatch(/trigger text not null/)
+    expect(migration).toMatch(/status text not null/)
+    expect(migration).toMatch(/persisted_counts jsonb/)
+    expect(migration).toMatch(/cause_message text/)
+    expect(migration).toMatch(
+      /alter table public\.data_source_sync_runs enable row level security;/
+    )
+    expect(migration).toMatch(
+      /create policy "Members can read data source sync runs"/
+    )
+    expect(migration).toMatch(/data_source_sync_runs_source_started_idx/)
+    expect(migration).toMatch(
+      /grant select on public\.data_source_sync_runs to authenticated;/
+    )
+    expect(migration).toMatch(
+      /grant select, insert, update on public\.data_source_sync_runs to service_role;/
+    )
+  })
+
+  it("exposes IMAP password decrypt through a service-role-only RPC", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(
+      /function public\.read_imap_data_source_password\(\s*target_workspace_id uuid,\s*target_source_id uuid\s*\)/
+    )
+    expect(migration).toMatch(/returns text/)
+    expect(migration).toMatch(/security definer/)
+    expect(migration).toMatch(/vault\.decrypted_secrets/)
+    expect(migration).toMatch(/source_not_found/)
+    expect(migration).toMatch(/invalid_imap_config/)
+    expect(migration).toMatch(/secret_read_failed/)
+    expect(migration).toMatch(
+      /grant execute on function public\.read_imap_data_source_password\(uuid, uuid\)\s+to service_role;/
+    )
+    expect(migration).toMatch(
+      /revoke execute on function public\.read_imap_data_source_password\(uuid, uuid\)\s+from anon, authenticated, public;/
+    )
+  })
 })

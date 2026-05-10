@@ -29,7 +29,7 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 
 import { COHORTS } from "@/lib/clients"
-import { FILTER_TABS, type FilterId } from "../_data"
+import { FILTER_TABS, type FilterId } from "../_filters"
 import type {
   ClientListCounts,
   ClientListFilterPatch,

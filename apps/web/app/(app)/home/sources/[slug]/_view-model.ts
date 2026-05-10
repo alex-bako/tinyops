@@ -12,6 +12,7 @@ import type {
 type SourceStatus = {
   variant: "ok" | "off" | "warn"
   label: string
+  detail?: string
 }
 
 type SourceDetailHeader = {
@@ -37,6 +38,16 @@ type SourceDetailConfig = {
 type SourceDetailActions = {
   canDisconnect: boolean
   canSync: boolean
+  sourceRowId?: string
+}
+
+type SourceSyncAttempt = {
+  trigger: string
+  status: "running" | "succeeded" | "failed"
+  startedAt: string
+  finishedAt: string | null
+  label: string
+  detail?: string
 }
 
 type SourceDetailView = {
@@ -47,6 +58,7 @@ type SourceDetailView = {
   actions: SourceDetailActions
   header: SourceDetailHeader
   activity: SourceActivityRow[]
+  syncAttempts: SourceSyncAttempt[]
 }
 
 function deriveStatus(source: DataSource): SourceStatus {
@@ -60,7 +72,12 @@ function deriveStatus(source: DataSource): SourceStatus {
     }
   }
   if (source.health === "error") {
-    return { variant: "warn", label: "Connection error" }
+    const detail = source.imap?.lastError ?? undefined
+    return {
+      variant: "warn",
+      label: isConnectionFailure(detail) ? "Connection error" : "Sync error",
+      ...(detail ? { detail } : {}),
+    }
   }
   return {
     variant: "ok",
@@ -70,6 +87,10 @@ function deriveStatus(source: DataSource): SourceStatus {
       ? `Connected · synced ${source.lastSync}`
       : "Connected",
   }
+}
+
+function isConnectionFailure(lastError: string | undefined) {
+  return lastError?.startsWith("imap_connection_failed") ?? false
 }
 
 function createSourceDetailView(
@@ -90,6 +111,7 @@ function createSourceDetailView(
     actions: {
       canDisconnect: connected,
       canSync: connected,
+      ...(source.sourceRowId ? { sourceRowId: source.sourceRowId } : {}),
     },
     header: {
       id: source.id,
@@ -102,7 +124,53 @@ function createSourceDetailView(
       status: deriveStatus(source),
     },
     activity: sourceUi.activity,
+    syncAttempts: syncAttempts(source),
   }
+}
+
+function syncAttempts(source: DataSource): SourceSyncAttempt[] {
+  return (source.imap?.syncRuns ?? []).slice(0, 5).map((run) => ({
+    trigger: run.trigger,
+    status: run.status,
+    startedAt: run.startedAt,
+    finishedAt: run.finishedAt,
+    label: syncAttemptLabel(run.status),
+    detail: syncAttemptDetail(run),
+  }))
+}
+
+function syncAttemptLabel(status: SourceSyncAttempt["status"]) {
+  if (status === "succeeded") return "Succeeded"
+  if (status === "failed") return "Failed"
+  return "Running"
+}
+
+function syncAttemptDetail(
+  run: NonNullable<NonNullable<DataSource["imap"]>["syncRuns"]>[number]
+) {
+  if (run.status === "failed") {
+    return [run.errorCode, run.errorMessage].filter(Boolean).join(": ")
+  }
+
+  if (run.status === "succeeded") {
+    const clients = numberCount(run.persistedCounts?.clients)
+    const rawRecords = numberCount(run.persistedCounts?.rawRecords)
+    const timelineEvents = numberCount(run.persistedCounts?.timelineEvents)
+    return `${clients} ${plural("client", clients)}, ${rawRecords} ${plural(
+      "record",
+      rawRecords
+    )}, ${timelineEvents} ${plural("event", timelineEvents)}`
+  }
+
+  return undefined
+}
+
+function numberCount(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0
+}
+
+function plural(label: string, count: number) {
+  return count === 1 ? label : `${label}s`
 }
 
 export { createSourceDetailView }
@@ -113,5 +181,6 @@ export type {
   SourceDetailConnection,
   SourceDetailHeader,
   SourceDetailView,
+  SourceSyncAttempt,
   SourceStatus,
 }
