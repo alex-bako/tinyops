@@ -2,6 +2,7 @@ import type {
   ImapDataSource,
   ImapFolder,
   ImapMessageFilters,
+  DataSourceSyncRun,
   WorkspaceDataSource,
 } from "@/features/data-sources/types"
 
@@ -61,6 +62,7 @@ export type DataSourceImapSettings = {
   passwordMasked?: string
   syncStatus?: "idle" | "queued" | "running" | "error"
   lastError?: string | null
+  syncRuns?: DataSourceSyncRun[]
 }
 
 export type ConnectorDefinition = {
@@ -255,6 +257,7 @@ function connectedImapSource(
       passwordMasked: source.secret?.maskedValue,
       syncStatus: source.sync.status,
       lastError: source.sync.lastError,
+      syncRuns: source.syncRuns ?? [],
     },
   }
 }

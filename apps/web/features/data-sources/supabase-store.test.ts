@@ -22,9 +22,14 @@ function queryChain(
       calls.push({ table, method: "is", column, value })
       return api
     },
-    order(column: string, options?: unknown) {
+    order(column: string, options?: { referencedTable?: string }) {
       calls.push({ table, method: "order", column, options })
+      if (options?.referencedTable) return api
       return Promise.resolve(result)
+    },
+    limit(count: number, options?: unknown) {
+      calls.push({ table, method: "limit", count, options })
+      return api
     },
     maybeSingle() {
       calls.push({ table, method: "maybeSingle" })
@@ -113,6 +118,21 @@ describe("supabase data source store", () => {
       method: "is",
       column: "disconnected_at",
       value: null,
+    })
+    expect(calls).toContainEqual({
+      table: "data_sources",
+      method: "order",
+      column: "started_at",
+      options: {
+        referencedTable: "data_source_sync_runs",
+        ascending: false,
+      },
+    })
+    expect(calls).toContainEqual({
+      table: "data_sources",
+      method: "limit",
+      count: 5,
+      options: { referencedTable: "data_source_sync_runs" },
     })
   })
 

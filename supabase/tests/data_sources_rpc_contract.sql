@@ -350,6 +350,62 @@ select pg_temp.assert_true(
   'connection update rotates active IMAP password secret'
 );
 
+reset role;
+set role service_role;
+
+select pg_temp.assert_true(
+  public.read_imap_data_source_password(
+    current_setting('tinyops.workspace_id')::uuid,
+    current_setting('tinyops.source_id')::uuid
+  ) = 'rotated-pass',
+  'service role can decrypt the active IMAP password'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.read_imap_data_source_password(%L::uuid, gen_random_uuid())',
+    current_setting('tinyops.workspace_id')
+  ),
+  'source_not_found',
+  'read password rejects missing source'
+);
+
+reset role;
+select pg_temp.assert_true(
+  not has_function_privilege(
+    'authenticated',
+    'public.read_imap_data_source_password(uuid, uuid)',
+    'EXECUTE'
+  ),
+  'authenticated cannot execute read password RPC'
+);
+
+reset role;
+update public.data_source_secrets
+set replaced_at = now()
+where source_id = current_setting('tinyops.source_id')::uuid
+  and purpose = 'imap_password'
+  and replaced_at is null;
+
+set role service_role;
+
+select pg_temp.expect_error(
+  format(
+    'select public.read_imap_data_source_password(%L::uuid, %L::uuid)',
+    current_setting('tinyops.workspace_id'),
+    current_setting('tinyops.source_id')
+  ),
+  'invalid_imap_config',
+  'read password rejects missing active secret'
+);
+
+reset role;
+select pg_temp.as_user(
+  '00000000-0000-4000-8000-000000000202',
+  'admin-ds@example.co'
+);
+set role authenticated;
+
 select public.update_imap_intake_config(
   current_setting('tinyops.workspace_id')::uuid,
   current_setting('tinyops.source_id')::uuid,
@@ -377,6 +433,58 @@ select pg_temp.assert_true(
     where source_id = current_setting('tinyops.source_id')::uuid
   ),
   'admin can request source sync'
+);
+
+reset role;
+set role service_role;
+
+-- claim_next_data_source_sync is a global worker queue; make this contract
+-- row deterministic even when a developer has other local queued sources.
+update public.data_source_sync_states
+set requested_at = '-infinity'::timestamptz
+where source_id = current_setting('tinyops.source_id')::uuid;
+
+select source_id as claimed_source_id,
+       workspace_id as claimed_workspace_id,
+       source_type as claimed_source_type,
+       lease_token as claimed_lease_token
+from public.claim_next_data_source_sync('worker_1', 120) \gset
+
+select pg_temp.assert_true(
+  :'claimed_source_id'::uuid = current_setting('tinyops.source_id')::uuid
+    and :'claimed_workspace_id'::uuid = current_setting('tinyops.workspace_id')::uuid
+    and :'claimed_source_type' = 'imap'
+    and btrim(:'claimed_lease_token') <> '',
+  'claim sync returns source identity and an owned lease token'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.complete_data_source_sync(%L::uuid, %L, %L::jsonb, false)',
+    current_setting('tinyops.source_id'),
+    'wrong-lease-token',
+    '{"folders":{"INBOX":{"lastUid":11}}}'
+  ),
+  'sync_lease_not_owned',
+  'stale sync worker cannot complete another worker lease'
+);
+
+select public.complete_data_source_sync(
+  current_setting('tinyops.source_id')::uuid,
+  :'claimed_lease_token',
+  '{"folders":{"INBOX":{"lastUid":11}}}'::jsonb,
+  false
+);
+
+select pg_temp.assert_true(
+  (
+    select status = 'idle'
+      and lease_owner is null
+      and lease_expires_at is null
+    from public.data_source_sync_states
+    where source_id = current_setting('tinyops.source_id')::uuid
+  ),
+  'claim owner can complete sync and clear the lease'
 );
 
 reset role;

@@ -12,6 +12,7 @@ import { ConfigBlock } from "./_components/config-block"
 import { ConnectionBlock } from "./_components/connection-block"
 import { DangerZone } from "./_components/danger-zone"
 import { SourceHeader } from "./_components/source-header"
+import { SyncAttemptsBlock } from "./_components/sync-attempts-block"
 import { createSourceDetailView } from "./_view-model"
 import { getSourceUi } from "./source-registry"
 
@@ -40,7 +41,7 @@ export default async function SourceDetailPage({
         </Button>
       </div>
 
-      <SourceHeader header={view.header} />
+      <SourceHeader header={view.header} actions={view.actions} />
 
       <ConnectionBlock source={source} sourceUi={sourceUi} />
 
@@ -48,6 +49,10 @@ export default async function SourceDetailPage({
 
       {view.connected && view.activity.length > 0 ? (
         <ActivityBlock activity={view.activity} />
+      ) : null}
+
+      {view.connected ? (
+        <SyncAttemptsBlock attempts={view.syncAttempts} />
       ) : null}
 
       {view.connected && source.sourceRowId ? (

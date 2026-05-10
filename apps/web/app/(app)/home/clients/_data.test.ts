@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { ALL_CLIENTS } from "@/lib/clients"
 
-import { countFor, matchesFilter } from "./_data"
+import { countFor, matchesFilter } from "./_filters"
 
 describe("client filter data", () => {
   it("matches sensitive clients by status or flag", () => {

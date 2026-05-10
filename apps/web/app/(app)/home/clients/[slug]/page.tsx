@@ -6,7 +6,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Section, SectionHead } from "@workspace/ui/components/section"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
-import { getClientMemoryRepository } from "@/lib/client-memory/loaders"
+import { loadClientMemoryRepository } from "@/lib/client-memory/loaders"
 
 import { ClientHeader } from "./_components/client-header"
 import { MemoryCallout } from "./_components/memory-callout"
@@ -21,7 +21,8 @@ export default async function ClientDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const client = await getClientMemoryRepository().findClientBySlug(slug)
+  const repository = await loadClientMemoryRepository()
+  const client = await repository.findClientBySlug(slug)
   if (!client) notFound()
 
   const view = createClientDetailView(client)

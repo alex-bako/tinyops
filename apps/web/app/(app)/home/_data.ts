@@ -1,5 +1,5 @@
 import type { Client, ClientDetail, ClientStatus } from "@/lib/clients"
-import { getClientMemoryRepository } from "@/lib/client-memory/loaders"
+import { loadClientMemoryRepository } from "@/lib/client-memory/loaders"
 import type { ClientMemoryRepository } from "@/lib/client-memory/repository"
 import { getSourceCatalogRepository } from "@/lib/source-catalog/loaders"
 import type { SourceCatalogRepository } from "@/lib/source-catalog/repository"
@@ -65,11 +65,12 @@ export const WEEK_TASKS: WeekTask[] = [
 ]
 
 export async function loadHomePageData(
-  repository: ClientMemoryRepository = getClientMemoryRepository(),
+  repository?: ClientMemoryRepository,
   sourceCatalog: SourceCatalogRepository | DataSource[] = getSourceCatalogRepository()
 ) {
+  const clientRepository = repository ?? (await loadClientMemoryRepository())
   const [recentClients, sources] = await Promise.all([
-    repository.getRecentClients(5),
+    clientRepository.getRecentClients(5),
     Array.isArray(sourceCatalog)
       ? Promise.resolve(sourceCatalog)
       : sourceCatalog.listDataSources(),

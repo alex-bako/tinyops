@@ -16,6 +16,7 @@
     "supabase:migration:new": "pnpm dlx supabase@latest migration new",
     "supabase:test:workspace-rpc": "docker exec -i supabase_db_tinyops psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/workspace_rpc_contract.sql",
     "supabase:test:data-sources-rpc": "docker exec -i supabase_db_tinyops psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/data_sources_rpc_contract.sql",
+    "supabase:test:client-ingestion-rpc": "docker exec -i supabase_db_tinyops psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/client_ingestion_rpc_contract.sql",
     "supabase:test:onboarding-rpc": "docker exec -i supabase_db_tinyops psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/onboarding_rpc_contract.sql",
     "supabase:types": "pnpm dlx supabase@latest gen types typescript --local > apps/web/lib/database.types.ts"
   },

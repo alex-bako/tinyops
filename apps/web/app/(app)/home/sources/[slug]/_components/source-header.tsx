@@ -1,16 +1,19 @@
-import { MoreHorizontalIcon, RefreshCwIcon } from "lucide-react"
+import { MoreHorizontalIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 
 import { SourceLogo } from "@/components/source-logo"
 
+import { SourceSyncButton } from "./source-sync-button"
 import { StatusDot } from "./status-dot"
-import type { SourceDetailHeader } from "../_view-model"
+import type { SourceDetailActions, SourceDetailHeader } from "../_view-model"
 
 function SourceHeader({
   header,
+  actions,
 }: {
   header: SourceDetailHeader
+  actions: SourceDetailActions
 }) {
   const isConnected = header.status.variant !== "off"
   return (
@@ -30,14 +33,18 @@ function SourceHeader({
           <StatusDot status={header.status} />
         </div>
         <p className="m-0 text-[14px] text-muted-foreground">{header.subtitle}</p>
+        {header.status.detail ? (
+          <p className="m-0 max-w-[720px] text-[12.5px] leading-5 text-coral-700">
+            {header.status.detail}
+          </p>
+        ) : null}
       </div>
 
       {isConnected ? (
         <div className="flex items-center gap-1 pt-1.5">
-          <Button type="button" variant="ghost" size="sm">
-            <RefreshCwIcon />
-            Sync now
-          </Button>
+          {actions.canSync && actions.sourceRowId ? (
+            <SourceSyncButton sourceRowId={actions.sourceRowId} />
+          ) : null}
           <Button
             type="button"
             variant="ghost"

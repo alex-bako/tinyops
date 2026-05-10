@@ -52,6 +52,252 @@ export type Database = {
         }
         Relationships: []
       }
+      client_attributes: {
+        Row: {
+          attribute_key: string
+          attribute_value: Json
+          client_id: string
+          confidence: number
+          created_at: string
+          id: string
+          raw_record_id: string | null
+          source_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attribute_key: string
+          attribute_value: Json
+          client_id: string
+          confidence?: number
+          created_at?: string
+          id?: string
+          raw_record_id?: string | null
+          source_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attribute_key?: string
+          attribute_value?: Json
+          client_id?: string
+          confidence?: number
+          created_at?: string
+          id?: string
+          raw_record_id?: string | null
+          source_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_attributes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_attributes_raw_record_id_fkey"
+            columns: ["raw_record_id"]
+            isOneToOne: false
+            referencedRelation: "raw_source_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_attributes_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_attributes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_domain_events: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          occurred_at: string
+          payload: Json
+          source_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          source_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          source_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_domain_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_domain_events_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_domain_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_identities: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          identity_type: string
+          identity_value: string
+          normalized_value: string
+          source_id: string | null
+          verified: boolean
+          workspace_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          identity_type: string
+          identity_value: string
+          normalized_value: string
+          source_id?: string | null
+          verified?: boolean
+          workspace_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          identity_type?: string
+          identity_value?: string
+          normalized_value?: string
+          source_id?: string | null
+          verified?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_identities_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_identities_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_identities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          consent_status: string
+          created_at: string
+          display_name: string
+          do_not_contact: boolean
+          first_seen_at: string | null
+          id: string
+          last_contacted_at: string | null
+          last_seen_at: string | null
+          primary_email: string
+          sensitivity_level: number
+          slug: string
+          status: string
+          tags: string[]
+          unsubscribe_status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          consent_status?: string
+          created_at?: string
+          display_name?: string
+          do_not_contact?: boolean
+          first_seen_at?: string | null
+          id?: string
+          last_contacted_at?: string | null
+          last_seen_at?: string | null
+          primary_email: string
+          sensitivity_level?: number
+          slug: string
+          status?: string
+          tags?: string[]
+          unsubscribe_status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          consent_status?: string
+          created_at?: string
+          display_name?: string
+          do_not_contact?: boolean
+          first_seen_at?: string | null
+          id?: string
+          last_contacted_at?: string | null
+          last_seen_at?: string | null
+          primary_email?: string
+          sensitivity_level?: number
+          slug?: string
+          status?: string
+          tags?: string[]
+          unsubscribe_status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_source_intake_configs: {
         Row: {
           available_folders: Json
@@ -137,6 +383,75 @@ export type Database = {
           },
         ]
       }
+      data_source_sync_runs: {
+        Row: {
+          cause_message: string | null
+          created_at: string
+          cursor: Json | null
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          persisted_counts: Json | null
+          source_id: string
+          started_at: string
+          status: string
+          trigger: string
+          updated_at: string
+          worker_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          cause_message?: string | null
+          created_at?: string
+          cursor?: Json | null
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          persisted_counts?: Json | null
+          source_id: string
+          started_at?: string
+          status: string
+          trigger: string
+          updated_at?: string
+          worker_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          cause_message?: string | null
+          created_at?: string
+          cursor?: Json | null
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          persisted_counts?: Json | null
+          source_id?: string
+          started_at?: string
+          status?: string
+          trigger?: string
+          updated_at?: string
+          worker_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_source_sync_runs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_source_sync_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_source_sync_states: {
         Row: {
           created_at: string
@@ -146,9 +461,13 @@ export type Database = {
           last_error: string | null
           last_started_at: string | null
           last_synced_at: string | null
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token: string | null
           requested_at: string | null
           source_id: string
           status: string
+          sync_error_count: number
           updated_at: string
         }
         Insert: {
@@ -159,9 +478,13 @@ export type Database = {
           last_error?: string | null
           last_started_at?: string | null
           last_synced_at?: string | null
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token?: string | null
           requested_at?: string | null
           source_id: string
           status?: string
+          sync_error_count?: number
           updated_at?: string
         }
         Update: {
@@ -172,9 +495,13 @@ export type Database = {
           last_error?: string | null
           last_started_at?: string | null
           last_synced_at?: string | null
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token?: string | null
           requested_at?: string | null
           source_id?: string
           status?: string
+          sync_error_count?: number
           updated_at?: string
         }
         Relationships: [
@@ -269,6 +596,155 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      raw_source_records: {
+        Row: {
+          body_text: string
+          content_hash: string
+          created_at: string
+          external_id: string
+          id: string
+          ingested_at: string
+          processed_at: string | null
+          processing_status: string
+          raw_payload: Json
+          record_type: string
+          source_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          body_text?: string
+          content_hash: string
+          created_at?: string
+          external_id: string
+          id?: string
+          ingested_at?: string
+          processed_at?: string | null
+          processing_status?: string
+          raw_payload?: Json
+          record_type: string
+          source_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          body_text?: string
+          content_hash?: string
+          created_at?: string
+          external_id?: string
+          id?: string
+          ingested_at?: string
+          processed_at?: string | null
+          processing_status?: string
+          raw_payload?: Json
+          record_type?: string
+          source_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_source_records_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_source_records_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timeline_events: {
+        Row: {
+          ai_extracted_fields: Json
+          body_text: string
+          client_id: string
+          created_at: string
+          event_date: string
+          event_type: string
+          id: string
+          metadata: Json
+          participants: Json
+          raw_record_id: string | null
+          sensitivity_level: number
+          source_id: string | null
+          summary: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_extracted_fields?: Json
+          body_text?: string
+          client_id: string
+          created_at?: string
+          event_date: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          participants?: Json
+          raw_record_id?: string | null
+          sensitivity_level?: number
+          source_id?: string | null
+          summary?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_extracted_fields?: Json
+          body_text?: string
+          client_id?: string
+          created_at?: string
+          event_date?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          participants?: Json
+          raw_record_id?: string | null
+          sensitivity_level?: number
+          source_id?: string | null
+          summary?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeline_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_raw_record_id_fkey"
+            columns: ["raw_record_id"]
+            isOneToOne: false
+            referencedRelation: "raw_source_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspace_invitations: {
         Row: {
@@ -465,6 +941,24 @@ export type Database = {
         Args: { target_workspace_id: string }
         Returns: undefined
       }
+      claim_next_data_source_sync: {
+        Args: { lease_seconds?: number; worker_id: string }
+        Returns: {
+          lease_token: string
+          source_id: string
+          source_type: string
+          workspace_id: string
+        }[]
+      }
+      complete_data_source_sync: {
+        Args: {
+          has_more?: boolean
+          lease_token: string
+          next_cursor: Json
+          target_source_id: string
+        }
+        Returns: undefined
+      }
       complete_onboarding: {
         Args: {
           actor_email: string
@@ -526,9 +1020,25 @@ export type Database = {
         Returns: undefined
       }
       enforce_invited_user: { Args: { event: Json }; Returns: Json }
+      fail_data_source_sync: {
+        Args: {
+          lease_token: string
+          sync_error: string
+          target_source_id: string
+        }
+        Returns: undefined
+      }
+      ingest_client_connector_records: {
+        Args: { normalized_records: Json }
+        Returns: Json
+      }
       is_valid_imap_message_filters: {
         Args: { filters: Json }
         Returns: boolean
+      }
+      read_imap_data_source_password: {
+        Args: { target_source_id: string; target_workspace_id: string }
+        Returns: string
       }
       request_data_source_sync: {
         Args: { target_source_id: string; target_workspace_id: string }
@@ -538,6 +1048,8 @@ export type Database = {
         Args: { target_invitation_id: string }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_imap_connection_settings: {
         Args: {
           imap_available_folders: Json

@@ -1,72 +1,120 @@
-import type { ImapSecretReader } from "@/features/data-sources/application"
+import type {
+  ImapSecretReader,
+  Result,
+  SyncFailure,
+  SyncFailureCode,
+} from "@/features/data-sources/application"
+import {
+  isSyncFailureCode,
+  syncFailureMessage,
+} from "@/features/data-sources/application"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
-type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
-type Query = {
-  select(columns: string): Query
-  eq(column: string, value: unknown): Query
-  is(column: string, value: unknown): Query
-  maybeSingle(): QueryResult<Record<string, unknown>>
+type RpcError = {
+  message: string
+  code?: string
+  details?: string
+  hint?: string
 }
 
-type SecretClient = {
-  from(table: string): Query
-  schema(schema: string): { from(table: string): Query }
+type RpcResult<T> = PromiseLike<{ data: T | null; error: RpcError | null }>
+type PasswordRpcResult = {
+  data: unknown | null
+  error: RpcError | null
+  rejectedCause?: unknown
+}
+
+export type SupabaseImapSecretReaderClient = {
+  rpc(fn: string, args: unknown): RpcResult<unknown>
+}
+
+type ReadInput = {
+  workspaceId: string
+  sourceId: string
 }
 
 export function createSupabaseImapSecretReader({
   client,
 }: {
-  client?: SecretClient
+  client?: SupabaseImapSecretReaderClient
 } = {}): ImapSecretReader {
+  async function readImapPasswordForSync(
+    input: ReadInput
+  ): Promise<Result<string, SyncFailure>> {
+    const secretClient =
+      client ??
+      (createSupabaseAdminClient() as unknown as SupabaseImapSecretReaderClient)
+    const { data, error, rejectedCause } = await readPasswordRpc(
+      secretClient,
+      input
+    )
+
+    if (error) {
+      return {
+        ok: false,
+        error: mapRpcError(error, input, rejectedCause),
+      }
+    }
+
+    if (typeof data !== "string" || !data.trim()) {
+      return {
+        ok: false,
+        error: syncFailure("invalid_imap_config", input),
+      }
+    }
+
+    return { ok: true, value: data }
+  }
+
   return {
     async readImapPassword(input) {
-      const secretClient =
-        client ?? (createSupabaseAdminClient() as unknown as SecretClient)
-      const source = await maybeSingle(
-        secretClient
-          .from("data_sources")
-          .select("id")
-          .eq("id", input.sourceId)
-          .eq("workspace_id", input.workspaceId)
-          .eq("source_type", "imap")
-          .is("disconnected_at", null) as unknown as Query
-      )
-      if (!source) throw new Error("source_not_found")
-
-      const secret = await maybeSingle(
-        secretClient
-          .from("data_source_secrets")
-          .select("vault_secret_id")
-          .eq("source_id", input.sourceId)
-          .eq("purpose", "imap_password")
-          .is("replaced_at", null) as unknown as Query
-      )
-      const vaultSecretId = stringField(secret, "vault_secret_id")
-      if (!vaultSecretId) throw new Error("invalid_imap_config")
-
-      const decrypted = await maybeSingle(
-        secretClient
-          .schema("vault")
-          .from("decrypted_secrets")
-          .select("decrypted_secret")
-          .eq("id", vaultSecretId) as unknown as Query
-      )
-      const password = stringField(decrypted, "decrypted_secret")
-      if (!password) throw new Error("invalid_imap_config")
-
-      return password
+      const result = await readImapPasswordForSync(input)
+      if (result.ok) return result.value
+      throw new Error(result.error.code, { cause: result.error.cause })
     },
+    readImapPasswordForSync,
   }
 }
 
-async function maybeSingle(query: Query) {
-  const { data, error } = await query.maybeSingle()
-  if (error) throw new Error("source_action_failed", { cause: error })
-  return data
+async function readPasswordRpc(
+  secretClient: SupabaseImapSecretReaderClient,
+  input: ReadInput
+): Promise<PasswordRpcResult> {
+  try {
+    return await secretClient.rpc("read_imap_data_source_password", {
+      target_workspace_id: input.workspaceId,
+      target_source_id: input.sourceId,
+    })
+  } catch (error) {
+    return {
+      data: null,
+      error: { message: "secret_read_failed" },
+      rejectedCause: error,
+    }
+  }
 }
 
-function stringField(row: Record<string, unknown> | null, key: string) {
-  const value = row?.[key]
-  return typeof value === "string" ? value : ""
+function mapRpcError(
+  error: RpcError,
+  input: ReadInput,
+  rejectedCause?: unknown
+): SyncFailure {
+  const code = isSyncFailureCode(error.message)
+    ? error.message
+    : "secret_read_failed"
+  return syncFailure(code, input, rejectedCause ?? error)
+}
+
+function syncFailure(
+  code: SyncFailureCode,
+  input: ReadInput,
+  cause?: unknown
+): SyncFailure {
+  return {
+    code,
+    message: syncFailureMessage(code),
+    workspaceId: input.workspaceId,
+    sourceId: input.sourceId,
+    ...(cause === undefined ? {} : { cause }),
+  }
 }

@@ -5,7 +5,10 @@ import { AppShell } from "@/components/app-shell"
 import { WorkspaceFeatureProvider } from "@/features/workspaces/context"
 import { createWorkspaceRequestContext } from "@/features/data-sources/request-context"
 import { loadWorkspaceSourceCatalogForWorkspace } from "@/features/data-sources/loaders"
-import { loadClientNavItems } from "@/lib/client-memory/loaders"
+import {
+  createClientMemoryRepositoryFromContext,
+  loadClientNavItems,
+} from "@/lib/client-memory/loaders"
 import { ONBOARDING_PATH } from "@/app/onboarding/constants"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -17,10 +20,7 @@ export async function AuthenticatedAppShell({
 }: {
   children: React.ReactNode
 }) {
-  const [clientNavItems, context] = await Promise.all([
-    loadClientNavItems(),
-    createWorkspaceRequestContext(),
-  ])
+  const context = await createWorkspaceRequestContext()
 
   if (
     !context ||
@@ -31,10 +31,13 @@ export async function AuthenticatedAppShell({
   }
 
   const workspaceFeatureData = context.workspaceFeatureData
-  const sourceCatalog = await loadWorkspaceSourceCatalogForWorkspace({
-    workspace: context.activeWorkspace,
-    store: context.dataSourceStore,
-  })
+  const [clientNavItems, sourceCatalog] = await Promise.all([
+    loadClientNavItems(createClientMemoryRepositoryFromContext(context)),
+    loadWorkspaceSourceCatalogForWorkspace({
+      workspace: context.activeWorkspace,
+      store: context.dataSourceStore,
+    }),
+  ])
   const sourceNavItems = sourceCatalog.map(({ id, title }) => ({ id, title }))
 
   return (

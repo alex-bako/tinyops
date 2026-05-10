@@ -16,7 +16,12 @@ type SupabaseDataSourceClient = Pick<SupabaseClient<Database>, "from" | "rpc">
 type DataSourceQuery = {
   eq(column: string, value: unknown): DataSourceQuery
   is(column: string, value: unknown): DataSourceQuery
+  order(
+    column: string,
+    options: { referencedTable: string; ascending?: boolean; nullsFirst?: boolean }
+  ): DataSourceQuery
   order(column: string, options?: unknown): QueryResult<DataSourceRow[]>
+  limit(count: number, options: { referencedTable: string }): DataSourceQuery
   maybeSingle(): QueryResult<DataSourceRow>
 }
 
@@ -48,6 +53,16 @@ const DATA_SOURCE_COLUMNS = `
     cursor,
     last_error,
     last_synced_at
+  ),
+  data_source_sync_runs (
+    trigger,
+    status,
+    started_at,
+    finished_at,
+    error_code,
+    error_message,
+    cause_message,
+    persisted_counts
   )
 `
 
@@ -60,7 +75,7 @@ export function createSupabaseDataSourceStore({
     workspaceId: string
     sourceType: "imap"
   }) {
-    const { data, error } = await baseDataSourceQuery(client)
+    const { data, error } = await withRecentSyncRuns(baseDataSourceQuery(client))
       .eq("workspace_id", input.workspaceId)
       .eq("source_type", input.sourceType)
       .is("disconnected_at", null)
@@ -74,7 +89,7 @@ export function createSupabaseDataSourceStore({
     workspaceId: string
     sourceId: string
   }) {
-    const { data, error } = await baseDataSourceQuery(client)
+    const { data, error } = await withRecentSyncRuns(baseDataSourceQuery(client))
       .eq("id", input.sourceId)
       .eq("workspace_id", input.workspaceId)
       .is("disconnected_at", null)
@@ -97,7 +112,7 @@ export function createSupabaseDataSourceStore({
 
   return {
     async listForWorkspace(workspaceId) {
-      const { data, error } = await baseDataSourceQuery(client)
+      const { data, error } = await withRecentSyncRuns(baseDataSourceQuery(client))
         .eq("workspace_id", workspaceId)
         .is("disconnected_at", null)
         .order("source_type", { ascending: true })
@@ -221,6 +236,15 @@ function baseDataSourceQuery(client: SupabaseDataSourceClient): DataSourceQuery 
   return client
     .from("data_sources")
     .select(DATA_SOURCE_COLUMNS) as unknown as DataSourceQuery
+}
+
+function withRecentSyncRuns(query: DataSourceQuery): DataSourceQuery {
+  return query
+    .order("started_at", {
+      referencedTable: "data_source_sync_runs",
+      ascending: false,
+    })
+    .limit(5, { referencedTable: "data_source_sync_runs" })
 }
 
 function throwDataSourceStoreError(error: unknown, fallback: string): never {

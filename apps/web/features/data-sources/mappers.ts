@@ -8,6 +8,7 @@ import {
 } from "@/features/data-sources/imap"
 import type {
   DataSourceSecret,
+  DataSourceSyncRun,
   DataSourceSyncState,
   ImapConnectionConfig,
   ImapDataSource,
@@ -29,6 +30,7 @@ export type DataSourceRow = {
   data_source_intake_configs?: DataSourceIntakeConfigRow | DataSourceIntakeConfigRow[] | null
   data_source_secrets?: DataSourceSecretRow[] | null
   data_source_sync_states?: DataSourceSyncStateRow | DataSourceSyncStateRow[] | null
+  data_source_sync_runs?: DataSourceSyncRunRow[] | null
 }
 
 export type DataSourceIntakeConfigRow = {
@@ -53,6 +55,17 @@ export type DataSourceSyncStateRow = {
   last_synced_at: string | null
 }
 
+export type DataSourceSyncRunRow = {
+  trigger: string
+  status: string
+  started_at: string
+  finished_at: string | null
+  error_code: string | null
+  error_message: string | null
+  cause_message: string | null
+  persisted_counts: Json
+}
+
 export function mapDataSourceRow(row: DataSourceRow): WorkspaceDataSource {
   if (row.source_type !== "imap") {
     throw new Error(`Unsupported data source type: ${row.source_type}`)
@@ -73,6 +86,7 @@ export function mapDataSourceRow(row: DataSourceRow): WorkspaceDataSource {
     ),
     secret: mapSecret(row.data_source_secrets),
     sync: mapSyncState(row.data_source_sync_states),
+    syncRuns: mapSyncRuns(row.data_source_sync_runs),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   } satisfies ImapDataSource
@@ -141,6 +155,24 @@ function mapSyncState(
   }
 }
 
+function mapSyncRuns(
+  rows: DataSourceSyncRunRow[] | null | undefined
+): DataSourceSyncRun[] {
+  return [...(rows ?? [])]
+    .sort((left, right) => right.started_at.localeCompare(left.started_at))
+    .slice(0, 5)
+    .map((row) => ({
+      trigger: row.trigger,
+      status: coerceSyncRunStatus(row.status),
+      startedAt: row.started_at,
+      finishedAt: row.finished_at,
+      errorCode: row.error_code,
+      errorMessage: row.error_message,
+      causeMessage: row.cause_message,
+      persistedCounts: jsonObjectOrNull(row.persisted_counts),
+    }))
+}
+
 function coerceStatus(value: string): WorkspaceDataSource["status"] {
   if (value === "error" || value === "disconnected") return value
   return "connected"
@@ -149,6 +181,11 @@ function coerceStatus(value: string): WorkspaceDataSource["status"] {
 function coerceSyncStatus(value: string | undefined): DataSourceSyncState["status"] {
   if (value === "running" || value === "error" || value === "idle") return value
   return "queued"
+}
+
+function coerceSyncRunStatus(value: string): DataSourceSyncRun["status"] {
+  if (value === "succeeded" || value === "failed") return value
+  return "running"
 }
 
 function jsonObject(value: Json | undefined): Record<string, unknown> | null {

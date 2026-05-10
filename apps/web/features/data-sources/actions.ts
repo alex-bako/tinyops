@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { after } from "next/server"
 
 import {
   createDataSourceCommandApplication,
@@ -11,7 +12,12 @@ import {
 import { createImapFlowConnectionTester } from "@/features/data-sources/imap-connection-tester"
 import { createSupabaseImapSecretReader } from "@/features/data-sources/imap-secret-reader"
 import { createDataSourceServerContext } from "@/features/data-sources/loaders"
+import { dispatchDataSourceSyncWorker } from "@/features/data-sources/sync-dispatcher"
 import { DEFAULT_SIGNED_IN_PATH } from "@/lib/auth/route-policy"
+import {
+  getOptionalSyncWorkerSecret,
+  getOptionalTinyOpsAppBaseUrl,
+} from "@/lib/supabase/server-env"
 
 function revalidateDataSources() {
   revalidatePath(DEFAULT_SIGNED_IN_PATH, "layout")
@@ -35,7 +41,10 @@ export async function connectImapDataSourceAction(input: ImapConnectCommand) {
   if (!application) return { error: "source_action_failed" } as const
 
   const result = await application.connectImap(input)
-  if (result.data) revalidateDataSources()
+  if (result.data) {
+    revalidateDataSources()
+    after(scheduleDataSourceSyncDispatch)
+  }
   return result
 }
 
@@ -86,6 +95,35 @@ export async function requestDataSourceSyncAction(sourceId: string) {
   if (!application) return { error: "source_action_failed" } as const
 
   const result = await application.requestSync(sourceId)
-  if (result.data === undefined && !result.error) revalidateDataSources()
+  if (result.data === undefined && !result.error) {
+    revalidateDataSources()
+    after(scheduleDataSourceSyncDispatch)
+  }
   return result
+}
+
+async function scheduleDataSourceSyncDispatch() {
+  try {
+    const result = await dispatchDataSourceSyncWorker({
+      baseUrl: getOptionalTinyOpsAppBaseUrl(),
+      secret: getOptionalSyncWorkerSecret(),
+    })
+    if (result.dispatched && !result.ok) {
+      console.warn("data_source_sync_dispatch_failed", {
+        status: result.status,
+      })
+    }
+  } catch (error) {
+    console.warn("data_source_sync_dispatch_failed", {
+      message: safeDispatchErrorMessage(error),
+    })
+  }
+}
+
+function safeDispatchErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : "Unknown error"
+  if (/password|token|api[_ -]?key|decrypted_secret/i.test(message)) {
+    return "Dispatch failed"
+  }
+  return message.slice(0, 500)
 }

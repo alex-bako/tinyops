@@ -8,7 +8,7 @@ import {
   type CohortFilter,
 } from "@/lib/clients"
 
-import { FILTER_TABS, countFor, matchesFilter, type FilterId } from "./_data"
+import { FILTER_TABS, countFor, matchesFilter, type FilterId } from "./_filters"
 
 type ClientListFilters = {
   filter: FilterId

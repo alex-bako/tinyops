@@ -8,6 +8,7 @@ export type DataSourceWorkspace = {
 
 export type DataSourceStatus = "connected" | "error" | "disconnected"
 export type DataSourceSyncStatus = "idle" | "queued" | "running" | "error"
+export type DataSourceSyncRunStatus = "running" | "succeeded" | "failed"
 export type DataSourceSecretPurpose = "imap_password"
 
 export type ImapEncryption = "ssl" | "starttls" | "none"
@@ -68,6 +69,17 @@ export type DataSourceSyncState = {
   lastSyncedAt: string | null
 }
 
+export type DataSourceSyncRun = {
+  trigger: string
+  status: DataSourceSyncRunStatus
+  startedAt: string
+  finishedAt: string | null
+  errorCode: string | null
+  errorMessage: string | null
+  causeMessage: string | null
+  persistedCounts: Record<string, unknown> | null
+}
+
 export type ImapDataSource = {
   id: string
   workspaceId: string
@@ -80,6 +92,7 @@ export type ImapDataSource = {
   folderSnapshot: ImapFolderSnapshot
   secret: DataSourceSecret | null
   sync: DataSourceSyncState
+  syncRuns?: DataSourceSyncRun[]
   createdAt: string
   updatedAt: string
 }

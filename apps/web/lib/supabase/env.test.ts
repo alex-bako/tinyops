@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { getSupabasePublicEnv } from "@/lib/supabase/public-env"
-import { getSupabaseServerEnv } from "@/lib/supabase/server-env"
+import {
+  getCronSecret,
+  getOptionalTinyOpsAppBaseUrl,
+  getSupabaseServerEnv,
+} from "@/lib/supabase/server-env"
 
 const ORIGINAL_ENV = process.env
 
@@ -45,5 +49,20 @@ describe("Supabase env adapters", () => {
       url: "https://example.supabase.co",
       serviceRoleKey: "service-role",
     })
+  })
+
+  it("reads the cron secret through the server env adapter", () => {
+    setEnv("CRON_SECRET", " cron-secret ")
+
+    expect(getCronSecret()).toBe("cron-secret")
+  })
+
+  it("reads an optional trusted app base URL for server-side worker dispatch", () => {
+    setEnv("TINYOPS_APP_BASE_URL", " https://app.example.com ")
+
+    expect(getOptionalTinyOpsAppBaseUrl()).toBe("https://app.example.com")
+
+    delete process.env.TINYOPS_APP_BASE_URL
+    expect(getOptionalTinyOpsAppBaseUrl()).toBeNull()
   })
 })

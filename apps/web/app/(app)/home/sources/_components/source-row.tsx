@@ -31,13 +31,20 @@ import type { SourcesPageRow } from "../_view-model"
 function SourceRow({ source }: { source: SourcesPageRow }) {
   const { refresh } = useRouter()
   const [pending, startTransition] = React.useTransition()
+  const [syncMessage, setSyncMessage] = React.useState<string | null>(null)
 
   const requestSync = () => {
     if (!source.sourceRowId) return
 
+    setSyncMessage(null)
     startTransition(async () => {
       const result = await requestDataSourceSyncAction(source.sourceRowId!)
-      if (!result.error) refresh()
+      if (result.error) {
+        setSyncMessage("Could not queue sync")
+        return
+      }
+      setSyncMessage("Sync queued")
+      refresh()
     })
   }
 
@@ -97,8 +104,16 @@ function SourceRow({ source }: { source: SourcesPageRow }) {
               onClick={requestSync}
             >
               <RefreshCwIcon />
-              {source.primaryLabel}
+              {pending ? "Syncing" : source.primaryLabel}
             </Button>
+            {syncMessage ? (
+              <span
+                role="status"
+                className="max-w-[130px] truncate text-[12px] text-muted-foreground"
+              >
+                {syncMessage}
+              </span>
+            ) : null}
             <Button
               type="button"
               variant="ghost"

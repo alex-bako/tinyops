@@ -1,59 +1,11 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { createSupabaseImapSecretReader } from "@/features/data-sources/imap-secret-reader"
 
-function queryChain(
-  table: string,
-  calls: unknown[],
-  rows: Record<string, unknown>
-) {
-  const api = {
-    select(columns: string) {
-      calls.push({ table, method: "select", columns })
-      return api
-    },
-    eq(column: string, value: unknown) {
-      calls.push({ table, method: "eq", column, value })
-      return api
-    },
-    is(column: string, value: unknown) {
-      calls.push({ table, method: "is", column, value })
-      return api
-    },
-    maybeSingle() {
-      calls.push({ table, method: "maybeSingle" })
-      return Promise.resolve(rows[table] ?? { data: null, error: null })
-    },
-  }
-  return api
-}
-
 describe("IMAP secret reader", () => {
-  it("reads the active IMAP password from Vault for a workspace source", async () => {
-    const calls: unknown[] = []
+  it("reads the active IMAP password through the service-role RPC", async () => {
     const client = {
-      from(table: string) {
-        return queryChain(table, calls, {
-          data_sources: { data: { id: "source_1" }, error: null },
-          data_source_secrets: {
-            data: { vault_secret_id: "secret_1" },
-            error: null,
-          },
-        })
-      },
-      schema(schema: string) {
-        calls.push({ method: "schema", schema })
-        return {
-          from(table: string) {
-            return queryChain(`${schema}.${table}`, calls, {
-              "vault.decrypted_secrets": {
-                data: { decrypted_secret: "stored-secret" },
-                error: null,
-              },
-            })
-          },
-        }
-      },
+      rpc: vi.fn().mockResolvedValue({ data: "stored-secret", error: null }),
     }
 
     const reader = createSupabaseImapSecretReader({ client: client as never })
@@ -64,41 +16,85 @@ describe("IMAP secret reader", () => {
         sourceId: "source_1",
       })
     ).resolves.toBe("stored-secret")
-    expect(calls).toContainEqual({
-      table: "data_sources",
-      method: "eq",
-      column: "workspace_id",
-      value: "workspace_1",
+    expect(client.rpc).toHaveBeenCalledWith("read_imap_data_source_password", {
+      target_workspace_id: "workspace_1",
+      target_source_id: "source_1",
     })
-    expect(calls).toContainEqual({
-      table: "data_source_secrets",
-      method: "eq",
-      column: "purpose",
-      value: "imap_password",
-    })
-    expect(calls).toContainEqual({ method: "schema", schema: "vault" })
   })
 
-  it("does not read Vault when the source does not belong to the workspace", async () => {
-    const calls: unknown[] = []
+  it("returns a typed sync failure for RPC domain errors", async () => {
     const client = {
-      from(table: string) {
-        return queryChain(table, calls, {
-          data_sources: { data: null, error: null },
-        })
-      },
-      schema() {
-        throw new Error("unexpected vault read")
-      },
+      rpc: vi
+        .fn()
+        .mockResolvedValue({ data: null, error: { message: "source_not_found" } }),
     }
 
     const reader = createSupabaseImapSecretReader({ client: client as never })
 
     await expect(
-      reader.readImapPassword({
+      reader.readImapPasswordForSync({
         workspaceId: "workspace_1",
         sourceId: "source_1",
       })
-    ).rejects.toThrow("source_not_found")
+    ).resolves.toEqual({
+      ok: false,
+      error: {
+        code: "source_not_found",
+        message: "Source not found",
+        workspaceId: "workspace_1",
+        sourceId: "source_1",
+        cause: { message: "source_not_found" },
+      },
+    })
+  })
+
+  it("maps unexpected RPC errors to a safe secret read failure", async () => {
+    const rpcError = { message: "PGRST106 Invalid schema: vault" }
+    const client = {
+      rpc: vi.fn().mockResolvedValue({ data: null, error: rpcError }),
+    }
+
+    const reader = createSupabaseImapSecretReader({ client: client as never })
+
+    await expect(
+      reader.readImapPasswordForSync({
+        workspaceId: "workspace_1",
+        sourceId: "source_1",
+      })
+    ).resolves.toEqual({
+      ok: false,
+      error: {
+        code: "secret_read_failed",
+        message: "Could not read IMAP password",
+        workspaceId: "workspace_1",
+        sourceId: "source_1",
+        cause: rpcError,
+      },
+    })
+  })
+
+  it("maps rejected RPC calls to a safe secret read failure", async () => {
+    const rpcError = new Error("network unavailable")
+    const client = {
+      rpc: vi.fn().mockRejectedValue(rpcError),
+    }
+
+    const reader = createSupabaseImapSecretReader({ client: client as never })
+
+    await expect(
+      reader.readImapPasswordForSync({
+        workspaceId: "workspace_1",
+        sourceId: "source_1",
+      })
+    ).resolves.toEqual({
+      ok: false,
+      error: {
+        code: "secret_read_failed",
+        message: "Could not read IMAP password",
+        workspaceId: "workspace_1",
+        sourceId: "source_1",
+        cause: rpcError,
+      },
+    })
   })
 })
