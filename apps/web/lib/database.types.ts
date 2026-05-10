@@ -388,6 +388,7 @@ export type Database = {
           cause_message: string | null
           created_at: string
           cursor: Json | null
+          diagnostics: Json | null
           error_code: string | null
           error_message: string | null
           finished_at: string | null
@@ -405,6 +406,7 @@ export type Database = {
           cause_message?: string | null
           created_at?: string
           cursor?: Json | null
+          diagnostics?: Json | null
           error_code?: string | null
           error_message?: string | null
           finished_at?: string | null
@@ -422,6 +424,7 @@ export type Database = {
           cause_message?: string | null
           created_at?: string
           cursor?: Json | null
+          diagnostics?: Json | null
           error_code?: string | null
           error_message?: string | null
           finished_at?: string | null
@@ -1044,6 +1047,10 @@ export type Database = {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: undefined
       }
+      request_all_data_source_syncs: {
+        Args: { target_workspace_id: string }
+        Returns: number
+      }
       revoke_workspace_invitation: {
         Args: { target_invitation_id: string }
         Returns: undefined
@@ -1225,4 +1232,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

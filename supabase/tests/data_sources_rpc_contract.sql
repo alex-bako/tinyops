@@ -435,6 +435,13 @@ select pg_temp.assert_true(
   'admin can request source sync'
 );
 
+select pg_temp.assert_true(
+  public.request_all_data_source_syncs(
+    current_setting('tinyops.workspace_id')::uuid
+  ) = 1,
+  'admin can request sync for all configured data sources'
+);
+
 reset role;
 set role service_role;
 
@@ -511,6 +518,15 @@ select pg_temp.expect_error(
   ),
   'source_manage_forbidden',
   'operator cannot manage source sync'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.request_all_data_source_syncs(%L::uuid)',
+    current_setting('tinyops.workspace_id')
+  ),
+  'source_manage_forbidden',
+  'operator cannot manage all source syncs'
 );
 
 reset role;

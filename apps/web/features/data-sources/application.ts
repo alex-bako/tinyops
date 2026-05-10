@@ -42,6 +42,10 @@ export type DataSourceActionResult<T> =
   | { data: T; error?: never }
   | { data?: never; error: DataSourceActionError }
 
+export type RequestAllDataSourceSyncsResult = {
+  queued: number
+}
+
 export type ImapConnectCommand = ImapConnectCommandDraft
 export type ImapImportSettingsCommand = ImapIntakeSettingsCommand
 
@@ -228,6 +232,12 @@ export function createDataSourceCommandApplication({
       return runManaged(async () => {
         await store.requestSync({ workspaceId: workspace.id, sourceId })
         return undefined
+      })
+    },
+
+    async requestAllConfiguredSyncs() {
+      return runManaged<RequestAllDataSourceSyncsResult>(async () => {
+        return store.requestAllSyncs({ workspaceId: workspace.id })
       })
     },
   }

@@ -339,4 +339,33 @@ describe("supabase data source store", () => {
       },
     })
   })
+
+  it("requests sync for every configured source through one bulk RPC", async () => {
+    const calls: unknown[] = []
+    const client = {
+      from(table: string) {
+        return queryChain(table, calls, { data: sourceRow, error: null })
+      },
+      rpc(fn: string, args: unknown) {
+        calls.push({ method: "rpc", fn, args })
+        return Promise.resolve({ data: 2, error: null })
+      },
+    }
+
+    const store = createSupabaseDataSourceStore({ client: client as never })
+
+    await expect(
+      store.requestAllSyncs({ workspaceId: "workspace_1" })
+    ).resolves.toEqual({ queued: 2 })
+
+    expect(calls).toEqual([
+      {
+        method: "rpc",
+        fn: "request_all_data_source_syncs",
+        args: {
+          target_workspace_id: "workspace_1",
+        },
+      },
+    ])
+  })
 })

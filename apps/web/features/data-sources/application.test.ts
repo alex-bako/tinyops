@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import {
   createDataSourceCommandApplication,
@@ -92,6 +92,9 @@ function dataSourceStore(
     },
     async requestSync() {
       throw new Error("unexpected sync request")
+    },
+    async requestAllSyncs() {
+      throw new Error("unexpected bulk sync request")
     },
     ...overrides,
   }
@@ -461,6 +464,30 @@ describe("data source application", () => {
         },
       },
     ])
+  })
+
+  it("requests sync for every configured source through the bulk store port", async () => {
+    const requestAllSyncs = vi.fn(async () => ({ queued: 2 }))
+    const requestSync = vi.fn(async () => undefined)
+    const application = createDataSourceCommandApplication({
+      workspace,
+      store: dataSourceStore({
+        requestAllSyncs,
+        requestSync,
+      }),
+      imapConnectionTester: successfulTester,
+      imapCredentialReader: {
+        async readImapPassword() {
+          throw new Error("unexpected secret read")
+        },
+      },
+    })
+
+    await expect(application.requestAllConfiguredSyncs()).resolves.toEqual({
+      data: { queued: 2 },
+    })
+    expect(requestAllSyncs).toHaveBeenCalledWith({ workspaceId: workspace.id })
+    expect(requestSync).not.toHaveBeenCalled()
   })
 
   it("denies source management for non-admin workspace roles before adapters run", async () => {

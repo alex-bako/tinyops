@@ -71,6 +71,7 @@ describe("data sources database contract", () => {
     )
     expect(migration).toMatch(/function public\.disconnect_data_source/)
     expect(migration).toMatch(/function public\.request_data_source_sync/)
+    expect(migration).toMatch(/function public\.request_all_data_source_syncs/)
   })
 
   it("claims and completes queued sync jobs through service-role RPCs", () => {
@@ -114,6 +115,35 @@ describe("data sources database contract", () => {
     )
     expect(migration).toMatch(
       /grant select, insert, update on public\.data_source_sync_runs to service_role;/
+    )
+  })
+
+  it("publishes sync state and run changes to Supabase Realtime", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(
+      /alter publication supabase_realtime add table public\.data_source_sync_states/
+    )
+    expect(migration).toMatch(
+      /alter publication supabase_realtime add table public\.data_source_sync_runs/
+    )
+  })
+
+  it("queues all active workspace data sources through a bulk sync RPC", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(
+      /function public\.request_all_data_source_syncs\(\s*target_workspace_id uuid\s*\)/
+    )
+    expect(migration).toMatch(/returns integer/)
+    expect(migration).toMatch(/source_manage_forbidden/)
+    expect(migration).toMatch(/where workspace_id = target_workspace_id/)
+    expect(migration).toMatch(/and disconnected_at is null/)
+    expect(migration).toMatch(
+      /grant execute on function public\.request_all_data_source_syncs\(uuid\)/
+    )
+    expect(migration).toMatch(
+      /revoke execute on function public\.request_all_data_source_syncs\(uuid\)/
     )
   })
 
