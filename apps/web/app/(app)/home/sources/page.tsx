@@ -1,4 +1,4 @@
-import { PlugZapIcon, PlusIcon, RefreshCwIcon } from "lucide-react"
+import { PlugZapIcon, PlusIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 import { Section, SectionHead } from "@workspace/ui/components/section"
@@ -8,16 +8,23 @@ import {
   WorkspacePageSurface,
 } from "@/components/page-surface"
 import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
+import { DataSourceSyncRealtimeRefresh } from "@/features/data-sources/sync-realtime-refresh"
 
 import { SourceRow } from "./_components/source-row"
+import { SourcesSyncAllButton } from "./_components/sources-sync-all-button"
 import { createSourcesPageView } from "./_view-model"
 
 export default async function SourcesPage() {
   const sources = await loadWorkspaceSourceCatalog()
   const view = createSourcesPageView(sources)
+  const sourceRowIds = view.connected.rows.flatMap((source) =>
+    source.sourceRowId ? [source.sourceRowId] : []
+  )
 
   return (
     <WorkspacePageSurface>
+      <DataSourceSyncRealtimeRefresh sourceRowIds={sourceRowIds} />
+
       <WorkspacePageHeader
         eyebrowIcon={PlugZapIcon}
         eyebrow="Workspace · data sources"
@@ -30,10 +37,9 @@ export default async function SourcesPage() {
           title="Connected"
           count={view.connected.count}
           actions={
-            <Button type="button" variant="tertiary" size="sm">
-              <RefreshCwIcon />
-              Sync all
-            </Button>
+            <SourcesSyncAllButton
+              disabled={view.connected.rows.length === 0}
+            />
           }
         />
         <div className="flex flex-col">

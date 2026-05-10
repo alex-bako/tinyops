@@ -230,6 +230,18 @@ export function createSupabaseDataSourceStore({
         throwDataSourceStoreError(error, "Could not request data source sync")
       }
     },
+
+    async requestAllSyncs(input) {
+      const { data, error } = await client.rpc("request_all_data_source_syncs", {
+        target_workspace_id: input.workspaceId,
+      })
+
+      if (error) {
+        throwDataSourceStoreError(error, "Could not request data source syncs")
+      }
+
+      return { queued: typeof data === "number" ? data : 0 }
+    },
   }
 }
 

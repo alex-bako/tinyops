@@ -6,6 +6,7 @@ import { Button } from "@workspace/ui/components/button"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
 import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
+import { DataSourceSyncRealtimeRefresh } from "@/features/data-sources/sync-realtime-refresh"
 
 import { ActivityBlock } from "./_components/activity-block"
 import { ConfigBlock } from "./_components/config-block"
@@ -32,6 +33,10 @@ export default async function SourceDetailPage({
 
   return (
     <WorkspacePageSurface>
+      <DataSourceSyncRealtimeRefresh
+        sourceRowIds={source.sourceRowId ? [source.sourceRowId] : []}
+      />
+
       <div className="mb-[18px]">
         <Button asChild variant="tertiary" size="sm">
           <Link href="/home/sources">

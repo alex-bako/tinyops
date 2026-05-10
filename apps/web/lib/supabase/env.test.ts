@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { readFileSync } from "node:fs"
+import path from "node:path"
 
 import { getSupabasePublicEnv } from "@/lib/supabase/public-env"
 import {
@@ -39,6 +41,16 @@ describe("Supabase env adapters", () => {
     expect(() => getSupabasePublicEnv()).toThrow(
       "Missing required environment variable: NEXT_PUBLIC_SUPABASE_URL"
     )
+  })
+
+  it("uses direct public env references so Next.js can inline client values", () => {
+    const source = readFileSync(
+      path.join(process.cwd(), "lib", "supabase", "public-env.ts"),
+      "utf8"
+    )
+
+    expect(source).toContain("process.env.NEXT_PUBLIC_SUPABASE_URL")
+    expect(source).toContain("process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
   })
 
   it("keeps service-role reads behind the server env adapter", () => {

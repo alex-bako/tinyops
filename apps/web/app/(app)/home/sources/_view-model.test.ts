@@ -29,6 +29,8 @@ describe("sources page view", () => {
       "/home/sources/calendly",
       "/home/sources/teachable",
     ])
+    expect(view.connected).not.toHaveProperty("hasActiveSync")
+    expect(view.connected).not.toHaveProperty("syncStateKey")
   })
 
   it("keeps connected source actions and unavailable labels explicit", () => {

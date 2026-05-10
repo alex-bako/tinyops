@@ -103,6 +103,18 @@ export async function requestDataSourceSyncAction(sourceId: string) {
   return result
 }
 
+export async function requestAllDataSourceSyncsAction() {
+  const application = await createActionApplication()
+  if (!application) return { error: "source_action_failed" } as const
+
+  const result = await application.requestAllConfiguredSyncs()
+  if (result.data && result.data.queued > 0) {
+    revalidateDataSources()
+    after(scheduleDataSourceSyncDispatch)
+  }
+  return result
+}
+
 async function scheduleDataSourceSyncDispatch() {
   const logger = getLogger().child({ component: "data_source_actions" })
   try {

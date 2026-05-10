@@ -86,6 +86,7 @@ describe("data source connector platform", () => {
       connected: false,
       stats: [],
     })
+    expect(imap?.imap).not.toHaveProperty("syncUpdatedAt")
     expect(csv).not.toHaveProperty("imap")
   })
 })

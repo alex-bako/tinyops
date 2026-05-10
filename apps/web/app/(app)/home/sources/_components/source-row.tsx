@@ -1,8 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import * as React from "react"
-import { useRouter } from "next/navigation"
 import {
   ChevronRightIcon,
   MoreHorizontalIcon,
@@ -27,25 +25,18 @@ import { cn } from "@workspace/ui/lib/utils"
 import { SourceIcon } from "@/components/source-icon"
 import { requestDataSourceSyncAction } from "@/features/data-sources/actions"
 import type { SourcesPageRow } from "../_view-model"
+import { useSourceSyncRequest } from "./source-sync-request"
 
 function SourceRow({ source }: { source: SourcesPageRow }) {
-  const { refresh } = useRouter()
-  const [pending, startTransition] = React.useTransition()
-  const [syncMessage, setSyncMessage] = React.useState<string | null>(null)
+  const syncRequest = useSourceSyncRequest({
+    request: () => requestDataSourceSyncAction(source.sourceRowId!),
+    successMessage: () => "Sync queued",
+    errorMessage: "Could not queue sync",
+  })
 
   const requestSync = () => {
     if (!source.sourceRowId) return
-
-    setSyncMessage(null)
-    startTransition(async () => {
-      const result = await requestDataSourceSyncAction(source.sourceRowId!)
-      if (result.error) {
-        setSyncMessage("Could not queue sync")
-        return
-      }
-      setSyncMessage("Sync queued")
-      refresh()
-    })
+    syncRequest.run()
   }
 
   return (
@@ -100,18 +91,18 @@ function SourceRow({ source }: { source: SourcesPageRow }) {
               type="button"
               variant="ghost"
               size="sm"
-              disabled={pending || !source.sourceRowId}
+              disabled={syncRequest.pending || !source.sourceRowId}
               onClick={requestSync}
             >
               <RefreshCwIcon />
-              {pending ? "Syncing" : source.primaryLabel}
+              {syncRequest.pending ? "Syncing" : source.primaryLabel}
             </Button>
-            {syncMessage ? (
+            {syncRequest.message ? (
               <span
                 role="status"
                 className="max-w-[130px] truncate text-[12px] text-muted-foreground"
               >
-                {syncMessage}
+                {syncRequest.message}
               </span>
             ) : null}
             <Button

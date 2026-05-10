@@ -149,6 +149,7 @@ export type DataSourceCommandStore = DataSourceReader & {
   ): Promise<ImapDataSource>
   disconnect(input: { workspaceId: string; sourceId: string }): Promise<void>
   requestSync(input: { workspaceId: string; sourceId: string }): Promise<void>
+  requestAllSyncs(input: { workspaceId: string }): Promise<{ queued: number }>
 }
 
 export type DataSourceStore = DataSourceCommandStore

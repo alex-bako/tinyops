@@ -67,6 +67,7 @@ vi.mock("@/lib/supabase/server-env", () => ({
 
 import {
   connectImapDataSourceAction,
+  requestAllDataSourceSyncsAction,
   requestDataSourceSyncAction,
 } from "@/features/data-sources/actions"
 
@@ -129,6 +130,9 @@ function store(overrides: Record<string, unknown> = {}) {
     },
     async disconnect() {},
     async requestSync() {},
+    async requestAllSyncs() {
+      return { queued: 0 }
+    },
     ...overrides,
   }
 }
@@ -191,6 +195,25 @@ describe("data source server actions", () => {
     expect(requestSync).toHaveBeenCalledWith({
       workspaceId: "workspace_1",
       sourceId: "source_1",
+    })
+    expect(mocks.afterCallbacks).toHaveLength(1)
+  })
+
+  it("queues every configured data source from sync all and schedules one dispatch", async () => {
+    const requestAllSyncs = vi.fn(async () => ({ queued: 2 }))
+    mocks.createDataSourceServerContext.mockResolvedValue({
+      workspace: { id: "workspace_1", role: "owner" },
+      store: store({
+        requestAllSyncs,
+      }),
+    })
+
+    await expect(requestAllDataSourceSyncsAction()).resolves.toEqual({
+      data: { queued: 2 },
+    })
+
+    expect(requestAllSyncs).toHaveBeenCalledWith({
+      workspaceId: "workspace_1",
     })
     expect(mocks.afterCallbacks).toHaveLength(1)
   })
