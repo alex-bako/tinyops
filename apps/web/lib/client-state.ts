@@ -1,4 +1,4 @@
-import type { ClientFlag, ClientStatus } from "@/lib/clients"
+import type { ClientFlag, ClientStatus } from "@/features/clients/application/client-memory"
 
 export type ClientBadgeKind =
   | "active"

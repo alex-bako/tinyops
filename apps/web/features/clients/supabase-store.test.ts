@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { createSupabaseClientStore } from "@/features/clients/supabase-store"
+import { createSupabaseClientReader } from "@/features/clients/adapters/supabase-client-reader"
 
 const clientRow = {
   id: "client_1",
@@ -65,7 +65,7 @@ function queryChain(
 describe("supabase client store", () => {
   it("lists workspace clients as domain client profiles", async () => {
     const calls: unknown[] = []
-    const store = createSupabaseClientStore({
+    const store = createSupabaseClientReader({
       client: {
         from(table: string) {
           return queryChain(table, calls, { data: [clientRow], error: null })
@@ -101,7 +101,7 @@ describe("supabase client store", () => {
       { data: [clientRow], error: null },
       { data: [clientRow], error: null },
     ]
-    const store = createSupabaseClientStore({
+    const store = createSupabaseClientReader({
       client: {
         from(table: string) {
           return queryChain(table, calls, results.shift()!)
@@ -143,7 +143,7 @@ describe("supabase client store", () => {
       { data: [], error: null },
       { data: [], error: null },
     ]
-    const store = createSupabaseClientStore({
+    const store = createSupabaseClientReader({
       client: {
         from(table: string) {
           return queryChain(table, calls, results.shift()!)

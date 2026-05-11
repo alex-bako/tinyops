@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { createMockClientMemoryRepository } from "@/lib/client-memory/mock-repository"
+import { createMockClientMemoryRepository } from "@/features/clients/adapters/mock-client-memory"
 
 describe("mock client memory repository", () => {
   it("lists clients and recent clients from the mock data adapter", async () => {

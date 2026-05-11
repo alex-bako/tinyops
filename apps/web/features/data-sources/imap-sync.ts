@@ -3,7 +3,7 @@ import { ImapFlow } from "imapflow"
 import type {
   ConnectorIngestionInput,
   ConnectorIngestionPort,
-} from "@/features/clients/ingestion"
+} from "@/features/clients/application/connector-ingestion"
 import { ownerEmailSet } from "@/features/data-sources/imap-message-facts"
 import {
   createImapThreadedSync,

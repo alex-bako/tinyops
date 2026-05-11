@@ -47,10 +47,15 @@ export default async function SourceDetailPage({
 
   const sourceUi = getSourceUi(source.id)
   const view = createSourceDetailView(source, sourceUi)
+  const activeSourceRowIds =
+    source.sourceRowId && isActiveSyncStatus(source.imap?.syncStatus)
+      ? [source.sourceRowId]
+      : []
 
   return (
     <WorkspacePageSurface>
       <DataSourceSyncRealtimeRefresh
+        activeSourceRowIds={activeSourceRowIds}
         sourceRowIds={source.sourceRowId ? [source.sourceRowId] : []}
       />
 
@@ -82,4 +87,8 @@ export default async function SourceDetailPage({
       ) : null}
     </WorkspacePageSurface>
   )
+}
+
+function isActiveSyncStatus(status: string | undefined) {
+  return status === "queued" || status === "running"
 }

@@ -1,8 +1,8 @@
 import type {
   NormalizedConnectorRecord,
   NormalizedParticipant,
-} from "@/features/clients/ingestion"
-import { classifyTimelineSensitivity } from "@/features/clients/sensitivity"
+} from "@/features/clients/application/connector-ingestion"
+import { classifyTimelineSensitivity } from "@/features/clients/domain/sensitivity"
 import { matchesImapSkipSender } from "@/features/data-sources/imap-intake-predicate"
 import {
   buildImapThreadHeaders,

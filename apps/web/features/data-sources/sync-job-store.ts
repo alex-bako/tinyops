@@ -1,4 +1,4 @@
-import type { ConnectorSourceType } from "@/features/clients/ingestion"
+import type { ConnectorSourceType } from "@/features/clients/application/connector-ingestion"
 import type { DataSourceSyncJobStore } from "@/features/data-sources/domain/sync"
 import type { Json } from "@/lib/database.types"
 

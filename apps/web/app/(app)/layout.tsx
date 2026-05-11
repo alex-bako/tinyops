@@ -8,7 +8,7 @@ import { loadWorkspaceSourceCatalogForWorkspace } from "@/features/data-sources/
 import {
   createClientMemoryRepositoryFromContext,
   loadClientNavItems,
-} from "@/lib/client-memory/loaders"
+} from "@/features/clients/adapters/client-memory-loader"
 import { ONBOARDING_PATH } from "@/app/onboarding/constants"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

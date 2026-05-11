@@ -12,13 +12,17 @@ const SYNC_CHANGE_TABLES = [
 
 const SYNC_CHANGE_EVENTS = ["INSERT", "UPDATE"] as const
 const SYNC_REFRESH_DEBOUNCE_MS = 250
+const ACTIVE_SYNC_POLL_MS = 2000
 
 function DataSourceSyncRealtimeRefresh({
+  activeSourceRowIds = [],
   sourceRowIds,
 }: {
+  activeSourceRowIds?: string[]
   sourceRowIds: string[]
 }) {
   const { refresh } = useRouter()
+  const activeSourceRowIdKey = normalizeSourceRowIds(activeSourceRowIds).join(",")
   const sourceRowIdKey = normalizeSourceRowIds(sourceRowIds).join(",")
 
   React.useEffect(() => {
@@ -54,13 +58,24 @@ function DataSourceSyncRealtimeRefresh({
       })
     })
 
-    channel.subscribe()
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED" && activeSourceRowIdKey) {
+        refresh()
+      }
+    })
 
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer)
       void supabase.removeChannel(channel)
     }
-  }, [refresh, sourceRowIdKey])
+  }, [activeSourceRowIdKey, refresh, sourceRowIdKey])
+
+  React.useEffect(() => {
+    if (!activeSourceRowIdKey) return
+
+    const pollTimer = setInterval(refresh, ACTIVE_SYNC_POLL_MS)
+    return () => clearInterval(pollTimer)
+  }, [activeSourceRowIdKey, refresh])
 
   return null
 }

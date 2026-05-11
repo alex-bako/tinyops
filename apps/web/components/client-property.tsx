@@ -24,7 +24,7 @@ import type {
   ClientProperty,
   ClientPropertyValue,
   PropertyIcon,
-} from "@/lib/clients"
+} from "@/features/clients/application/client-memory"
 
 const PROPERTY_ICONS: Record<PropertyIcon, LucideIcon> = {
   "circle-dot": CircleDotDashedIcon,

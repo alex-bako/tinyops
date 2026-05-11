@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import { clientBySlug, slugify } from "./clients"
+import {
+  clientBySlug,
+  slugify,
+} from "@/features/clients/adapters/mock-client-memory"
 
 describe("clients", () => {
   it("creates stable ascii slugs", () => {

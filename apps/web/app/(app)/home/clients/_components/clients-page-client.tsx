@@ -10,7 +10,7 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
-import type { ClientDetail } from "@/lib/clients"
+import type { ClientDetail } from "@/features/clients/application/client-memory"
 
 import { ClientsTable } from "./clients-table"
 import { ClientsToolbar } from "./clients-toolbar"

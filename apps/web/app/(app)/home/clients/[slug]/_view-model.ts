@@ -1,18 +1,19 @@
-import type { TimelineTone } from "@workspace/ui/components/timeline"
-
 import {
   clientCohortBadge,
   clientDetailFlagBadges,
   clientStatusBadge,
   type ClientStateBadge,
 } from "@/lib/client-state"
+import type { ClientTimelineEvent } from "@/features/clients/domain/client-profile"
 import type {
   ClientDetail,
   ClientMemory,
   ClientProperty,
-  ClientTimelineEvent,
-  TimelineEventType,
-} from "@/lib/clients"
+} from "@/features/clients/application/client-memory"
+import {
+  createTimelineEventViews,
+  type ClientTimelineEventView,
+} from "@/features/clients/application/timeline-presentation"
 
 type ClientDetailHeaderView = {
   name: string
@@ -28,11 +29,6 @@ type ClientMemoryView = {
   lastGenerated: string
 }
 
-type ClientTimelineEventView = Omit<ClientTimelineEvent, "type"> & {
-  tone: TimelineTone
-  sourceLabel: string
-}
-
 type ClientDetailView = {
   header: ClientDetailHeaderView
   memory: ClientMemoryView
@@ -40,20 +36,6 @@ type ClientDetailView = {
   propertiesCount: string
   timeline: ClientTimelineEventView[]
   timelineCount: string
-}
-
-const TONE_OF: Record<TimelineEventType, TimelineTone> = {
-  email: "brand",
-  form: "positive",
-  sent: "attention",
-  csvimport: "neutral",
-}
-
-const LABEL_OF: Record<TimelineEventType, string> = {
-  email: "email",
-  form: "form",
-  sent: "sent",
-  csvimport: "csv import",
 }
 
 function createMemoryView(memory: ClientMemory): ClientMemoryView {
@@ -69,16 +51,7 @@ function createMemoryView(memory: ClientMemory): ClientMemoryView {
 function createTimelineView(
   events: ClientTimelineEvent[]
 ): ClientTimelineEventView[] {
-  return events.map((event) => ({
-    date: event.date,
-    title: event.title,
-    summary: event.summary,
-    sensitive: event.sensitive,
-    tone: TONE_OF[event.type],
-    sourceLabel: `${LABEL_OF[event.type]}${
-      event.sensitive ? " · sensitive" : ""
-    }`,
-  }))
+  return createTimelineEventViews(events)
 }
 
 function createClientDetailView(client: ClientDetail): ClientDetailView {

@@ -9,7 +9,7 @@ import {
   type ClientCohortBadgeSurface,
   type ClientStateBadge,
 } from "@/lib/client-state"
-import type { ClientFlag, ClientStatus } from "@/lib/clients"
+import type { ClientFlag, ClientStatus } from "@/features/clients/application/client-memory"
 
 function ClientStateBadgeView({ badge }: { badge: ClientStateBadge }) {
   return (

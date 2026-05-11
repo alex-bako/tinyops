@@ -1,9 +1,9 @@
 import {
   syncConnectorRecords,
-  type ClientIngestionWriter,
+  type ClientIngestionWriterPort,
   type ConnectorIngestionPort,
   type ConnectorSourceType,
-} from "@/features/clients/ingestion"
+} from "@/features/clients/application/connector-ingestion"
 import type {
   DataSourceSyncJob,
   DataSourceSyncJobStore,
@@ -33,7 +33,7 @@ type DataSourceSyncWorkerConfig = {
   batchSize?: number
   leaseSeconds?: number
   jobStore: DataSourceSyncJobStore
-  ingestionWriter: ClientIngestionWriter
+  ingestionWriter: ClientIngestionWriterPort
   runRecorder: DataSourceSyncRunRecorder
   sourceSyncAdapters: SourceSyncAdapter[]
   logger?: LoggerPort
@@ -45,7 +45,7 @@ export type DataSourceSyncWorkerResult =
       claimed: true
       sourceId: string
       workspaceId: string
-      persisted: Awaited<ReturnType<ClientIngestionWriter["persist"]>>
+      persisted: Awaited<ReturnType<ClientIngestionWriterPort["persist"]>>
       truncated: boolean
     }
   | {
@@ -298,7 +298,7 @@ function syncDiagnostics({
 }: {
   connectorDiagnostics?: Json
   attemptedRecords: number
-  persisted: Awaited<ReturnType<ClientIngestionWriter["persist"]>>
+  persisted: Awaited<ReturnType<ClientIngestionWriterPort["persist"]>>
   hasMore: boolean
   durationMs: number
 }) {

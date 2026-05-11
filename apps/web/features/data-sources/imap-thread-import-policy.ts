@@ -1,4 +1,4 @@
-import type { NormalizedConnectorRecord } from "@/features/clients/ingestion"
+import type { NormalizedConnectorRecord } from "@/features/clients/application/connector-ingestion"
 import { matchesIntakeFilters } from "@/features/data-sources/imap-intake-filters"
 import type { ImapMessageFacts } from "@/features/data-sources/imap-message-facts"
 import type {

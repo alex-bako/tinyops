@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import { createSupabaseClientIngestionWriter } from "@/features/clients/supabase-ingestion-writer"
-import type { NormalizedConnectorRecord } from "@/features/clients/ingestion"
+import { createSupabaseClientIngestionWriter } from "@/features/clients/adapters/supabase-ingestion-writer"
+import type { NormalizedConnectorRecord } from "@/features/clients/application/connector-ingestion"
 
 const record: NormalizedConnectorRecord = {
   workspaceId: "workspace_1",

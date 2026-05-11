@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import { createWorkspaceClientMemoryRepository } from "@/features/clients/repository"
-import type { ClientProfile, ClientReader } from "@/features/clients/types"
+import { createWorkspaceClientMemoryRepository } from "@/features/clients/application/client-memory"
+import type { ClientProfile, ClientReaderPort } from "@/features/clients/domain/client-profile"
 
 const profile: ClientProfile = {
   id: "client_1",
@@ -26,7 +26,7 @@ const profile: ClientProfile = {
 describe("workspace client memory repository", () => {
   it("binds legacy client memory repository calls to the active workspace", async () => {
     const calls: unknown[] = []
-    const reader: ClientReader = {
+    const reader: ClientReaderPort = {
       async listClients(workspaceId) {
         calls.push({ method: "listClients", workspaceId })
         return [profile]

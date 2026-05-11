@@ -4,7 +4,7 @@ import type {
   ConnectorIngestionInput,
   ConnectorIngestionResult,
   NormalizedConnectorRecord,
-} from "@/features/clients/ingestion"
+} from "@/features/clients/application/connector-ingestion"
 import {
   type ImapFolderRole,
   planImapFolderSync,

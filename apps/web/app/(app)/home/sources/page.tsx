@@ -27,10 +27,18 @@ export default async function SourcesPage() {
   const sourceRowIds = view.connected.rows.flatMap((source) =>
     source.sourceRowId ? [source.sourceRowId] : []
   )
+  const activeSourceRowIds = sources.flatMap((source) =>
+    source.sourceRowId && isActiveSyncStatus(source.imap?.syncStatus)
+      ? [source.sourceRowId]
+      : []
+  )
 
   return (
     <WorkspacePageSurface>
-      <DataSourceSyncRealtimeRefresh sourceRowIds={sourceRowIds} />
+      <DataSourceSyncRealtimeRefresh
+        activeSourceRowIds={activeSourceRowIds}
+        sourceRowIds={sourceRowIds}
+      />
 
       <WorkspacePageHeader
         eyebrowIcon={PlugZapIcon}
@@ -75,4 +83,8 @@ export default async function SourcesPage() {
       </Section>
     </WorkspacePageSurface>
   )
+}
+
+function isActiveSyncStatus(status: string | undefined) {
+  return status === "queued" || status === "running"
 }

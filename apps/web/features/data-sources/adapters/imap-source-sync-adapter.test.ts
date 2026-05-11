@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { createImapSourceSyncAdapter } from "@/features/data-sources/adapters/imap-source-sync-adapter"
-import type { ConnectorIngestionPort } from "@/features/clients/ingestion"
+import type { ConnectorIngestionPort } from "@/features/clients/application/connector-ingestion"
 import type { DataSourceReader, ImapDataSource } from "@/features/data-sources/types"
 
 function imapSource(): ImapDataSource {

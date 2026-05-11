@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { ALL_CLIENTS } from "@/lib/clients"
+import { ALL_CLIENTS } from "@/features/clients/adapters/mock-client-memory"
 
 import { countFor, matchesFilter } from "./_filters"
 

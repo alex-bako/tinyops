@@ -1,7 +1,7 @@
 import type {
   PersistedConnectorRecords,
   ConnectorSourceType,
-} from "@/features/clients/ingestion"
+} from "@/features/clients/application/connector-ingestion"
 import type { Json } from "@/lib/database.types"
 
 export type DataSourceSyncJob = {

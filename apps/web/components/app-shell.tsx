@@ -7,7 +7,7 @@ import {
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppTopbar } from "@/components/app-topbar"
-import type { ClientNavItem } from "@/lib/client-memory/repository"
+import type { ClientNavItem } from "@/features/clients/application/client-memory"
 import type { Crumb } from "@/lib/navigation"
 import type { SourceNavItem } from "@/lib/source-catalog/repository"
 

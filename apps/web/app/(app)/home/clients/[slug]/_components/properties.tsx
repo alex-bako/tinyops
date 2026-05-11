@@ -1,5 +1,5 @@
 import { ClientPropertyList } from "@/components/client-property"
-import type { ClientProperty } from "@/lib/clients"
+import type { ClientProperty } from "@/features/clients/application/client-memory"
 
 export function Properties({
   properties,

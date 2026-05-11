@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  mapClientProfileToDetail,
+  createClientDetail,
+} from "@/features/clients/application/client-memory"
+import {
   mapClientRowToProfile,
-} from "@/features/clients/mappers"
-import type { ClientRow } from "@/features/clients/types"
+  type ClientRow,
+} from "@/features/clients/adapters/supabase-client-reader"
 
 const baseRow: ClientRow = {
   id: "client_1",
@@ -66,7 +68,7 @@ const baseRow: ClientRow = {
 describe("client mappers", () => {
   it("maps persisted client rows to existing client detail view data", () => {
     const profile = mapClientRowToProfile(baseRow)
-    const detail = mapClientProfileToDetail(profile)
+    const detail = createClientDetail(profile)
 
     expect(profile).toMatchObject({
       id: "client_1",
@@ -99,14 +101,16 @@ describe("client mappers", () => {
       "Replay access",
     ])
     expect(detail.timeline[0]).toMatchObject({
+      id: "event_newer",
       type: "form",
-      sensitive: true,
+      sensitivityLevel: 2,
       summary: "Shared progress update.",
+      bodyText: "Progress update",
     })
   })
 
   it("uses primary email as the display name fallback", () => {
-    const detail = mapClientProfileToDetail(
+    const detail = createClientDetail(
       mapClientRowToProfile({
         ...baseRow,
         display_name: "",
@@ -121,7 +125,7 @@ describe("client mappers", () => {
   })
 
   it("maps imported IMAP owner replies as sent timeline events", () => {
-    const detail = mapClientProfileToDetail(
+    const detail = createClientDetail(
       mapClientRowToProfile({
         ...baseRow,
         timeline_events: [
