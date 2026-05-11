@@ -21,7 +21,7 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
 
 const TIMELINE_EVENT_TYPE: Record<string, TimelineEventType> = {
   email_received: "email",
-  email_sent: "email",
+  email_sent: "sent",
   form_submission: "form",
   csv_import_row: "csvimport",
   manual_note: "csvimport",

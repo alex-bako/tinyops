@@ -3,6 +3,7 @@ import type {
 } from "@/features/clients/ingestion"
 import type { ImapSyncCredentialReader } from "@/features/data-sources/application"
 import { createImapConnector } from "@/features/data-sources/imap-sync"
+import type { ImapThreadIndexReader } from "@/features/data-sources/imap-threading"
 import type { SourceSyncAdapter } from "@/features/data-sources/sync-worker"
 import type {
   DataSourceReader,
@@ -26,12 +27,14 @@ export function createImapSourceSyncAdapter({
   dataSourceReader,
   imapCredentialReader,
   connectorFactory,
+  imapThreadIndexReader,
   manualReviewKeywordsForWorkspace = async () => [],
   logger = createNoopLogger(),
 }: {
   dataSourceReader: DataSourceReader
   imapCredentialReader: ImapSyncCredentialReader
   connectorFactory?: (input: ConnectorFactoryInput) => ConnectorIngestionPort
+  imapThreadIndexReader?: ImapThreadIndexReader
   manualReviewKeywordsForWorkspace?: (workspaceId: string) => Promise<string[]>
   logger?: LoggerPort
 }): SourceSyncAdapter {
@@ -43,6 +46,7 @@ export function createImapSourceSyncAdapter({
         password,
         ownerEmails: [source.connection.username],
         manualReviewKeywords,
+        threadIndexReader: imapThreadIndexReader,
         logger: logger.child({
           component: "imap_source_sync_adapter",
           sourceId: source.id,

@@ -1043,6 +1043,10 @@ export type Database = {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: string
       }
+      read_imap_thread_message_ids: {
+        Args: { target_source_id: string; target_workspace_id: string }
+        Returns: string[]
+      }
       request_data_source_sync: {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: undefined

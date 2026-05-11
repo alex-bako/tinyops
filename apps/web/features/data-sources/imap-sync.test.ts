@@ -45,6 +45,54 @@ const rawNoDateEmail = [
   "Could you resend the replay workbook?",
 ].join("\r\n")
 
+const rawThreadAnchorEmail = [
+  "Message-ID: <thread-anchor@example.com>",
+  "From: Anna Smith <anna@example.com>",
+  "To: Owner <owner@example.com>",
+  "Subject: Replay access",
+  "Date: Thu, 7 May 2026 08:00:00 +0000",
+  "Content-Type: text/plain; charset=utf-8",
+  "",
+  "Could you resend the replay library link?",
+].join("\r\n")
+
+const rawThreadFollowupEmail = [
+  "Message-ID: <thread-followup@example.com>",
+  "In-Reply-To: <thread-anchor@example.com>",
+  "References: <thread-anchor@example.com>",
+  "From: Anna Smith <anna@example.com>",
+  "To: Owner <owner@example.com>",
+  "Subject: Different subject",
+  "Date: Thu, 7 May 2026 09:00:00 +0000",
+  "Content-Type: text/plain; charset=utf-8",
+  "",
+  "Following up in the same conversation.",
+].join("\r\n")
+
+const rawOwnerThreadReplyEmail = [
+  "Message-ID: <owner-reply@example.com>",
+  "In-Reply-To: <thread-anchor@example.com>",
+  "References: <thread-anchor@example.com>",
+  "From: Owner <owner@example.com>",
+  "To: Anna Smith <anna@example.com>",
+  "Subject: Re: Replay access",
+  "Date: Thu, 7 May 2026 10:00:00 +0000",
+  "Content-Type: text/plain; charset=utf-8",
+  "",
+  "I resent the replay library link.",
+].join("\r\n")
+
+const rawOwnerUnlinkedSameSubjectEmail = [
+  "Message-ID: <owner-unlinked@example.com>",
+  "From: Owner <owner@example.com>",
+  "To: Anna Smith <anna@example.com>",
+  "Subject: Re: Replay access",
+  "Date: Thu, 7 May 2026 11:00:00 +0000",
+  "Content-Type: text/plain; charset=utf-8",
+  "",
+  "Same subject but no thread headers.",
+].join("\r\n")
+
 function source(patch: Partial<ImapDataSource> = {}): ImapDataSource {
   return {
     id: "source_1",
@@ -267,7 +315,7 @@ describe("IMAP sync connector", () => {
       ],
       skips: {
         skip_sender: 1,
-        filter_rejected: 1,
+        unlinked_sent_message: 1,
       },
     })
     expect(JSON.stringify(result.diagnostics)).not.toContain("anna@example.com")
@@ -275,6 +323,17 @@ describe("IMAP sync connector", () => {
   })
 
   it("does not advance a later folder cursor past records returned in the batch", async () => {
+    const rawLinkedOwnerNoMessageIdEmail = [
+      "In-Reply-To: <m1@example.com>",
+      "References: <m1@example.com>",
+      "From: Owner <owner@example.com>",
+      "To: Anna Smith <anna@example.com>, Priya <priya@example.com>",
+      "Subject: Checking in",
+      "Date: Fri, 8 May 2026 10:00:00 +0000",
+      "Content-Type: text/plain; charset=utf-8",
+      "",
+      "This mentions trauma context.",
+    ].join("\r\n")
     const connector = createImapConnector({
       source: source({
         intake: {
@@ -290,7 +349,7 @@ describe("IMAP sync connector", () => {
       ImapFlow: fakeImapFlowByFolder({
         INBOX: { 11: rawReplayEmail },
         Archive: {
-          21: rawSensitiveGroupEmail,
+          21: rawLinkedOwnerNoMessageIdEmail,
           22: rawReplayEmail.replace("<m1@example.com>", "<m22@example.com>"),
         },
       }),
@@ -326,7 +385,211 @@ describe("IMAP sync connector", () => {
     })
   })
 
-  it("marks owner-sent group emails sensitive and keeps external recipients", async () => {
+  it("imports linked client follow-ups after a filtered thread anchor", async () => {
+    const connector = createImapConnector({
+      source: source(),
+      password: "top-secret",
+      ownerEmails: ["owner@example.com"],
+      manualReviewKeywords: [],
+      ImapFlow: fakeImapFlow({
+        11: rawThreadAnchorEmail,
+        12: rawThreadFollowupEmail,
+      }),
+      now: new Date("2026-05-10T00:00:00.000Z"),
+    })
+
+    const result = await connector.sync({
+      workspaceId: "workspace_1",
+      sourceId: "source_1",
+      limit: 10,
+    })
+
+    expect(result.records.map((record) => record.externalId)).toEqual([
+      "message:<thread-anchor@example.com>",
+      "message:<thread-followup@example.com>",
+    ])
+    expect(result.records[1]).toMatchObject({
+      eventType: "email_received",
+      metadata: {
+        imapThread: {
+          threadKey: "<thread-anchor@example.com>",
+          importReason: "thread_member",
+          folderRole: "watched",
+          anchored: false,
+        },
+      },
+    })
+  })
+
+  it("imports future Sent replies linked to persisted thread anchors", async () => {
+    const connector = createImapConnector({
+      source: source({
+        folderSnapshot: {
+          availableFolders: [
+            { path: "INBOX", messages: 3 },
+            { path: "Sent", messages: 12, specialUse: "\\Sent" },
+          ],
+        },
+        sync: {
+          ...source().sync,
+          cursor: {
+            folders: {
+              INBOX: { uidValidity: "42", lastUid: 11, exhausted: true },
+              Sent: { uidValidity: "84", lastUid: 20, exhausted: true },
+            },
+          },
+        },
+      }),
+      password: "top-secret",
+      ownerEmails: ["owner@example.com"],
+      manualReviewKeywords: [],
+      threadIndexReader: {
+        async read() {
+          return { messageIds: ["<thread-anchor@example.com>"] }
+        },
+      },
+      ImapFlow: fakeImapFlowByFolder({
+        INBOX: {},
+        Sent: { 21: rawOwnerThreadReplyEmail },
+      }),
+      now: new Date("2026-05-10T00:00:00.000Z"),
+    })
+
+    const result = await connector.sync({
+      workspaceId: "workspace_1",
+      sourceId: "source_1",
+      limit: 10,
+    })
+
+    expect(result.records).toHaveLength(1)
+    expect(result.records[0]).toMatchObject({
+      externalId: "message:<owner-reply@example.com>",
+      eventType: "email_sent",
+      participants: [{ email: "anna@example.com", role: "external" }],
+      metadata: {
+        imapThread: {
+          threadKey: "<thread-anchor@example.com>",
+          importReason: "thread_reply",
+          folderRole: "sent",
+          anchored: false,
+        },
+      },
+    })
+    expect(result.diagnostics).toMatchObject({
+      sentFolders: ["Sent"],
+      skips: {},
+    })
+  })
+
+  it("seeds an auto-detected Sent cursor without historical backfill", async () => {
+    const connector = createImapConnector({
+      source: source({
+        folderSnapshot: {
+          availableFolders: [
+            { path: "INBOX", messages: 3 },
+            { path: "Sent", messages: 12, specialUse: "\\Sent" },
+          ],
+        },
+      }),
+      password: "top-secret",
+      ownerEmails: ["owner@example.com"],
+      manualReviewKeywords: [],
+      threadIndexReader: {
+        async read() {
+          return { messageIds: ["<thread-anchor@example.com>"] }
+        },
+      },
+      ImapFlow: fakeImapFlowByFolder({
+        INBOX: {},
+        Sent: { 21: rawOwnerThreadReplyEmail },
+      }),
+      now: new Date("2026-05-10T00:00:00.000Z"),
+    })
+
+    const result = await connector.sync({
+      workspaceId: "workspace_1",
+      sourceId: "source_1",
+      limit: 10,
+    })
+
+    expect(result.records).toEqual([])
+    expect(result.cursor).toMatchObject({
+      folders: {
+        Sent: {
+          uidValidity: "84",
+          lastUid: 21,
+          exhausted: true,
+        },
+      },
+    })
+    expect(result.diagnostics).toMatchObject({
+      folders: [
+        expect.objectContaining({ path: "INBOX" }),
+        expect.objectContaining({ path: "Sent", accepted: 0, skipped: 0 }),
+      ],
+      sentFolders: ["Sent"],
+    })
+  })
+
+  it("does not import owner Sent messages by subject fallback", async () => {
+    const connector = createImapConnector({
+      source: source({
+        folderSnapshot: {
+          availableFolders: [
+            { path: "INBOX", messages: 3 },
+            { path: "Sent", messages: 12, specialUse: "\\Sent" },
+          ],
+        },
+        sync: {
+          ...source().sync,
+          cursor: {
+            folders: {
+              INBOX: { uidValidity: "42", lastUid: 11, exhausted: true },
+              Sent: { uidValidity: "84", lastUid: 20, exhausted: true },
+            },
+          },
+        },
+      }),
+      password: "top-secret",
+      ownerEmails: ["owner@example.com"],
+      manualReviewKeywords: [],
+      threadIndexReader: {
+        async read() {
+          return { messageIds: ["<thread-anchor@example.com>"] }
+        },
+      },
+      ImapFlow: fakeImapFlowByFolder({
+        INBOX: {},
+        Sent: { 21: rawOwnerUnlinkedSameSubjectEmail },
+      }),
+      now: new Date("2026-05-10T00:00:00.000Z"),
+    })
+
+    const result = await connector.sync({
+      workspaceId: "workspace_1",
+      sourceId: "source_1",
+      limit: 10,
+    })
+
+    expect(result.records).toEqual([])
+    expect(result.diagnostics).toMatchObject({
+      skips: { unlinked_sent_message: 1 },
+    })
+  })
+
+  it("marks linked owner-sent group replies sensitive and keeps external recipients", async () => {
+    const rawSensitiveThreadReplyEmail = [
+      "Message-ID: <sensitive-reply@example.com>",
+      "In-Reply-To: <thread-anchor@example.com>",
+      "References: <thread-anchor@example.com>",
+      "From: Owner <owner@example.com>",
+      "To: Anna Smith <anna@example.com>, Priya <priya@example.com>",
+      "Subject: Checking in",
+      "Date: Fri, 8 May 2026 10:00:00 +0000",
+      "Content-Type: text/plain; charset=utf-8",
+      "",
+      "This mentions trauma context.",
+    ].join("\r\n")
     const connector = createImapConnector({
       source: source({
         intake: {
@@ -338,7 +601,12 @@ describe("IMAP sync connector", () => {
       password: "top-secret",
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: ["trauma"],
-      ImapFlow: fakeImapFlow({ 13: rawSensitiveGroupEmail }),
+      threadIndexReader: {
+        async read() {
+          return { messageIds: ["<thread-anchor@example.com>"] }
+        },
+      },
+      ImapFlow: fakeImapFlow({ 13: rawSensitiveThreadReplyEmail }),
       now: new Date("2026-05-10T00:00:00.000Z"),
     })
 

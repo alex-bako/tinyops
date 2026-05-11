@@ -166,4 +166,22 @@ describe("data sources database contract", () => {
       /revoke execute on function public\.read_imap_data_source_password\(uuid, uuid\)\s+from anon, authenticated, public;/
     )
   })
+
+  it("exposes IMAP thread message IDs through a service-role-only RPC", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(
+      /function public\.read_imap_thread_message_ids\(\s*target_workspace_id uuid,\s*target_source_id uuid\s*\)/
+    )
+    expect(migration).toMatch(/returns text\[\]/)
+    expect(migration).toMatch(/security definer/)
+    expect(migration).toMatch(/raw_payload\s*->\s*'metadata'\s*->\s*'imapThread'\s*->\s*'relatedMessageIds'/)
+    expect(migration).toMatch(/raw_payload\s*->\s*'metadata'\s*->>\s*'messageId'/)
+    expect(migration).toMatch(
+      /grant execute on function public\.read_imap_thread_message_ids\(uuid, uuid\)\s+to service_role;/
+    )
+    expect(migration).toMatch(
+      /revoke execute on function public\.read_imap_thread_message_ids\(uuid, uuid\)\s+from anon, authenticated, public;/
+    )
+  })
 })

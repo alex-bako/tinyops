@@ -71,7 +71,7 @@ describe("sync drain cron route", () => {
     expect(mocks.createDataSourceSyncRuntime).toHaveBeenCalledTimes(1)
     expect(mocks.runBatch).toHaveBeenCalledWith({
       trigger: "cron",
-      maxJobs: 5,
+      maxJobs: 50,
     })
   })
 })

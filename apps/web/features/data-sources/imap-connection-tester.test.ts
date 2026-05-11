@@ -17,8 +17,18 @@ describe("imap connection tester", () => {
       async list() {
         calls.push(["list"])
         return [
-          { path: "INBOX", status: { messages: 12 } },
-          { path: "Clients", status: { messages: 3 } },
+          {
+            path: "INBOX",
+            specialUse: "\\Inbox",
+            flags: new Set(["\\HasNoChildren"]),
+            status: { messages: 12 },
+          },
+          {
+            path: "Sent",
+            specialUse: "\\Sent",
+            flags: new Set(["\\Sent"]),
+            status: { messages: 3 },
+          },
         ]
       }
 
@@ -45,8 +55,18 @@ describe("imap connection tester", () => {
       })
     ).resolves.toEqual({
       folders: [
-        { path: "INBOX", messages: 12 },
-        { path: "Clients", messages: 3 },
+        {
+          path: "INBOX",
+          messages: 12,
+          specialUse: "\\Inbox",
+          flags: ["\\HasNoChildren"],
+        },
+        {
+          path: "Sent",
+          messages: 3,
+          specialUse: "\\Sent",
+          flags: ["\\Sent"],
+        },
       ],
     })
     expect(calls).toEqual([

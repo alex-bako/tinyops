@@ -4,6 +4,10 @@ import {
 } from "@/features/clients/supabase-ingestion-writer"
 import { createImapSourceSyncAdapter } from "@/features/data-sources/adapters/imap-source-sync-adapter"
 import {
+  createSupabaseImapThreadIndexReader,
+  type SupabaseImapThreadIndexReaderClient,
+} from "@/features/data-sources/imap-thread-index-reader"
+import {
   createSupabaseImapSecretReader,
   type SupabaseImapSecretReaderClient,
 } from "@/features/data-sources/imap-secret-reader"
@@ -26,6 +30,7 @@ export function createDataSourceSyncRuntime() {
   const rpcClient = client as unknown as SupabaseSyncJobStoreClient &
     SupabaseClientIngestionWriterClient &
     SupabaseImapSecretReaderClient
+  const threadIndexClient = client as unknown as SupabaseImapThreadIndexReaderClient
   const syncRunClient = client as unknown as SupabaseSyncRunRecorderClient
   const dataSourceReader = createSupabaseDataSourceStore({ client })
   const imapCredentialReader = createSupabaseImapSecretReader({
@@ -42,6 +47,9 @@ export function createDataSourceSyncRuntime() {
       createImapSourceSyncAdapter({
         dataSourceReader,
         imapCredentialReader,
+        imapThreadIndexReader: createSupabaseImapThreadIndexReader({
+          client: threadIndexClient,
+        }),
         logger,
       }),
     ],

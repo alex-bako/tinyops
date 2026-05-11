@@ -1,22 +1,20 @@
-import { addressEmails, type ParsedMailLike } from "@/features/data-sources/imap-record-normalizer"
+import type { ImapMessageFacts } from "@/features/data-sources/imap-message-facts"
 import type { ImapDataSource, ImapMessageFilterRule } from "@/features/data-sources/types"
 
 export function matchesIntakeFilters(
   source: ImapDataSource,
-  parsed: ParsedMailLike,
-  bodyText: string
+  facts: ImapMessageFacts
 ) {
   return source.intake.messageFilters.rules.every((rule) =>
-    matchesRule(rule, parsed, bodyText)
+    matchesRule(rule, facts)
   )
 }
 
 function matchesRule(
   rule: ImapMessageFilterRule,
-  parsed: ParsedMailLike,
-  bodyText: string
+  facts: ImapMessageFacts
 ) {
-  const fieldValue = ruleFieldValue(rule, parsed, bodyText).toLowerCase()
+  const fieldValue = ruleFieldValue(rule, facts).toLowerCase()
   const ruleValue = rule.value.toLowerCase()
 
   if (rule.operator === "is") return fieldValue === ruleValue
@@ -29,17 +27,10 @@ function matchesRule(
 
 function ruleFieldValue(
   rule: ImapMessageFilterRule,
-  parsed: ParsedMailLike,
-  bodyText: string
+  facts: ImapMessageFacts
 ) {
-  if (rule.field === "subject") return parsed.subject ?? ""
-  if (rule.field === "body") return bodyText
-  if (rule.field === "to") {
-    return [
-      ...addressEmails(parsed.to),
-      ...addressEmails(parsed.cc),
-      ...addressEmails(parsed.bcc),
-    ].join(" ")
-  }
-  return addressEmails(parsed.from).join(" ")
+  if (rule.field === "subject") return facts.subject
+  if (rule.field === "body") return facts.bodyText
+  if (rule.field === "to") return [...facts.toEmails, ...facts.ccEmails, ...facts.bccEmails].join(" ")
+  return facts.fromEmails.join(" ")
 }

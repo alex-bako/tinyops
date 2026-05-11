@@ -119,4 +119,25 @@ describe("client mappers", () => {
     expect(detail.cohort).toBe("Imported")
     expect(detail.timeline).toEqual([])
   })
+
+  it("maps imported IMAP owner replies as sent timeline events", () => {
+    const detail = mapClientProfileToDetail(
+      mapClientRowToProfile({
+        ...baseRow,
+        timeline_events: [
+          {
+            ...baseRow.timeline_events![0]!,
+            id: "event_sent",
+            event_type: "email_sent",
+            title: "Re: replay library access",
+          },
+        ],
+      })
+    )
+
+    expect(detail.timeline[0]).toMatchObject({
+      type: "sent",
+      title: "Re: replay library access",
+    })
+  })
 })

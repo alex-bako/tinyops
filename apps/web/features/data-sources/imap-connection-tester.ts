@@ -15,7 +15,12 @@ type ImapFlowConstructor = new (options: {
 }) => {
   connect(): Promise<void>
   list(options?: unknown): Promise<
-    Array<{ path: string; status?: { messages?: number | null } | null }>
+    Array<{
+      path: string
+      specialUse?: string | null
+      flags?: Iterable<string> | null
+      status?: { messages?: number | null } | null
+    }>
   >
   logout(): Promise<void>
   close(): void
@@ -49,6 +54,14 @@ export function createImapFlowConnectionTester({
           folders: folders.map((folder) => ({
             path: folder.path,
             messages: folder.status?.messages ?? null,
+            ...(folder.specialUse ? { specialUse: folder.specialUse } : {}),
+            ...(folder.flags
+              ? {
+                  flags: Array.from(folder.flags)
+                    .map((flag) => flag.trim())
+                    .filter(Boolean),
+                }
+              : {}),
           })),
         }
       } catch (error) {

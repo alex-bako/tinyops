@@ -118,11 +118,36 @@ function coerceImapFolders(value: unknown): ImapFolder[] {
           ? entry.messages
           : null
 
-      return { path, messages }
+      const specialUse =
+        "specialUse" in entry && typeof entry.specialUse === "string"
+          ? entry.specialUse.trim() || null
+          : null
+      const flags =
+        "flags" in entry && isIterable(entry.flags)
+          ? Array.from(entry.flags)
+              .filter((flag): flag is string => typeof flag === "string")
+              .map((flag) => flag.trim())
+              .filter(Boolean)
+          : []
+
+      return {
+        path,
+        messages,
+        ...(specialUse ? { specialUse } : {}),
+        ...(flags.length > 0 ? { flags } : {}),
+      }
     })
     .filter((entry): entry is ImapFolder => entry !== null)
 
   return Array.from(new Map(folders.map((folder) => [folder.path, folder])).values())
+}
+
+function isIterable(value: unknown): value is Iterable<unknown> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    Symbol.iterator in value
+  )
 }
 
 export function normalizeImapMessageFilters(
