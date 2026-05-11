@@ -14,8 +14,8 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
+import { SourceSyncRealtimeRefresh } from "@/features/data-sources/adapters/source-sync-realtime-refresh"
 import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
-import { DataSourceSyncRealtimeRefresh } from "@/features/data-sources/sync-realtime-refresh"
 
 import { SourceRow } from "./_components/source-row"
 import { SourcesSyncAllButton } from "./_components/sources-sync-all-button"
@@ -35,7 +35,7 @@ export default async function SourcesPage() {
 
   return (
     <WorkspacePageSurface>
-      <DataSourceSyncRealtimeRefresh
+      <SourceSyncRealtimeRefresh
         activeSourceRowIds={activeSourceRowIds}
         sourceRowIds={sourceRowIds}
       />

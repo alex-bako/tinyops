@@ -10,7 +10,9 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
+import { ClientProfileRealtimeRefresh } from "@/features/clients/adapters/client-profile-realtime-refresh"
 import type { ClientDetail } from "@/features/clients/application/client-memory"
+import { useActiveWorkspace } from "@/features/workspaces/context"
 
 import { ClientsTable } from "./clients-table"
 import { ClientsToolbar } from "./clients-toolbar"
@@ -21,6 +23,7 @@ export function ClientsPageClient({
 }: {
   rows: ClientDetail[]
 }) {
+  const activeWorkspace = useActiveWorkspace()
   const {
     filters,
     updateFilters,
@@ -33,6 +36,8 @@ export function ClientsPageClient({
 
   return (
     <WorkspacePageSurface>
+      <ClientProfileRealtimeRefresh workspaceId={activeWorkspace.id} />
+
       <WorkspacePageHeader
         className="mb-8"
         eyebrowIcon={UsersIcon}

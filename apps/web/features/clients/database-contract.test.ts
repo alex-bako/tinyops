@@ -94,4 +94,15 @@ describe("clients database contract", () => {
     expect(migration).toMatch(/sync_error_count integer not null default 0/)
     expect(migration).toMatch(/data_source_sync_states_claimable_idx/)
   })
+
+  it("publishes Client Profile read model changes to Supabase Realtime", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(
+      /alter publication supabase_realtime add table public\.clients/
+    )
+    expect(migration).toMatch(
+      /alter publication supabase_realtime add table public\.timeline_events/
+    )
+  })
 })
