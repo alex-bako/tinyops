@@ -10,6 +10,7 @@ describe("source detail view", () => {
     const source: DataSource = {
       ...findSourceById("imap")!,
       connected: true,
+      sourceRowIds: ["source_1"],
       health: "healthy",
       lastSync: "queued",
       summaryStatId: "synced",
@@ -21,7 +22,11 @@ describe("source detail view", () => {
     expect(view.connection.auth).toBe("imap")
     expect(view.connection.sourceId).toBe("imap")
     expect(view.config.sourceId).toBe("imap")
-    expect(view.actions).toEqual({ canDisconnect: true, canSync: true })
+    expect(view.actions).toEqual({
+      canDisconnect: true,
+      canSync: true,
+      sourceRowId: "source_1",
+    })
     expect(view.header.logoClassName).toContain("cobalt")
     expect(view.header.status).toEqual({
       variant: "ok",
@@ -203,5 +208,78 @@ describe("source detail view", () => {
 
     expect(view.header.isNew).toBe(true)
     expect(view.connection.auth).toBe("apikey")
+  })
+
+  it("does not expose global header or danger actions for plural Google Forms", () => {
+    const source: DataSource = {
+      ...findSourceById("forms")!,
+      connected: true,
+      sourceRowIds: ["forms_source_1", "forms_source_2"],
+      health: "healthy",
+      lastSync: "synced",
+      stats: [],
+      forms: {
+        connections: [
+          {
+            sourceRowId: "forms_source_1",
+            externalFormId: "1Practice",
+            displayName: "Practice intake",
+            connectionMode: "manual_csv",
+            mapping: {
+              identityColumn: "Email Address",
+              timestampColumn: "Timestamp",
+            },
+            latestUpload: null,
+            syncRuns: [
+              {
+                trigger: "immediate",
+                status: "succeeded",
+                startedAt: "2026-05-10T08:00:00.000Z",
+                finishedAt: "2026-05-10T08:00:01.000Z",
+                errorCode: null,
+                errorMessage: null,
+                causeMessage: null,
+                persistedCounts: {
+                  clients: 1,
+                  rawRecords: 1,
+                  timelineEvents: 1,
+                },
+              },
+            ],
+          },
+          {
+            sourceRowId: "forms_source_2",
+            externalFormId: "1Monthly",
+            displayName: "Monthly check-in",
+            connectionMode: "manual_csv",
+            mapping: {
+              identityColumn: "Email Address",
+              timestampColumn: "Timestamp",
+            },
+            latestUpload: null,
+            syncRuns: [
+              {
+                trigger: "cron",
+                status: "failed",
+                startedAt: "2026-05-10T09:00:00.000Z",
+                finishedAt: "2026-05-10T09:00:01.000Z",
+                errorCode: "sync_failed",
+                errorMessage: "Sync failed",
+                causeMessage: null,
+                persistedCounts: null,
+              },
+            ],
+          },
+        ],
+      },
+    }
+
+    const view = createSourceDetailView(source, getSourceUi("forms"))
+
+    expect(view.actions).toEqual({ canDisconnect: false, canSync: false })
+    expect(view.syncAttempts.map((attempt) => attempt.trigger)).toEqual([
+      "cron",
+      "immediate",
+    ])
   })
 })

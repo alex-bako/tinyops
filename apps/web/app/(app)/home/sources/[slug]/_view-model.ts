@@ -72,7 +72,11 @@ function deriveStatus(source: DataSource): SourceStatus {
     }
   }
   if (source.health === "error") {
-    const detail = source.imap?.lastError ?? undefined
+    const detail =
+      source.imap?.lastError ??
+      source.forms?.connections.find((connection) => connection.lastError)
+        ?.lastError ??
+      undefined
     return {
       variant: "warn",
       label: isConnectionFailure(detail) ? "Connection error" : "Sync error",
@@ -98,6 +102,7 @@ function createSourceDetailView(
   sourceUi: Pick<SourceUiRegistryEntry, "activity" | "logoClassName">
 ): SourceDetailView {
   const connected = source.connected
+  const sourceRowId = singleSourceRowId(source.sourceRowIds)
   return {
     id: source.id,
     connected,
@@ -109,9 +114,9 @@ function createSourceDetailView(
       sourceId: source.id,
     },
     actions: {
-      canDisconnect: connected,
-      canSync: connected,
-      ...(source.sourceRowId ? { sourceRowId: source.sourceRowId } : {}),
+      canDisconnect: connected && Boolean(sourceRowId),
+      canSync: connected && Boolean(sourceRowId),
+      ...(sourceRowId ? { sourceRowId } : {}),
     },
     header: {
       id: source.id,
@@ -129,14 +134,21 @@ function createSourceDetailView(
 }
 
 function syncAttempts(source: DataSource): SourceSyncAttempt[] {
-  return (source.imap?.syncRuns ?? []).slice(0, 5).map((run) => ({
-    trigger: run.trigger,
-    status: run.status,
-    startedAt: run.startedAt,
-    finishedAt: run.finishedAt,
-    label: syncAttemptLabel(run.status),
-    detail: syncAttemptDetail(run),
-  }))
+  return [
+    ...(source.imap?.syncRuns ?? []),
+    ...(source.forms?.connections.flatMap((connection) => connection.syncRuns ?? []) ??
+      []),
+  ]
+    .sort((left, right) => right.startedAt.localeCompare(left.startedAt))
+    .slice(0, 5)
+    .map((run) => ({
+      trigger: run.trigger,
+      status: run.status,
+      startedAt: run.startedAt,
+      finishedAt: run.finishedAt,
+      label: syncAttemptLabel(run.status),
+      detail: syncAttemptDetail(run),
+    }))
 }
 
 function syncAttemptLabel(status: SourceSyncAttempt["status"]) {
@@ -206,6 +218,10 @@ function plural(label: string, count: number) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
+function singleSourceRowId(sourceRowIds: string[]) {
+  return sourceRowIds.length === 1 ? sourceRowIds[0] : undefined
 }
 
 export { createSourceDetailView }

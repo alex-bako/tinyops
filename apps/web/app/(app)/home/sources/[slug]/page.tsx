@@ -8,6 +8,7 @@ import { Button } from "@workspace/ui/components/button"
 import { WorkspacePageSurface } from "@/components/page-surface"
 import { SourceSyncRealtimeRefresh } from "@/features/data-sources/adapters/source-sync-realtime-refresh"
 import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
+import type { DataSource } from "@/lib/sources"
 
 import { ActivityBlock } from "./_components/activity-block"
 import { ConfigBlock } from "./_components/config-block"
@@ -47,16 +48,13 @@ export default async function SourceDetailPage({
 
   const sourceUi = getSourceUi(source.id)
   const view = createSourceDetailView(source, sourceUi)
-  const activeSourceRowIds =
-    source.sourceRowId && isActiveSyncStatus(source.imap?.syncStatus)
-      ? [source.sourceRowId]
-      : []
+  const activeSourceRowIds = activeSyncSourceRowIds(source)
 
   return (
     <WorkspacePageSurface>
       <SourceSyncRealtimeRefresh
         activeSourceRowIds={activeSourceRowIds}
-        sourceRowIds={source.sourceRowId ? [source.sourceRowId] : []}
+        sourceRowIds={source.sourceRowIds}
       />
 
       <div className="mb-[18px]">
@@ -82,10 +80,17 @@ export default async function SourceDetailPage({
         <SyncAttemptsBlock attempts={view.syncAttempts} />
       ) : null}
 
-      {view.connected && source.sourceRowId ? (
-        <DangerZone sourceRowId={source.sourceRowId} title={view.header.title} />
+      {view.connected && view.actions.sourceRowId ? (
+        <DangerZone sourceRowId={view.actions.sourceRowId} title={view.header.title} />
       ) : null}
     </WorkspacePageSurface>
+  )
+}
+
+function activeSyncSourceRowIds(source: DataSource) {
+  if (isActiveSyncStatus(source.imap?.syncStatus)) return source.sourceRowIds
+  return (source.forms?.connections ?? []).flatMap((connection) =>
+    isActiveSyncStatus(connection.syncStatus) ? [connection.sourceRowId] : []
   )
 }
 

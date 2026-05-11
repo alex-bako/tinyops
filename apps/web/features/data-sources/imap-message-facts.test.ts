@@ -31,7 +31,6 @@ function source(patch: Partial<ImapDataSource> = {}): ImapDataSource {
     secret: { purpose: "imap_password", maskedValue: "****cret" },
     sync: {
       status: "queued",
-      historyWindow: "90d",
       cursor: null,
       lastError: null,
       lastSyncedAt: null,

@@ -6,6 +6,7 @@ import {
 } from "@/features/data-sources/application"
 import type {
   DataSourceCommandStore,
+  GoogleFormsDataSource,
   DataSourceReader,
   ImapConnectionTester,
   ImapDataSource,
@@ -52,13 +53,44 @@ function connectedImapSource(
     },
     sync: {
       status: "queued",
-      historyWindow: "12mo",
       cursor: null,
       lastError: null,
       lastSyncedAt: null,
     },
     createdAt: "2026-05-09T00:00:00.000Z",
     updatedAt: "2026-05-09T00:00:00.000Z",
+  }
+}
+
+function connectedGoogleFormsSource(): GoogleFormsDataSource {
+  return {
+    id: "forms_source_1",
+    workspaceId: workspace.id,
+    type: "forms",
+    displayName: "Practice intake",
+    status: "connected",
+    configVersion: 1,
+    externalFormId: "1AbC_Def-1234567890",
+    connectionMode: "manual_csv",
+    mapping: {
+      identityColumn: "Email Address",
+      timestampColumn: "Timestamp",
+    },
+    latestUpload: {
+      id: "upload_1",
+      fileName: "practice-intake.csv",
+      rowCount: 1,
+      uploadedAt: "2026-05-10T00:00:00.000Z",
+    },
+    sync: {
+      status: "queued",
+      cursor: null,
+      lastError: null,
+      lastSyncedAt: null,
+    },
+    syncRuns: [],
+    createdAt: "2026-05-10T00:00:00.000Z",
+    updatedAt: "2026-05-10T00:00:00.000Z",
   }
 }
 
@@ -86,6 +118,9 @@ function dataSourceStore(
     },
     async updateImapFolderSnapshot() {
       throw new Error("unexpected folder snapshot update")
+    },
+    async connectGoogleFormsManualCsv() {
+      throw new Error("unexpected Google Forms connect")
     },
     async disconnect() {
       throw new Error("unexpected disconnect")
@@ -127,6 +162,77 @@ describe("data source application", () => {
     })
 
     await expect(application.listDataSources()).resolves.toHaveLength(1)
+  })
+
+  it("does not run singleton workspace lookup for plural Google Forms", async () => {
+    const reader: DataSourceReader = {
+      async listForWorkspace() {
+        return []
+      },
+      async findForWorkspace() {
+        throw new Error("forms must not use singleton lookup")
+      },
+      async findByIdForWorkspace() {
+        throw new Error("unexpected find by id")
+      },
+    }
+
+    const application = createDataSourceQueryApplication({
+      workspace,
+      reader,
+    })
+
+    await expect(application.findDataSource("forms")).resolves.toBeNull()
+  })
+
+  it("dispatches source commands through the command registry", async () => {
+    const registry = {
+      imap: {
+        connect: vi.fn(async () => connectedImapSource()),
+        updateConnectionSettings: vi.fn(),
+        updateIntakeSettings: vi.fn(),
+        refreshFolders: vi.fn(),
+      },
+      forms: {
+        connectManualCsv: vi.fn(async () => connectedGoogleFormsSource()),
+      },
+      lifecycle: {
+        disconnect: vi.fn(),
+        requestSync: vi.fn(),
+        requestAllConfiguredSyncs: vi.fn(),
+      },
+    }
+    const application = createDataSourceCommandApplication({
+      workspace,
+      store: dataSourceStore(),
+      imapConnectionTester: successfulTester,
+      imapCredentialReader: {
+        async readImapPassword() {
+          throw new Error("unexpected secret read")
+        },
+      },
+      commandRegistry: registry,
+    })
+
+    await application.connectImap({
+      host: "imap.example.com",
+      port: 993,
+      encryption: "ssl",
+      username: "hello@example.com",
+      password: "top-secret",
+      historyWindow: "90d",
+    })
+    await application.connectGoogleFormsManualCsv({
+      formUrlOrId: "1AbC_Def-1234567890",
+      displayName: "Practice intake",
+      fileName: "practice-intake.csv",
+      identityColumn: "Email Address",
+      timestampColumn: "Timestamp",
+      csvText: "Timestamp,Email Address\n2026-05-10T09:15:00.000Z,anna@example.com",
+    })
+
+    expect(registry.imap.connect).toHaveBeenCalledOnce()
+    expect(registry.forms.connectManualCsv).toHaveBeenCalledOnce()
   })
 
   it("connects IMAP and persists verified folder snapshot without returning the password", async () => {
@@ -352,6 +458,74 @@ describe("data source application", () => {
     ])
   })
 
+  it("connects Google Forms manual CSV after parsing mapped response rows", async () => {
+    const persisted: unknown[] = []
+    const application = createDataSourceCommandApplication({
+      workspace,
+      store: dataSourceStore({
+        async connectGoogleFormsManualCsv(input) {
+          persisted.push(input)
+          return connectedGoogleFormsSource()
+        },
+      }),
+      imapConnectionTester: successfulTester,
+      imapCredentialReader: {
+        async readImapPassword() {
+          throw new Error("unexpected secret read")
+        },
+      },
+    })
+
+    const result = await application.connectGoogleFormsManualCsv({
+      formUrlOrId: "https://docs.google.com/forms/d/1AbC_Def-1234567890/edit",
+      displayName: "Practice intake",
+      fileName: "practice-intake.csv",
+      identityColumn: "Email Address",
+      timestampColumn: "Timestamp",
+      csvText: [
+        "Timestamp,Email Address,Full name",
+        "2026-05-10T09:05:00.000Z,,Anonymous",
+        "2026-05-10T09:10:00.000Z,Gábor,Named but no email",
+        "2026-05-10T09:15:00.000Z,anna@example.com,Anna Smith",
+      ].join("\n"),
+    })
+
+    expect(result).toMatchObject({
+      data: {
+        id: "forms_source_1",
+        type: "forms",
+        externalFormId: "1AbC_Def-1234567890",
+      },
+    })
+    expect(persisted).toMatchObject([
+      {
+        workspaceId: workspace.id,
+        source: {
+          externalFormId: "1AbC_Def-1234567890",
+          connectionMode: "manual_csv",
+          displayName: "Practice intake",
+          mapping: {
+            identityColumn: "Email Address",
+            timestampColumn: "Timestamp",
+          },
+        },
+        upload: {
+          fileName: "practice-intake.csv",
+          rows: [
+            {
+              rowNumber: 4,
+              payload: {
+                Timestamp: "2026-05-10T09:15:00.000Z",
+                "Email Address": "anna@example.com",
+                "Full name": "Anna Smith",
+              },
+            },
+          ],
+        },
+      },
+    ])
+  })
+
   it("updates IMAP intake settings without changing connection settings or folder snapshot", async () => {
     const updatedIntake: unknown[] = []
     const source = connectedImapSource()
@@ -502,6 +676,24 @@ describe("data source application", () => {
       imapCredentialReader: {
         async readImapPassword() {
           throw new Error("policy should run before secret read")
+        },
+      },
+      commandRegistry: {
+        imap: {
+          connect: vi.fn(async () => {
+            throw new Error("policy should run before registry")
+          }),
+          updateConnectionSettings: vi.fn(),
+          updateIntakeSettings: vi.fn(),
+          refreshFolders: vi.fn(),
+        },
+        forms: {
+          connectManualCsv: vi.fn(),
+        },
+        lifecycle: {
+          disconnect: vi.fn(),
+          requestSync: vi.fn(),
+          requestAllConfiguredSyncs: vi.fn(),
         },
       },
     })

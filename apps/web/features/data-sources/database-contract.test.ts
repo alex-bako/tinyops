@@ -40,11 +40,14 @@ describe("data sources database contract", () => {
     )
   })
 
-  it("keeps one active connector per workspace and type", () => {
+  it("keeps one active connector per workspace and type except Google Forms modes", () => {
     const migration = migrationSource()
 
-    expect(migration).toMatch(/data_sources_one_active_per_workspace_type/)
-    expect(migration).toMatch(/where disconnected_at is null/)
+    expect(migration).toMatch(/data_sources_one_active_per_workspace_singleton_type/)
+    expect(migration).toMatch(/where disconnected_at is null\s+and source_type <> 'forms'/)
+    expect(migration).toMatch(/data_sources_one_active_google_form_per_mode/)
+    expect(migration).toMatch(/config->>'externalFormId'/)
+    expect(migration).toMatch(/config->>'connectionMode'/)
   })
 
   it("stores IMAP passwords through Vault inside the connect RPC", () => {
@@ -145,6 +148,21 @@ describe("data sources database contract", () => {
     expect(migration).toMatch(
       /revoke execute on function public\.request_all_data_source_syncs\(uuid\)/
     )
+  })
+
+  it("stores Google Forms manual CSV uploads for sync worker ingestion", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(/create table public\.google_forms_csv_uploads \(/)
+    expect(migration).toMatch(/create table public\.google_forms_csv_rows \(/)
+    expect(migration).toMatch(/response_key text not null/)
+    expect(migration).toMatch(/unique \(source_id, response_key\)/)
+    expect(migration).toMatch(
+      /function public\.connect_google_forms_manual_csv_data_source/
+    )
+    expect(migration).toMatch(/form_connection_mode = 'manual_csv'/)
+    expect(migration).toMatch(/invalid_google_forms_csv_mapping/)
+    expect(migration).toMatch(/grant execute on function public\.connect_google_forms_manual_csv_data_source/)
   })
 
   it("exposes IMAP password decrypt through a service-role-only RPC", () => {

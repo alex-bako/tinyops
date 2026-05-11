@@ -459,7 +459,6 @@ export type Database = {
         Row: {
           created_at: string
           cursor: Json | null
-          history_window: string
           id: string
           last_error: string | null
           last_started_at: string | null
@@ -476,7 +475,6 @@ export type Database = {
         Insert: {
           created_at?: string
           cursor?: Json | null
-          history_window?: string
           id?: string
           last_error?: string | null
           last_started_at?: string | null
@@ -493,7 +491,6 @@ export type Database = {
         Update: {
           created_at?: string
           cursor?: Json | null
-          history_window?: string
           id?: string
           last_error?: string | null
           last_started_at?: string | null
@@ -563,6 +560,116 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "data_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_forms_csv_rows: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          response_key: string
+          row_number: number
+          source_id: string
+          upload_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload: Json
+          response_key: string
+          row_number: number
+          source_id: string
+          upload_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          response_key?: string
+          row_number?: number
+          source_id?: string
+          upload_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_forms_csv_rows_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_forms_csv_rows_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "google_forms_csv_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_forms_csv_rows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_forms_csv_uploads: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          row_count: number
+          source_id: string
+          updated_at: string
+          uploaded_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          row_count?: number
+          source_id: string
+          updated_at?: string
+          uploaded_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          row_count?: number
+          source_id?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_forms_csv_uploads_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_forms_csv_uploads_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_forms_csv_uploads_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -986,6 +1093,18 @@ export type Database = {
         }
         Returns: string
       }
+      connect_google_forms_manual_csv_data_source: {
+        Args: {
+          form_connection_mode: string
+          form_display_name: string
+          form_external_id: string
+          form_mapping: Json
+          target_workspace_id: string
+          upload_file_name: string
+          upload_rows: Json
+        }
+        Returns: string
+      }
       connect_imap_data_source: {
         Args: {
           imap_available_folders: Json
@@ -1031,9 +1150,29 @@ export type Database = {
         }
         Returns: undefined
       }
+      google_forms_csv_response_email: {
+        Args: { value: string }
+        Returns: string
+      }
+      google_forms_csv_response_key: {
+        Args: { form_external_id: string; mapping: Json; payload: Json }
+        Returns: string
+      }
+      google_forms_csv_response_timestamp: {
+        Args: { value: string }
+        Returns: string
+      }
       ingest_client_connector_records: {
         Args: { normalized_records: Json }
         Returns: Json
+      }
+      is_valid_google_forms_csv_mapping: {
+        Args: { mapping: Json }
+        Returns: boolean
+      }
+      is_valid_google_forms_csv_upload_rows: {
+        Args: { mapping: Json; rows: Json }
+        Returns: boolean
       }
       is_valid_imap_message_filters: {
         Args: { filters: Json }
@@ -1047,13 +1186,13 @@ export type Database = {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: string[]
       }
-      request_data_source_sync: {
-        Args: { target_source_id: string; target_workspace_id: string }
-        Returns: undefined
-      }
       request_all_data_source_syncs: {
         Args: { target_workspace_id: string }
         Returns: number
+      }
+      request_data_source_sync: {
+        Args: { target_source_id: string; target_workspace_id: string }
+        Returns: undefined
       }
       revoke_workspace_invitation: {
         Args: { target_invitation_id: string }

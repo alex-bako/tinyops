@@ -3,7 +3,7 @@ import type { DataSource } from "@/lib/sources"
 export function sourceAdapterKey(source: DataSource) {
   return [
     source.id,
-    source.sourceRowId ?? "catalog",
+    source.sourceRowIds.join("\u0000") || "catalog",
     source.connected ? "connected" : "disconnected",
     source.imap?.host ?? "",
     source.imap?.port ?? "",

@@ -2,7 +2,12 @@ import {
   createSupabaseClientIngestionWriter,
   type SupabaseClientIngestionWriterClient,
 } from "@/features/clients/adapters/supabase-ingestion-writer"
+import { createGoogleFormsSourceSyncAdapter } from "@/features/data-sources/adapters/google-forms-source-sync-adapter"
 import { createImapSourceSyncAdapter } from "@/features/data-sources/adapters/imap-source-sync-adapter"
+import {
+  createSupabaseGoogleFormsManualCsvRowReader,
+  type SupabaseGoogleFormsManualCsvRowReaderClient,
+} from "@/features/data-sources/google-forms-row-reader"
 import {
   createSupabaseImapThreadIndexReader,
   type SupabaseImapThreadIndexReaderClient,
@@ -21,6 +26,7 @@ import {
   type SupabaseSyncRunRecorderClient,
 } from "@/features/data-sources/sync-run-recorder"
 import { createDataSourceSyncWorker } from "@/features/data-sources/sync-worker"
+import { createSourceSyncRegistry } from "@/features/data-sources/sync-registry"
 import { getLogger } from "@/lib/logging"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
@@ -30,6 +36,8 @@ export function createDataSourceSyncRuntime() {
   const rpcClient = client as unknown as SupabaseSyncJobStoreClient &
     SupabaseClientIngestionWriterClient &
     SupabaseImapSecretReaderClient
+  const googleFormsRowReaderClient =
+    client as unknown as SupabaseGoogleFormsManualCsvRowReaderClient
   const threadIndexClient = client as unknown as SupabaseImapThreadIndexReaderClient
   const syncRunClient = client as unknown as SupabaseSyncRunRecorderClient
   const dataSourceReader = createSupabaseDataSourceStore({ client })
@@ -43,7 +51,7 @@ export function createDataSourceSyncRuntime() {
     runRecorder: createSupabaseDataSourceSyncRunRecorder({
       client: syncRunClient,
     }),
-    sourceSyncAdapters: [
+    sourceSyncRegistry: createSourceSyncRegistry([
       createImapSourceSyncAdapter({
         dataSourceReader,
         imapCredentialReader,
@@ -52,7 +60,13 @@ export function createDataSourceSyncRuntime() {
         }),
         logger,
       }),
-    ],
+      createGoogleFormsSourceSyncAdapter({
+        dataSourceReader,
+        rowReader: createSupabaseGoogleFormsManualCsvRowReader({
+          client: googleFormsRowReaderClient,
+        }),
+      }),
+    ]),
     logger,
   })
 }

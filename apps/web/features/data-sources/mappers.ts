@@ -3,13 +3,18 @@ import {
   buildImapConnectionConfig,
   buildImapFolderSnapshot,
   buildImapIntakeSettings,
-  coerceImapHistoryWindow,
   type ImapMessageFiltersCommand,
 } from "@/features/data-sources/imap"
+import type {
+  GoogleFormsConnectionMode,
+  GoogleFormsManualCsvMapping,
+} from "@/features/data-sources/google-forms"
 import type {
   DataSourceSecret,
   DataSourceSyncRun,
   DataSourceSyncState,
+  GoogleFormsDataSource,
+  GoogleFormsUpload,
   ImapConnectionConfig,
   ImapDataSource,
   ImapFolderSnapshot,
@@ -49,7 +54,6 @@ export type DataSourceSecretRow = {
 
 export type DataSourceSyncStateRow = {
   status: string
-  history_window: string
   cursor: Json
   last_error: string | null
   last_synced_at: string | null
@@ -68,10 +72,18 @@ export type DataSourceSyncRunRow = {
 }
 
 export function mapDataSourceRow(row: DataSourceRow): WorkspaceDataSource {
-  if (row.source_type !== "imap") {
-    throw new Error(`Unsupported data source type: ${row.source_type}`)
+  if (row.source_type === "imap") {
+    return mapImapDataSourceRow(row)
   }
 
+  if (row.source_type === "forms") {
+    return mapGoogleFormsDataSourceRow(row)
+  }
+
+  throw new Error(`Unsupported data source type: ${row.source_type}`)
+}
+
+function mapImapDataSourceRow(row: DataSourceRow): ImapDataSource {
   return {
     id: row.id,
     workspaceId: row.workspace_id,
@@ -91,6 +103,28 @@ export function mapDataSourceRow(row: DataSourceRow): WorkspaceDataSource {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   } satisfies ImapDataSource
+}
+
+function mapGoogleFormsDataSourceRow(row: DataSourceRow): GoogleFormsDataSource {
+  const config = jsonObject(row.config)
+  if (!config) throw new Error("Invalid Google Forms config")
+
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    type: "forms",
+    displayName: row.display_name,
+    status: coerceStatus(row.status),
+    configVersion: 1,
+    externalFormId: stringValue(config.externalFormId),
+    connectionMode: coerceGoogleFormsConnectionMode(config.connectionMode),
+    mapping: googleFormsMapping(config.mapping),
+    latestUpload: googleFormsUpload(config.latestUpload),
+    sync: mapSyncState(row.data_source_sync_states),
+    syncRuns: mapSyncRuns(row.data_source_sync_runs),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  } satisfies GoogleFormsDataSource
 }
 
 function mapImapConnectionConfig(config: Json): ImapConnectionConfig {
@@ -149,7 +183,6 @@ function mapSyncState(
 
   return {
     status: coerceSyncStatus(row?.status),
-    historyWindow: coerceImapHistoryWindow(row?.history_window),
     cursor: jsonObjectOrNull(row?.cursor),
     lastError: row?.last_error ?? null,
     lastSyncedAt: row?.last_synced_at ?? null,
@@ -220,4 +253,30 @@ function messageFiltersValue(
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as ImapMessageFiltersCommand)
     : undefined
+}
+
+function coerceGoogleFormsConnectionMode(
+  value: unknown
+): GoogleFormsConnectionMode {
+  if (value === "manual_csv") return value
+  return "manual_csv"
+}
+
+function googleFormsMapping(value: unknown): GoogleFormsManualCsvMapping {
+  const mapping = jsonObject(value as Json | undefined)
+  return {
+    identityColumn: stringValue(mapping?.identityColumn),
+    timestampColumn: stringValue(mapping?.timestampColumn),
+  }
+}
+
+function googleFormsUpload(value: unknown): GoogleFormsUpload | null {
+  const upload = jsonObject(value as Json | undefined)
+  if (!upload) return null
+  const id = stringValue(upload.id)
+  const fileName = stringValue(upload.fileName)
+  const rowCount = numberValue(upload.rowCount, 0)
+  const uploadedAt = stringValue(upload.uploadedAt)
+  if (!id || !fileName || !uploadedAt) return null
+  return { id, fileName, rowCount, uploadedAt }
 }

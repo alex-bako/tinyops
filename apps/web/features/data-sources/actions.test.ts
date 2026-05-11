@@ -66,6 +66,7 @@ vi.mock("@/lib/supabase/server-env", () => ({
 }))
 
 import {
+  connectGoogleFormsManualCsvDataSourceAction,
   connectImapDataSourceAction,
   requestAllDataSourceSyncsAction,
   requestDataSourceSyncAction,
@@ -95,7 +96,6 @@ function imapSource(): ImapDataSource {
     secret: { purpose: "imap_password", maskedValue: "****cret" },
     sync: {
       status: "queued",
-      historyWindow: "90d",
       cursor: null,
       lastError: null,
       lastSyncedAt: null,
@@ -127,6 +127,31 @@ function store(overrides: Record<string, unknown> = {}) {
     },
     async updateImapFolderSnapshot() {
       return imapSource()
+    },
+    async connectGoogleFormsManualCsv() {
+      return {
+        id: "forms_source_1",
+        workspaceId: "workspace_1",
+        type: "forms",
+        displayName: "Practice intake",
+        status: "connected",
+        configVersion: 1,
+        externalFormId: "1AbC_Def-1234567890",
+        connectionMode: "manual_csv",
+        mapping: {
+          identityColumn: "Email Address",
+          timestampColumn: "Timestamp",
+        },
+        latestUpload: null,
+        sync: {
+          status: "queued",
+          cursor: null,
+          lastError: null,
+          lastSyncedAt: null,
+        },
+        createdAt: "2026-05-10T00:00:00.000Z",
+        updatedAt: "2026-05-10T00:00:00.000Z",
+      }
     },
     async disconnect() {},
     async requestSync() {},
@@ -179,6 +204,24 @@ describe("data source server actions", () => {
       baseUrl: "https://app.example.com",
       secret: "sync-secret",
     })
+  })
+
+  it("schedules immediate worker dispatch after Google Forms manual CSV connect", async () => {
+    await expect(
+      connectGoogleFormsManualCsvDataSourceAction({
+        formUrlOrId: "https://docs.google.com/forms/d/1AbC_Def-1234567890/edit",
+        displayName: "Practice intake",
+        fileName: "practice-intake.csv",
+        identityColumn: "Email Address",
+        timestampColumn: "Timestamp",
+        csvText: [
+          "Timestamp,Email Address",
+          "2026-05-10T09:15:00.000Z,anna@example.com",
+        ].join("\n"),
+      })
+    ).resolves.toMatchObject({ data: { id: "forms_source_1" } })
+
+    expect(mocks.afterCallbacks).toHaveLength(1)
   })
 
   it("schedules immediate worker dispatch after explicit sync requests", async () => {

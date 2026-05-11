@@ -120,7 +120,9 @@ describe("AuthenticatedAppShell", () => {
         sub: "hello@example.com",
         category: "Mail",
         auth: "imap",
+        cardinality: "singleton",
         connected: true,
+        sourceRowIds: ["source_1"],
         stats: [],
       },
     ])

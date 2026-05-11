@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   CONNECTOR_IDS,
   composeWorkspaceConnectorCatalog,
+  getConnectorMetadata,
   listConnectorDefinitions,
 } from "@/features/data-sources/connectors"
 import type { ImapDataSource } from "@/features/data-sources/types"
@@ -33,7 +34,6 @@ function imapSource(): ImapDataSource {
     secret: { purpose: "imap_password", maskedValue: "****cret" },
     sync: {
       status: "queued",
-      historyWindow: "12mo",
       cursor: null,
       lastError: null,
       lastSyncedAt: null,
@@ -64,6 +64,14 @@ describe("data source connector platform", () => {
     })
     expect(definitions[0]).not.toHaveProperty("connected")
     expect(definitions[0]).not.toHaveProperty("imap")
+    expect(getConnectorMetadata("forms")).toMatchObject({
+      id: "forms",
+      cardinality: "plural",
+    })
+    expect(getConnectorMetadata("imap")).toMatchObject({
+      id: "imap",
+      cardinality: "singleton",
+    })
   })
 
   it("composes runtime workspace state only for connected IMAP", () => {
@@ -74,7 +82,7 @@ describe("data source connector platform", () => {
     expect(imap).toMatchObject({
       id: "imap",
       connected: true,
-      sourceRowId: "source_1",
+      sourceRowIds: ["source_1"],
       imap: {
         username: "hello@example.com",
         watchedFolders: ["INBOX"],

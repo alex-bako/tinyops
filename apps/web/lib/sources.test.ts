@@ -57,7 +57,7 @@ describe("sources", () => {
 
   it("declares an auth strategy on every source", () => {
     for (const source of SOURCES) {
-      expect(source.auth).toMatch(/^(oauth|apikey|imap|csv)$/)
+      expect(source.auth).toMatch(/^(oauth|apikey|imap|csv|multi)$/)
       expect(source.category).toBeTruthy()
     }
   })

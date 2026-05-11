@@ -484,6 +484,17 @@ select public.complete_data_source_sync(
 );
 
 select pg_temp.assert_true(
+  not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'data_source_sync_states'
+      and column_name = 'history_window'
+  ),
+  'generic sync state has no source-specific history window'
+);
+
+select pg_temp.assert_true(
   (
     select status = 'idle'
       and lease_owner is null
@@ -549,6 +560,173 @@ select pg_temp.assert_true(
       and disconnected_at is null
   ),
   'admin can disconnect data source'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_google_forms_manual_csv_data_source(%L::uuid, %L, %L, %L, %L::jsonb, %L, %L::jsonb)',
+    current_setting('tinyops.workspace_id'),
+    '',
+    'manual_csv',
+    'Practice intake',
+    '{"identityColumn":"Email Address","timestampColumn":"Timestamp"}',
+    'practice-intake.csv',
+    '[{"rowNumber":2,"payload":{"Timestamp":"2026-05-10T09:15:00.000Z","Email Address":"anna@example.com"}}]'
+  ),
+  'invalid_google_forms_csv_mapping',
+  'invalid Google Forms CSV config'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_google_forms_manual_csv_data_source(%L::uuid, %L, %L, %L, %L::jsonb, %L, %L::jsonb)',
+    current_setting('tinyops.workspace_id'),
+    '1InvalidRows',
+    'manual_csv',
+    'Invalid rows',
+    '{"identityColumn":"Email Address","timestampColumn":"Timestamp"}',
+    'invalid.csv',
+    '[{"rowNumber":2,"payload":{"Timestamp":"2026-05-10T09:15:00.000Z"}}]'
+  ),
+  'invalid_google_forms_csv_mapping',
+  'Google Forms CSV rejects missing mapped identity column'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_google_forms_manual_csv_data_source(%L::uuid, %L, %L, %L, %L::jsonb, %L, %L::jsonb)',
+    current_setting('tinyops.workspace_id'),
+    '1InvalidRows',
+    'manual_csv',
+    'Invalid rows',
+    '{"identityColumn":"Email Address","timestampColumn":"Timestamp"}',
+    'invalid.csv',
+    '[{"rowNumber":2,"payload":{"Timestamp":"2026-05-10T09:15:00.000Z","Email Address":"not-an-email"}}]'
+  ),
+  'invalid_google_forms_csv_mapping',
+  'Google Forms CSV rejects invalid email'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_google_forms_manual_csv_data_source(%L::uuid, %L, %L, %L, %L::jsonb, %L, %L::jsonb)',
+    current_setting('tinyops.workspace_id'),
+    '1InvalidRows',
+    'manual_csv',
+    'Invalid rows',
+    '{"identityColumn":"Email Address","timestampColumn":"Timestamp"}',
+    'invalid.csv',
+    '[{"rowNumber":2,"payload":{"Timestamp":"not-a-date","Email Address":"anna@example.com"}}]'
+  ),
+  'invalid_google_forms_csv_mapping',
+  'Google Forms CSV rejects invalid timestamp'
+);
+
+select public.connect_google_forms_manual_csv_data_source(
+  current_setting('tinyops.workspace_id')::uuid,
+  '1AbC_Def-1234567890',
+  'manual_csv',
+  'Practice intake',
+  '{"identityColumn":"Email Address","timestampColumn":"Timestamp"}'::jsonb,
+  'practice-intake.csv',
+  '[{"rowNumber":2,"payload":{"Timestamp":"2026-05-10T09:15:00.000Z","Email Address":"anna@example.com","Full name":"Anna Smith"}}]'::jsonb
+) as forms_source_id \gset
+
+select public.connect_google_forms_manual_csv_data_source(
+  current_setting('tinyops.workspace_id')::uuid,
+  '1Monthly_CheckIn',
+  'manual_csv',
+  'Monthly check-in',
+  '{"identityColumn":"Email Address","timestampColumn":"Timestamp"}'::jsonb,
+  'monthly.csv',
+  '[{"rowNumber":2,"payload":{"Timestamp":"2026-05-11T09:15:00.000Z","Email Address":"priya@example.com"}}]'::jsonb
+) as forms_source_id_2 \gset
+
+select pg_temp.assert_true(
+  public.connect_google_forms_manual_csv_data_source(
+    current_setting('tinyops.workspace_id')::uuid,
+    '1AbC_Def-1234567890',
+    'manual_csv',
+    'Practice intake',
+    '{"identityColumn":"Email Address","timestampColumn":"Timestamp"}'::jsonb,
+    'practice-intake-reupload.csv',
+    '[{"rowNumber":2,"payload":{"Timestamp":"2026-05-12T09:15:00.000Z","Email Address":"mika@example.com"}}]'::jsonb
+  ) = :'forms_source_id'::uuid,
+  'manual CSV reconnect updates same Google Form source and mode'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 2
+    from public.data_sources
+    where workspace_id = current_setting('tinyops.workspace_id')::uuid
+      and source_type = 'forms'
+      and disconnected_at is null
+  ),
+  'workspace can connect multiple Google Forms manual CSV sources'
+);
+
+select public.connect_google_forms_manual_csv_data_source(
+  current_setting('tinyops.workspace_id')::uuid,
+  '1Dotted_Timestamp',
+  'manual_csv',
+  'Dotted timestamp',
+  '{"identityColumn":"Email Address","timestampColumn":"Időbélyeg"}'::jsonb,
+  'dotted-timestamp.csv',
+  '[{"rowNumber":2,"payload":{"Időbélyeg":"2026.01.14. 19:22:08","Email Address":"anna@example.com"}}]'::jsonb
+) as forms_source_id_3 \gset
+
+select pg_temp.assert_true(
+  (
+    select config->>'externalFormId' = '1AbC_Def-1234567890'
+      and config->>'connectionMode' = 'manual_csv'
+      and config->'mapping'->>'identityColumn' = 'Email Address'
+      and config->'latestUpload'->>'fileName' = 'practice-intake-reupload.csv'
+    from public.data_sources
+    where id = :'forms_source_id'::uuid
+  ),
+  'Google Forms source stores mode, mapping, and latest upload metadata'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 4
+    from public.google_forms_csv_uploads
+    where workspace_id = current_setting('tinyops.workspace_id')::uuid
+  ),
+  'Google Forms CSV uploads are stored as upload batches'
+);
+
+reset role;
+set role service_role;
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 4
+    from public.google_forms_csv_rows
+    where workspace_id = current_setting('tinyops.workspace_id')::uuid
+  ),
+  'Google Forms CSV response rows are available to the sync worker'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 1
+    from public.google_forms_csv_rows
+    where source_id = :'forms_source_id'::uuid
+      and response_key = 'manual_csv:1AbC_Def-1234567890:2026-05-12T09:15:00.000Z:mika@example.com'
+  ),
+  'Google Forms CSV response key is derived in the database'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 1
+    from public.google_forms_csv_rows
+    where source_id = :'forms_source_id_3'::uuid
+      and response_key = 'manual_csv:1Dotted_Timestamp:2026-01-14T19:22:08.000Z:anna@example.com'
+  ),
+  'Google Forms CSV response key supports dotted export timestamps'
 );
 
 reset role;
