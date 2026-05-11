@@ -25,8 +25,8 @@ export function planImapFolderSync({
   const watchedPaths = new Set(source.intake.watchedFolders)
   return [
     ...watched,
-    ...sentFolders
-      .filter((path) => !watchedPaths.has(path))
-      .map((path) => ({ path, role: "sent" as const })),
+    ...sentFolders.flatMap((path) =>
+      watchedPaths.has(path) ? [] : [{ path, role: "sent" as const }]
+    ),
   ]
 }

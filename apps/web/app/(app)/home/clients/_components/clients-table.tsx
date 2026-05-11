@@ -22,17 +22,24 @@ import {
   ClientStatusBadge,
 } from "@/components/client-state-badge"
 import type { ClientDetail } from "@/features/clients/application/client-memory"
+import { navigateWithOptionalViewTransition } from "@/lib/view-transition-navigation"
+import {
+  clientProfileHref,
+  clientProfileViewTransitionName,
+} from "../_profile-routing"
 
 export function ClientsTable({
   rows,
   emptyMessage,
   onClear,
+  newlyInsertedSlugs,
 }: {
   rows: ClientDetail[]
   emptyMessage: string
   onClear: () => void
+  newlyInsertedSlugs?: ReadonlySet<string>
 }) {
-  const router = useRouter()
+  const { push } = useRouter()
   return (
     <Table className="mt-0">
       <TableHeader>
@@ -52,6 +59,7 @@ export function ClientsTable({
           <tr>
             <td colSpan={8} className="border-b border-border">
               <div
+                data-motion-safe-fade=""
                 className={cn(
                   "flex items-center justify-center gap-2.5 px-3 py-9 text-[13px] text-muted-foreground"
                 )}
@@ -66,27 +74,39 @@ export function ClientsTable({
           </tr>
         ) : (
           rows.map((c) => {
-            const href = `/home/clients/${c.slug}`
+            const href = clientProfileHref(c.slug)
+            const justInserted = newlyInsertedSlugs?.has(c.slug)
+            const navigate = () => {
+              navigateWithOptionalViewTransition(push, href)
+            }
             return (
             <TableRow
-              key={c.email}
+              key={c.slug}
               interactive
+              data-just-inserted={justInserted ? "" : undefined}
               className="cursor-pointer"
               onClick={(e) => {
                 if ((e.target as HTMLElement).closest("a")) return
-                router.push(href)
+                navigate()
               }}
             >
               <TableCell>
-                <ClientIdentityLink
-                  href={href}
-                  className="-m-1 flex min-w-0 items-center gap-2.5 rounded-sm p-1 no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-                  name={c.name}
-                  email={c.email}
-                  detailsClassName="leading-[1.2]"
-                  nameClassName="text-[13.5px] font-medium tracking-[-0.005em]"
-                  emailClassName="text-[11px]"
-                />
+                <span
+                  style={{
+                    viewTransitionName: clientProfileViewTransitionName(c.slug),
+                  }}
+                  className="inline-flex"
+                >
+                  <ClientIdentityLink
+                    href={href}
+                    className="-m-1 flex min-w-0 items-center gap-2.5 rounded-sm p-1 no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                    name={c.name}
+                    email={c.email}
+                    detailsClassName="leading-[1.2]"
+                    nameClassName="text-[13.5px] font-medium tracking-[-0.005em]"
+                    emailClassName="text-[11px]"
+                  />
+                </span>
               </TableCell>
               <TableCell>
                 <ClientStatusBadge status={c.status} />
@@ -108,7 +128,7 @@ export function ClientsTable({
                   flags={c.flags}
                   empty={
                     <span className="font-mono text-[11.5px] text-muted-foreground/50">
-                      —
+                      -
                     </span>
                   }
                 />

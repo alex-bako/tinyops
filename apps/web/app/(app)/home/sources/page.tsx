@@ -7,7 +7,7 @@ import { Section, SectionHead } from "@workspace/ui/components/section"
 export const metadata: Metadata = {
   title: "Data sources",
   description:
-    "Connectors that feed client memory — inboxes, sheets, forms.",
+    "Connectors that feed client memory: inboxes, sheets, forms.",
 }
 
 import {
@@ -39,7 +39,7 @@ export default async function SourcesPage() {
         eyebrowIcon={PlugZapIcon}
         eyebrow="Workspace · data sources"
         title="Connect what you already have."
-        description="TinyOps reads — never writes — from your existing tools. Each new event lands on the right client's timeline within a few minutes of arriving."
+        description="TinyOps reads, never writes, from your existing tools. Each new event lands on the right client's timeline within a few minutes of arriving."
       />
 
       <Section className="mt-10">

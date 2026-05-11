@@ -8,7 +8,7 @@ function StatRow({ item }: { item: AttentionItem }) {
       <span className="min-w-[38px] text-[26px] font-semibold leading-none tracking-[-0.04em] tabular-nums text-foreground">
         {item.num}
       </span>
-      <span className="flex-1 text-[13.5px] text-slate-700">{item.label}</span>
+      <span className="flex-1 text-[13.5px] text-foreground">{item.label}</span>
       <Badge variant={item.badge.kind} className="self-center">
         {item.badge.text}
       </Badge>

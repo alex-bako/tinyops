@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { BookOpenIcon, PlugZapIcon, RotateCwIcon } from "lucide-react"
+import Link from "next/link"
 
 import { Button } from "@workspace/ui/components/button"
 import { Form, FormRow } from "@workspace/ui/components/form-row"
@@ -55,13 +56,13 @@ function ApiKeyConnect({ source }: { source: DataSource }) {
             <PlugZapIcon />
             Verify & connect
           </Button>
-          <a
-            href="#"
+          <Link
+            href="/home/sources"
             className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-cobalt-500"
           >
             <BookOpenIcon className="size-3" />
             Where do I find my API key?
-          </a>
+          </Link>
         </div>
       </Form>
     )

@@ -29,7 +29,7 @@ export function SectionRoles({ workspace }: { workspace: Workspace }) {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="mb-1.5 font-sans text-[22px] leading-[1.2] font-bold tracking-[-0.02em] text-foreground">
+        <h2 className="mb-1.5 font-sans text-[22px] leading-[1.2] font-semibold tracking-[-0.02em] text-foreground">
           Roles &amp; permissions
         </h2>
         <p className="m-0 max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">
@@ -83,7 +83,7 @@ export function SectionRoles({ workspace }: { workspace: Workspace }) {
               c.destructive && "[&_.cap-text]:text-coral-700"
             )}
           >
-            <span className="cap-text inline-flex items-center gap-2 px-2.5 py-2.5 text-foreground">
+            <span className="cap-text inline-flex items-center gap-2 p-2.5 text-foreground">
               {c.label}
               {c.sensitive ? (
                 <span className="rounded-xs bg-coral-500/15 px-1.5 py-px text-[10px] font-medium tracking-[0.04em] text-coral-700 uppercase">

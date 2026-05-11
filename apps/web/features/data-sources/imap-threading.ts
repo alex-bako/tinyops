@@ -69,7 +69,9 @@ export function createImapThreadIndex(seedMessageIds: string[] = []) {
 }
 
 export function detectSentFolders(folders: ImapFolder[]) {
-  const sent = folders.filter(isSentFolder).map((folder) => folder.path)
+  const sent = folders.flatMap((folder) =>
+    isSentFolder(folder) ? [folder.path] : []
+  )
   return Array.from(new Set(sent))
 }
 

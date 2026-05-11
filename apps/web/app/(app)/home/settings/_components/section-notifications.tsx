@@ -58,7 +58,7 @@ export function SectionNotifications() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="mb-1.5 font-sans text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-foreground">
+        <h2 className="mb-1.5 font-sans text-[22px] font-semibold leading-[1.2] tracking-[-0.02em] text-foreground">
           Notifications
         </h2>
         <p className="m-0 max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">

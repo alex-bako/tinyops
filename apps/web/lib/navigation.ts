@@ -206,9 +206,13 @@ function deriveAppCrumbs(
     ]
   }
 
-  const match = Object.keys(ROUTE_CRUMBS)
-    .filter((route) => pathname.startsWith(`${route}/`))
-    .sort((a, b) => b.length - a.length)[0]
+  const match = Object.keys(ROUTE_CRUMBS).reduce<string | null>(
+    (best, route) => {
+      if (!pathname.startsWith(`${route}/`)) return best
+      return !best || route.length > best.length ? route : best
+    },
+    null
+  )
   if (match) return ROUTE_CRUMBS[match]!
   return [{ icon: HomeIcon, label: "Home" }]
 }

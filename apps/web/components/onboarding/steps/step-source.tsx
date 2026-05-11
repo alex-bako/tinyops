@@ -14,11 +14,11 @@ export function StepSource({ data, set }: StepProps) {
   return (
     <div className="flex w-full max-w-[620px] flex-col gap-6">
       <header className="flex flex-col gap-3">
-        <h1 className="m-0 text-[32px] font-bold leading-[1.1] tracking-[-0.025em] text-foreground">
+        <h1 className="m-0 text-[32px] font-semibold leading-[1.1] tracking-[-0.025em] text-foreground">
           Connect a data source
         </h1>
         <p className="m-0 max-w-[56ch] text-[15px] leading-[1.55] text-[rgba(15,23,42,0.65)]">
-          Or skip — you can connect anytime from Sources. Without sources, your
+          Or skip - you can connect anytime from Sources. Without sources, your
           workspace is empty.
         </p>
       </header>

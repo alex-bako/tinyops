@@ -13,7 +13,7 @@ const inputClass =
 
 const toneSwatchClasses: Record<AvatarTone, string> = {
   cobalt: "bg-cobalt-500 text-white",
-  citron: "bg-citron-500 text-slate-900",
+  citron: "bg-citron-500 text-foreground",
   mint: "bg-mint-500 text-white",
   coral: "bg-coral-500 text-white",
   slate: "bg-slate-700 text-white",
@@ -29,12 +29,12 @@ export function StepWorkspace({ data, set }: StepProps) {
   return (
     <div className="flex w-full max-w-[520px] flex-col gap-6">
       <header className="flex flex-col gap-3">
-        <h1 className="m-0 text-[32px] font-bold leading-[1.1] tracking-[-0.025em] text-foreground">
+        <h1 className="m-0 text-[32px] font-semibold leading-[1.1] tracking-[-0.025em] text-foreground">
           Name your workspace
         </h1>
         <p className="m-0 max-w-[56ch] text-[15px] leading-[1.55] text-[rgba(15,23,42,0.65)]">
           A workspace holds your clients, sources, and sensitivity policy. You
-          can have many — switch anytime.
+          can have many - switch anytime.
         </p>
       </header>
 
@@ -48,7 +48,6 @@ export function StepWorkspace({ data, set }: StepProps) {
           </Label>
           <Input
             id="ob-workspace-name"
-            autoFocus
             value={data.workspaceName}
             onChange={(e) => set({ workspaceName: e.target.value })}
             placeholder="Park Therapy"

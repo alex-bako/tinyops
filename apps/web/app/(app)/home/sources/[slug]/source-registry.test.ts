@@ -6,7 +6,9 @@ import { SOURCE_UI_REGISTRY, getSourceUi } from "./source-registry"
 
 describe("source UI registry", () => {
   it("registers UI adapters for every source id", () => {
-    expect(Object.keys(SOURCE_UI_REGISTRY).sort()).toEqual([...SOURCE_IDS].sort())
+    expect([...Object.keys(SOURCE_UI_REGISTRY)].sort()).toEqual(
+      [...SOURCE_IDS].sort()
+    )
 
     for (const sourceId of SOURCE_IDS) {
       const entry = getSourceUi(sourceId)

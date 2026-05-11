@@ -74,6 +74,17 @@ function createClientListView(
   }
 }
 
+function getNewClientSlugs(
+  previousSlugs: ReadonlySet<string>,
+  nextRows: ClientDetail[]
+): Set<string> {
+  const fresh = new Set<string>()
+  for (const row of nextRows) {
+    if (!previousSlugs.has(row.slug)) fresh.add(row.slug)
+  }
+  return fresh
+}
+
 function useClientListView(sourceRows: ClientDetail[]) {
   const [filters, setFilters] = React.useState<ClientListFilters>(
     DEFAULT_CLIENT_LIST_FILTERS
@@ -103,6 +114,7 @@ export {
   DEFAULT_CLIENT_LIST_FILTERS,
   applyClientListFilterPatch,
   createClientListView,
+  getNewClientSlugs,
   useClientListView,
 }
 export type { ClientListCounts, ClientListFilters, ClientListFilterPatch }

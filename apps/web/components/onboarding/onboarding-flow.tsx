@@ -23,18 +23,49 @@ import { StepVertical } from "./steps/step-vertical"
 import { StepWorkspace } from "./steps/step-workspace"
 import type { OnboardingData, SkippedMap, StepId } from "./types"
 
+type OnboardingFlowState = {
+  stepIdx: number
+  skipped: SkippedMap
+  data: OnboardingData
+  pending: boolean
+  finishError: string | null
+  canSkipSourceAfterError: boolean
+}
+
+type OnboardingFlowAction =
+  | { type: "patch_data"; patch: Partial<OnboardingData> }
+  | { type: "set_step"; stepIdx: number }
+  | { type: "skip_step"; stepId: StepId; nextStepIdx: number }
+  | { type: "submit_started" }
+  | { type: "submit_failed"; error: string; canSkipSourceAfterError?: boolean }
+  | { type: "submit_finished" }
+
+const INITIAL_FLOW_STATE: OnboardingFlowState = {
+  stepIdx: 0,
+  skipped: {},
+  data: INITIAL_DATA,
+  pending: false,
+  finishError: null,
+  canSkipSourceAfterError: false,
+}
+
 export function OnboardingFlow() {
-  const router = useRouter()
-  const [stepIdx, setStepIdx] = React.useState(0)
-  const [skipped, setSkipped] = React.useState<SkippedMap>({})
-  const [data, setData] = React.useState<OnboardingData>(INITIAL_DATA)
-  const [pending, setPending] = React.useState(false)
-  const [finishError, setFinishError] = React.useState<string | null>(null)
-  const [canSkipSourceAfterError, setCanSkipSourceAfterError] =
-    React.useState(false)
+  const { replace } = useRouter()
+  const [state, dispatch] = React.useReducer(
+    onboardingFlowReducer,
+    INITIAL_FLOW_STATE
+  )
+  const {
+    stepIdx,
+    skipped,
+    data,
+    pending,
+    finishError,
+    canSkipSourceAfterError,
+  } = state
 
   const set = React.useCallback((patch: Partial<OnboardingData>) => {
-    setData((d) => ({ ...d, ...patch }))
+    dispatch({ type: "patch_data", patch })
   }, [])
 
   const steps = React.useMemo(() => buildSteps(data), [data])
@@ -45,26 +76,29 @@ export function OnboardingFlow() {
   React.useEffect(() => {
     if (data.firstName && !data.senderName) {
       const next = `${data.firstName} ${data.lastName}`.trim()
-      if (next) setData((d) => ({ ...d, senderName: next }))
+      if (next) dispatch({ type: "patch_data", patch: { senderName: next } })
     }
   }, [data.firstName, data.lastName, data.senderName])
 
   React.useEffect(() => {
+    const patch: Partial<OnboardingData> = {}
     if (data.workspaceName && !data.handle) {
-      setData((d) => ({ ...d, handle: slugify(d.workspaceName) }))
+      patch.handle = slugify(data.workspaceName)
     }
     if (data.workspaceName && !data.iconLetter) {
-      setData((d) => ({
-        ...d,
-        iconLetter: d.workspaceName[0]!.toUpperCase(),
-      }))
+      patch.iconLetter = data.workspaceName[0]!.toUpperCase()
+    }
+    if (Object.keys(patch).length > 0) {
+      dispatch({ type: "patch_data", patch })
     }
   }, [data.workspaceName, data.handle, data.iconLetter])
 
   React.useEffect(() => {
     if (!data.vertical) return
     const v = VERTICALS.find((x) => x.id === data.vertical)
-    if (v) setData((d) => ({ ...d, sensitivity: v.sensitivity }))
+    if (v) {
+      dispatch({ type: "patch_data", patch: { sensitivity: v.sensitivity } })
+    }
   }, [data.vertical])
 
   const canContinue = (() => {
@@ -98,37 +132,39 @@ export function OnboardingFlow() {
   const skippable = stepId === "source" || stepId === "invite"
 
   const goNext = () => {
-    if (safeIdx < steps.length - 1) setStepIdx(safeIdx + 1)
+    if (safeIdx < steps.length - 1) {
+      dispatch({ type: "set_step", stepIdx: safeIdx + 1 })
+    }
   }
   const goSkip = () => {
     if (stepId === "source") {
       set({ source: "skip" })
     }
-    setSkipped((s) => ({ ...s, [stepId]: true }))
-    goNext()
+    dispatch({ type: "skip_step", stepId, nextStepIdx: safeIdx + 1 })
   }
   const goBack = () => {
-    if (safeIdx > 0) setStepIdx(safeIdx - 1)
+    if (safeIdx > 0) dispatch({ type: "set_step", stepIdx: safeIdx - 1 })
   }
 
   const submit = async (sourceOverride?: OnboardingCommand["source"]) => {
-    setPending(true)
-    setFinishError(null)
-    setCanSkipSourceAfterError(false)
+    dispatch({ type: "submit_started" })
     try {
       const result = await completeOnboarding(buildCommand(data, sourceOverride))
       if (result.status === "completed") {
-        router.replace(DEFAULT_SIGNED_IN_PATH)
+        replace(DEFAULT_SIGNED_IN_PATH)
         return
       }
       if (result.status === "source_error") {
-        setFinishError("source_connection_failed")
-        setCanSkipSourceAfterError(result.fallback === "skip_source")
+        dispatch({
+          type: "submit_failed",
+          error: "source_connection_failed",
+          canSkipSourceAfterError: result.fallback === "skip_source",
+        })
         return
       }
-      setFinishError(result.error)
+      dispatch({ type: "submit_failed", error: result.error })
     } finally {
-      setPending(false)
+      dispatch({ type: "submit_finished" })
     }
   }
 
@@ -268,6 +304,39 @@ export function OnboardingFlow() {
   )
 }
 
+function onboardingFlowReducer(
+  state: OnboardingFlowState,
+  action: OnboardingFlowAction
+): OnboardingFlowState {
+  switch (action.type) {
+    case "patch_data":
+      return { ...state, data: { ...state.data, ...action.patch } }
+    case "set_step":
+      return { ...state, stepIdx: action.stepIdx }
+    case "skip_step":
+      return {
+        ...state,
+        stepIdx: action.nextStepIdx,
+        skipped: { ...state.skipped, [action.stepId]: true },
+      }
+    case "submit_started":
+      return {
+        ...state,
+        pending: true,
+        finishError: null,
+        canSkipSourceAfterError: false,
+      }
+    case "submit_failed":
+      return {
+        ...state,
+        finishError: action.error,
+        canSkipSourceAfterError: action.canSkipSourceAfterError ?? false,
+      }
+    case "submit_finished":
+      return { ...state, pending: false }
+  }
+}
+
 function buildCommand(
   data: OnboardingData,
   sourceOverride?: OnboardingCommand["source"]
@@ -287,12 +356,10 @@ function buildCommand(
     vertical: data.vertical ?? "other",
     sensitivity: data.sensitivity,
     source: sourceOverride ?? sourceCommand(data),
-    invites: data.invites
-      .map((invite) => ({
-        email: invite.email.trim(),
-        role: invite.role,
-      }))
-      .filter((invite) => invite.email.length > 0),
+    invites: data.invites.flatMap((invite) => {
+      const email = invite.email.trim()
+      return email ? [{ email, role: invite.role }] : []
+    }),
   }
 }
 

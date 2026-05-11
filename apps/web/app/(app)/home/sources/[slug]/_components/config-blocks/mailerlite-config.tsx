@@ -183,7 +183,7 @@ function MailerLiteConfig() {
       <DsSection>
         <DsSectionHead
           title="Real-time webhook"
-          hint="Optional — without this, MailerLite pulls every 15 minutes."
+          hint="Optional, without this, MailerLite pulls every 15 minutes."
         />
         <Form>
           <FormRow

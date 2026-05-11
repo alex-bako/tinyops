@@ -6,6 +6,7 @@ import { createCookieActiveWorkspaceStore } from "@/features/workspaces/active-w
 import {
   createWorkspaceApplication,
   type WorkspaceProfileInput,
+  type WorkspaceActionResult,
 } from "@/features/workspaces/application"
 import { createSupabaseWorkspaceStore } from "@/features/workspaces/supabase-store"
 import type {
@@ -20,20 +21,26 @@ type WorkspaceActionContext = {
   application: ReturnType<typeof createWorkspaceApplication>
 }
 
-async function createWorkspaceActionContext(): Promise<WorkspaceActionContext> {
+type WorkspaceActionContextError = {
+  error: "not_authenticated"
+}
+
+async function createWorkspaceActionContext(): Promise<
+  WorkspaceActionContext | WorkspaceActionContextError
+> {
   const supabase = await createServerSupabaseClient()
   const appSession = await readSupabaseAppProfileSession(supabase)
+  if (!appSession) return { error: "not_authenticated" }
+
   const activeWorkspaceStore = createCookieActiveWorkspaceStore()
-  const actor = appSession
-    ? {
-        userId: appSession.user.id,
-        email: appSession.email ?? null,
-        name: appSession.email?.split("@")[0] ?? null,
-      }
-    : null
+  const actor = {
+    userId: appSession.user.id,
+    email: appSession.email ?? null,
+    name: appSession.email?.split("@")[0] ?? null,
+  }
   const store = createSupabaseWorkspaceStore({
     client: supabase,
-    actorUserId: actor?.userId ?? "",
+    actorUserId: actor.userId,
   })
   const application = createWorkspaceApplication({
     actor,
@@ -50,18 +57,35 @@ function revalidateWorkspaceShell() {
   revalidatePath(DEFAULT_SIGNED_IN_PATH, "layout")
 }
 
-export async function switchWorkspaceAction(workspaceId: string) {
+function isWorkspaceActionContextError(
+  context: WorkspaceActionContext | WorkspaceActionContextError
+): context is WorkspaceActionContextError {
+  return "error" in context
+}
+
+async function runWorkspaceAction(
+  operation: (
+    application: ReturnType<typeof createWorkspaceApplication>
+  ) => Promise<WorkspaceActionResult>
+): Promise<WorkspaceActionResult> {
   const context = await createWorkspaceActionContext()
-  const result = await context.application.switchWorkspace(workspaceId)
+  if (isWorkspaceActionContextError(context)) return context
+
+  const result = await operation(context.application)
   if (result.data) revalidateWorkspaceShell()
   return result
 }
 
+export async function switchWorkspaceAction(workspaceId: string) {
+  return runWorkspaceAction((application) =>
+    application.switchWorkspace(workspaceId)
+  )
+}
+
 export async function acceptWorkspaceInvitationAction(invitationId: string) {
-  const context = await createWorkspaceActionContext()
-  const result = await context.application.acceptInvitation(invitationId)
-  if (result.data) revalidateWorkspaceShell()
-  return result
+  return runWorkspaceAction((application) =>
+    application.acceptInvitation(invitationId)
+  )
 }
 
 export async function inviteWorkspaceMemberAction(input: {
@@ -69,10 +93,7 @@ export async function inviteWorkspaceMemberAction(input: {
   email: string
   role: WorkspaceRole
 }) {
-  const context = await createWorkspaceActionContext()
-  const result = await context.application.inviteMember(input)
-  if (result.data) revalidateWorkspaceShell()
-  return result
+  return runWorkspaceAction((application) => application.inviteMember(input))
 }
 
 export async function createWorkspaceAction(input: {
@@ -80,62 +101,50 @@ export async function createWorkspaceAction(input: {
   handle?: string
   description?: string
 }) {
-  const context = await createWorkspaceActionContext()
-  const result = await context.application.createWorkspace(input)
-  if (result.data) revalidateWorkspaceShell()
-  return result
+  return runWorkspaceAction((application) => application.createWorkspace(input))
 }
 
 export async function updateWorkspaceProfileAction(
   workspaceId: string,
   patch: WorkspaceProfileInput
 ) {
-  const context = await createWorkspaceActionContext()
-  const result = await context.application.updateProfile(workspaceId, patch)
-  if (result.data) revalidateWorkspaceShell()
-  return result
+  return runWorkspaceAction((application) =>
+    application.updateProfile(workspaceId, patch)
+  )
 }
 
 export async function updateWorkspaceSensitivityAction(
   workspaceId: string,
   sensitivity: Partial<WorkspaceSensitivity>
 ) {
-  const context = await createWorkspaceActionContext()
-  const result = await context.application.updateSensitivity(
-    workspaceId,
-    sensitivity
+  return runWorkspaceAction((application) =>
+    application.updateSensitivity(workspaceId, sensitivity)
   )
-  if (result.data) revalidateWorkspaceShell()
-  return result
 }
 
 export async function changeMemberRoleAction(
   membershipId: string,
   role: Exclude<WorkspaceRole, "owner">
 ) {
-  const context = await createWorkspaceActionContext()
-  const result = await context.application.changeMemberRole(membershipId, role)
-  if (result.data) revalidateWorkspaceShell()
-  return result
+  return runWorkspaceAction((application) =>
+    application.changeMemberRole(membershipId, role)
+  )
 }
 
 export async function removeMemberAction(membershipId: string) {
-  const context = await createWorkspaceActionContext()
-  const result = await context.application.removeMember(membershipId)
-  if (result.data) revalidateWorkspaceShell()
-  return result
+  return runWorkspaceAction((application) =>
+    application.removeMember(membershipId)
+  )
 }
 
 export async function revokeWorkspaceInviteAction(invitationId: string) {
-  const context = await createWorkspaceActionContext()
-  const result = await context.application.revokeInvitation(invitationId)
-  if (result.data) revalidateWorkspaceShell()
-  return result
+  return runWorkspaceAction((application) =>
+    application.revokeInvitation(invitationId)
+  )
 }
 
 export async function archiveWorkspaceAction(workspaceId: string) {
-  const context = await createWorkspaceActionContext()
-  const result = await context.application.archiveWorkspace(workspaceId)
-  if (result.data) revalidateWorkspaceShell()
-  return result
+  return runWorkspaceAction((application) =>
+    application.archiveWorkspace(workspaceId)
+  )
 }

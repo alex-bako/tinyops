@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { UsersIcon } from "lucide-react"
 
 import { Kbd } from "@workspace/ui/components/kbd"
@@ -16,7 +17,7 @@ import { useActiveWorkspace } from "@/features/workspaces/context"
 
 import { ClientsTable } from "./clients-table"
 import { ClientsToolbar } from "./clients-toolbar"
-import { useClientListView } from "../_view-model"
+import { getNewClientSlugs, useClientListView } from "../_view-model"
 
 export function ClientsPageClient({
   rows: sourceRows,
@@ -33,6 +34,8 @@ export function ClientsPageClient({
     emptyMessage,
     clearFilters,
   } = useClientListView(sourceRows)
+
+  const newlyInsertedSlugs = useNewlyInsertedSlugs(sourceRows)
 
   return (
     <WorkspacePageSurface>
@@ -51,7 +54,7 @@ export function ClientsPageClient({
             in your practice.
           </>
         }
-        description="Every person you've imported, with everything TinyOps has learned about them. Filter by status, cohort, or flag — open any row to see their full timeline."
+        description="Every person you've imported, with everything TinyOps has learned about them. Filter by status, cohort, or flag, open any row to see their full timeline."
       />
 
       <ClientsToolbar
@@ -64,6 +67,7 @@ export function ClientsPageClient({
         rows={rows}
         emptyMessage={emptyMessage}
         onClear={clearFilters}
+        newlyInsertedSlugs={newlyInsertedSlugs}
       />
 
       <WorkspacePageFooter>
@@ -79,4 +83,18 @@ export function ClientsPageClient({
       </WorkspacePageFooter>
     </WorkspacePageSurface>
   )
+}
+
+function useNewlyInsertedSlugs(sourceRows: ClientDetail[]): Set<string> {
+  const seenSlugsRef = React.useRef(new Set(sourceRows.map((r) => r.slug)))
+  const [fresh, setFresh] = React.useState<Set<string>>(
+    () => new Set<string>()
+  )
+
+  React.useEffect(() => {
+    setFresh(getNewClientSlugs(seenSlugsRef.current, sourceRows))
+    seenSlugsRef.current = new Set(sourceRows.map((r) => r.slug))
+  }, [sourceRows])
+
+  return fresh
 }

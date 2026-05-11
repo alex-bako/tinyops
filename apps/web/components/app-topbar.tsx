@@ -21,6 +21,9 @@ import type { ClientNavItem } from "@/features/clients/application/client-memory
 import { deriveAppCrumbs, type Crumb } from "@/lib/navigation"
 import type { SourceNavItem } from "@/lib/source-catalog/repository"
 
+const EMPTY_CLIENT_NAV_ITEMS: ClientNavItem[] = []
+const EMPTY_SOURCE_NAV_ITEMS: SourceNavItem[] = []
+
 function CrumbContent({ icon: Icon, label }: Crumb) {
   return (
     <>
@@ -32,8 +35,8 @@ function CrumbContent({ icon: Icon, label }: Crumb) {
 
 export function AppTopbar({
   crumbs,
-  clientNavItems = [],
-  sourceNavItems = [],
+  clientNavItems = EMPTY_CLIENT_NAV_ITEMS,
+  sourceNavItems = EMPTY_SOURCE_NAV_ITEMS,
 }: {
   crumbs?: Crumb[]
   clientNavItems?: ClientNavItem[]
@@ -62,7 +65,7 @@ export function AppTopbar({
           {resolved.map((crumb, index) => {
             const isLast = index === resolved.length - 1
             return (
-              <React.Fragment key={`${crumb.label}-${index}`}>
+              <React.Fragment key={crumb.href ?? crumb.label}>
                 <BreadcrumbItem>
                   {isLast || !crumb.href ? (
                     <BreadcrumbPage>

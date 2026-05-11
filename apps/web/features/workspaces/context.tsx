@@ -146,7 +146,7 @@ export function WorkspaceFeatureProvider({
 }
 
 export function useWorkspaceFeature(): WorkspaceFeatureContextValue {
-  const ctx = React.useContext(WorkspaceFeatureContext)
+  const ctx = React.use(WorkspaceFeatureContext)
   if (!ctx) {
     throw new Error(
       "useWorkspaceFeature must be used within WorkspaceFeatureProvider"

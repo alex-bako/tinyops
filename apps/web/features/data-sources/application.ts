@@ -34,6 +34,7 @@ export {
 } from "@/features/data-sources/domain/sync"
 
 export type DataSourceActionError =
+  | "not_authenticated"
   | "invalid_imap_config"
   | "invalid_google_form_id"
   | "invalid_google_forms_csv"
@@ -183,8 +184,6 @@ export function createDataSourceCommandApplication({
   }
 }
 
-export const createDataSourceApplication = createDataSourceCommandApplication
-
 function isReadableSingletonSourceType(value: string): value is "imap" {
   return value === "imap"
 }
@@ -204,6 +203,7 @@ function isDataSourceActionError(value: string): value is DataSourceActionError 
     value === "invalid_google_forms_csv_row" ||
     value === "imap_connection_failed" ||
     value === "source_manage_forbidden" ||
+    value === "not_authenticated" ||
     value === "source_not_found" ||
     value === "source_action_failed"
   )

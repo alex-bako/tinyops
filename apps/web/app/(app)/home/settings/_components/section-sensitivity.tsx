@@ -58,6 +58,9 @@ const THRESHOLDS: SegmentedOption<AutoSendThreshold>[] = [
   { value: "everything", label: "Everything" },
 ]
 
+const createSensitivityDraft = (workspace: Workspace): WorkspaceSensitivity =>
+  workspace.sensitivity
+
 export function SectionSensitivity({
   workspace,
   onUpdateSensitivity,
@@ -65,8 +68,8 @@ export function SectionSensitivity({
   workspace: Workspace
   onUpdateSensitivity: (patch: Partial<WorkspaceSensitivity>) => void
 }) {
-  const [draft, setDraft] = React.useState<WorkspaceSensitivity>(
-    workspace.sensitivity
+  const [draft, setDraft] = React.useState<WorkspaceSensitivity>(() =>
+    createSensitivityDraft(workspace)
   )
   const s = draft
 
@@ -94,7 +97,7 @@ export function SectionSensitivity({
   return (
     <div>
       <div className="mb-6">
-        <h2 className="mb-1.5 font-sans text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-foreground">
+        <h2 className="mb-1.5 font-sans text-[22px] font-semibold leading-[1.2] tracking-[-0.02em] text-foreground">
           Sensitivity policy
         </h2>
         <p className="m-0 max-w-[64ch] text-[13.5px] leading-[1.55] text-muted-foreground">

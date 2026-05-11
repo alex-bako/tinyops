@@ -102,13 +102,12 @@ export function buildImapFolderSnapshot(value: unknown): ImapFolderSnapshot {
 function coerceImapFolders(value: unknown): ImapFolder[] {
   if (!Array.isArray(value)) return []
 
-  const folders = value
-    .map((entry) => {
+  const folders = value.flatMap((entry) => {
       if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return null
+        return []
       }
       const path = "path" in entry ? String(entry.path).trim() : ""
-      if (!path) return null
+      if (!path) return []
 
       const messages =
         "messages" in entry &&
@@ -125,19 +124,20 @@ function coerceImapFolders(value: unknown): ImapFolder[] {
       const flags =
         "flags" in entry && isIterable(entry.flags)
           ? Array.from(entry.flags)
-              .filter((flag): flag is string => typeof flag === "string")
-              .map((flag) => flag.trim())
-              .filter(Boolean)
+              .flatMap((flag) => {
+                if (typeof flag !== "string") return []
+                const trimmed = flag.trim()
+                return trimmed ? [trimmed] : []
+              })
           : []
 
-      return {
+      return [{
         path,
         messages,
         ...(specialUse ? { specialUse } : {}),
         ...(flags.length > 0 ? { flags } : {}),
-      }
+      }]
     })
-    .filter((entry): entry is ImapFolder => entry !== null)
 
   return Array.from(new Map(folders.map((folder) => [folder.path, folder])).values())
 }
@@ -162,9 +162,10 @@ export function normalizeImapMessageFilters(
 
   return {
     mode: "and",
-    rules: rules
-      .map((rule, index) => normalizeImapMessageFilterRule(rule, index))
-      .filter((rule): rule is ImapMessageFilters["rules"][number] => rule !== null),
+    rules: rules.flatMap((rule, index) => {
+      const normalized = normalizeImapMessageFilterRule(rule, index)
+      return normalized ? [normalized] : []
+    }),
   }
 }
 
@@ -220,7 +221,10 @@ function normalizeFilterOperator(value: string): ImapMessageFilterOperator {
 }
 
 function normalizeStringList(values: string[]) {
-  return values.map((value) => value.trim()).filter(Boolean)
+  return values.flatMap((value) => {
+    const trimmed = value.trim()
+    return trimmed ? [trimmed] : []
+  })
 }
 
 export function coerceImapEncryption(value: unknown): ImapEncryption {

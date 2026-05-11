@@ -206,6 +206,18 @@ describe("data source server actions", () => {
     })
   })
 
+  it("returns not_authenticated before creating command adapters without request context", async () => {
+    mocks.createDataSourceServerContext.mockResolvedValue(null)
+
+    await expect(requestDataSourceSyncAction("source_1")).resolves.toEqual({
+      error: "not_authenticated",
+    })
+
+    expect(mocks.createImapFlowConnectionTester).not.toHaveBeenCalled()
+    expect(mocks.createSupabaseImapSecretReader).not.toHaveBeenCalled()
+    expect(mocks.afterCallbacks).toHaveLength(0)
+  })
+
   it("schedules immediate worker dispatch after Google Forms manual CSV connect", async () => {
     await expect(
       connectGoogleFormsManualCsvDataSourceAction({

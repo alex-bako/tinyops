@@ -85,19 +85,21 @@ export function parseGoogleFormsCsv(csvText: string): GoogleFormsParsedCsv {
   })
   if (result.errors.length > 0) throw new Error("invalid_google_forms_csv")
 
-  const headers = (result.meta.fields ?? [])
-    .map((header) => header.trim())
-    .filter(Boolean)
+  const headers = (result.meta.fields ?? []).flatMap((header) => {
+    const trimmed = header.trim()
+    return trimmed ? [trimmed] : []
+  })
   if (headers.length === 0) throw new Error("invalid_google_forms_csv")
 
-  const rows = result.data
-    .map((values, index) => ({
+  const rows = result.data.flatMap((values, index) => {
+    const row = {
       rowNumber: index + 2,
       values: normalizeCsvRow(headers, values),
-    }))
-    .filter((row) =>
-      Object.values(row.values).some((value) => value.trim().length > 0)
-    )
+    }
+    return Object.values(row.values).some((value) => value.trim().length > 0)
+      ? [row]
+      : []
+  })
 
   if (rows.length === 0) throw new Error("invalid_google_forms_csv")
   return { headers, rows }
@@ -158,12 +160,16 @@ export function buildGoogleFormsManualCsvUploadRows({
   source: GoogleFormsSourceConfig
   rows: GoogleFormsCsvRow[]
 }): GoogleFormsManualCsvUploadRow[] {
-  const uploadRows = rows
-    .filter((row) => isValidEmail(row.values[source.mapping.identityColumn]))
-    .map((row) => ({
-      rowNumber: row.rowNumber,
-      payload: row.values,
-    }))
+  const uploadRows = rows.flatMap((row) =>
+    isValidEmail(row.values[source.mapping.identityColumn])
+      ? [
+          {
+            rowNumber: row.rowNumber,
+            payload: row.values,
+          },
+        ]
+      : []
+  )
   if (uploadRows.length === 0) throw new Error("invalid_google_forms_csv_row")
   return uploadRows
 }
@@ -182,15 +188,19 @@ function normalizeManualCsvConnectorRow({
   const email = requiredEmail(row.payload[source.mapping.identityColumn])
   const occurredAt = requiredTimestamp(row.payload[source.mapping.timestampColumn])
   const responseKey = requiredResponseKey(row.responseKey)
-  const attributes = Object.entries(row.payload)
-    .filter(([key]) => key !== source.mapping.identityColumn)
-    .filter(([key]) => key !== source.mapping.timestampColumn)
-    .filter(([, value]) => value.trim().length > 0)
-    .map(([key, value]) => ({
-      key,
-      value: value as Json,
-      confidence: 1,
-    }))
+  const attributes = Object.entries(row.payload).flatMap(([key, value]) =>
+    key !== source.mapping.identityColumn &&
+    key !== source.mapping.timestampColumn &&
+    value.trim().length > 0
+      ? [
+          {
+            key,
+            value: value as Json,
+            confidence: 1,
+          },
+        ]
+      : []
+  )
 
   return {
     rowNumber: row.rowNumber,
@@ -317,7 +327,8 @@ function parseDottedGoogleFormsTimestamp(value: string): number | null {
 
 function formResponseBodyText(values: Record<string, string>) {
   return Object.entries(values)
-    .filter(([, value]) => value.trim().length > 0)
-    .map(([key, value]) => `${key}: ${value}`)
+    .flatMap(([key, value]) =>
+      value.trim().length > 0 ? [`${key}: ${value}`] : []
+    )
     .join("\n")
 }

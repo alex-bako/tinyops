@@ -68,6 +68,12 @@
   --dur-base: 180ms;
   --dur-slow: 220ms;
 
+  /* Backdrop blur for sticky surfaces — README: "paper continues underneath". */
+  --blur-sticky: 12px;
+
+  /* Modal/dialog scrim. README: rgba(15,23,42,0.32) + 6px blur. */
+  --bg-overlay: rgba(15, 23, 42, 0.32);
+
   /* === Sensitivity (brand-specific care signal) === */
   --sensitive: var(--color-coral-500);
   --sensitive-fg: var(--color-coral-700);
@@ -246,5 +252,18 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Reduced motion — "fewer and gentler, not zero" (Emil principle).
+ * Transforms collapse to instant; opacity/color stay visible at fast pace. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

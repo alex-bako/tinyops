@@ -16,9 +16,11 @@ type ChipItem = {
   meta?: string
 }
 
+const EMPTY_CHIP_VALUE: string[] = []
+
 function ChipPicker({
   items,
-  defaultValue = [],
+  defaultValue = EMPTY_CHIP_VALUE,
   placeholder = "Add…",
   mono = false,
   onChange,
@@ -29,7 +31,7 @@ function ChipPicker({
   mono?: boolean
   onChange?: (next: string[]) => void
 }) {
-  const [value, setValue] = React.useState<string[]>(defaultValue)
+  const [value, setValue] = React.useState<string[]>(() => defaultValue)
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
 
@@ -100,7 +102,6 @@ function ChipPicker({
             <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5 text-muted-foreground">
               <SearchIcon className="size-3" />
               <input
-                autoFocus
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search…"

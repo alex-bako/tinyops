@@ -1,0 +1,41 @@
+@keyframes client-row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+    background-color: var(--color-paper-2);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    background-color: transparent;
+  }
+}
+
+[data-just-inserted] {
+  animation: client-row-enter var(--dur-slow) var(--ease-out);
+}
+
+[data-motion-safe-fade] {
+  opacity: 1;
+  transition: opacity var(--dur-base) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-motion-safe-fade] {
+    transition-duration: var(--dur-fast) !important;
+  }
+}

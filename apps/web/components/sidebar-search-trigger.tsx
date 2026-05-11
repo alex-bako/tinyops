@@ -21,7 +21,7 @@ export function SidebarSearchTrigger() {
         >
           <SearchIcon />
           <span className="text-[13px]">Search</span>
-          <Kbd className="ml-auto border-none bg-transparent px-0 py-0 text-sidebar-foreground/35 group-data-[collapsible=icon]:hidden">
+          <Kbd className="ml-auto border-none bg-transparent p-0 text-sidebar-foreground/35 group-data-[collapsible=icon]:hidden">
             ⌘K
           </Kbd>
         </SidebarMenuButton>

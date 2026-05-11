@@ -31,7 +31,7 @@ const FilterTabsContext = React.createContext<FilterTabsContextValue | null>(
 )
 
 function useFilterTabsContext() {
-  const ctx = React.useContext(FilterTabsContext)
+  const ctx = React.use(FilterTabsContext)
   if (!ctx) {
     throw new Error("FilterTab must be rendered inside <FilterTabs>")
   }
