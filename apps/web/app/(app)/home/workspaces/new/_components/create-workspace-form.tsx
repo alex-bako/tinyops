@@ -11,7 +11,7 @@ import { Input } from "@workspace/ui/components/input"
 import { createWorkspaceAction } from "@/features/workspaces/actions"
 
 export function CreateWorkspaceForm() {
-  const router = useRouter()
+  const { push, refresh } = useRouter()
   const [pending, startTransition] = React.useTransition()
   const [name, setName] = React.useState("")
   const [handle, setHandle] = React.useState("")
@@ -30,8 +30,8 @@ export function CreateWorkspaceForm() {
         setError("Could not create workspace.")
         return
       }
-      router.refresh()
-      router.push("/home/settings")
+      refresh()
+      push("/home/settings")
     })
   }
 

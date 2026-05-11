@@ -55,18 +55,17 @@ export function clientCohortBadge(
 }
 
 export function clientDetailFlagBadges(flags: ClientFlag[]): ClientStateBadge[] {
-  return clientFlagBadges(flags)
-    .filter((badge) => badge.kind !== "dnc")
-    .map((badge) => {
-      if (badge.label === "Overdue") {
-        return { ...badge, label: "Overdue check-in" }
-      }
-      if (badge.label === "Idle") {
-        return { ...badge, label: "Idle 60d+" }
-      }
-      if (badge.label === "Sensitive") {
-        return { ...badge, label: "Sensitive notes" }
-      }
-      return badge
-    })
+  return clientFlagBadges(flags).flatMap((badge) => {
+    if (badge.kind === "dnc") return []
+    if (badge.label === "Overdue") {
+      return [{ ...badge, label: "Overdue check-in" }]
+    }
+    if (badge.label === "Idle") {
+      return [{ ...badge, label: "Idle 60d+" }]
+    }
+    if (badge.label === "Sensitive") {
+      return [{ ...badge, label: "Sensitive notes" }]
+    }
+    return [badge]
+  })
 }

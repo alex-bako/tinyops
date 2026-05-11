@@ -52,7 +52,10 @@ export function createSupabaseGoogleFormsManualCsvRowReader({
         throw new Error("google_forms_csv_rows_read_failed", { cause: error })
       }
 
-      return (data ?? []).map(mapRow).filter(isUploadRow)
+      return (data ?? []).flatMap((row) => {
+        const mapped = mapRow(row)
+        return isUploadRow(mapped) ? [mapped] : []
+      })
     },
   }
 }

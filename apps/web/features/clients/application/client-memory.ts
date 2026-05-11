@@ -121,9 +121,9 @@ export function createWorkspaceClientMemoryRepository({
 export function createClientDetail(profile: ClientProfile): ClientDetail {
   const timeline = sortTimelineEventsNewestFirst(profile.timeline)
   const sourceIds = new Set(
-    profile.timeline
-      .map((event) => event.sourceId)
-      .filter((sourceId): sourceId is string => Boolean(sourceId))
+    profile.timeline.flatMap((event) =>
+      event.sourceId ? [event.sourceId] : []
+    )
   )
   const status = coerceClientStatus(profile.status, profile.doNotContact)
   const flags = clientFlagsFor({
@@ -193,9 +193,9 @@ export function createClientSearchResult(
   profile: ClientProfile
 ): ClientSearchResult {
   const sourceIds = new Set(
-    profile.timeline
-      .map((event) => event.sourceId)
-      .filter((sourceId): sourceId is string => Boolean(sourceId))
+    profile.timeline.flatMap((event) =>
+      event.sourceId ? [event.sourceId] : []
+    )
   )
   return {
     id: profile.id,

@@ -44,7 +44,7 @@ const PROPERTY_ICONS: Record<PropertyIcon, LucideIcon> = {
 
 function ClientPropertyTag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mr-1 inline-block rounded-xs bg-[var(--tint-active)] px-[7px] py-[1px] text-[12px] text-slate-700">
+    <span className="mr-1 inline-block rounded-xs bg-[var(--tint-active)] px-[7px] py-[1px] text-[12px] text-foreground">
       {children}
     </span>
   )

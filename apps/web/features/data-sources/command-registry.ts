@@ -147,8 +147,10 @@ export function createDataSourceCommandRegistry({
       },
 
       async refreshFolders(sourceId) {
-        const source = await loadImapSource(sourceId)
-        const password = await readStoredPassword(sourceId)
+        const [source, password] = await Promise.all([
+          loadImapSource(sourceId),
+          readStoredPassword(sourceId),
+        ])
         const { folders } = await imapConnectionTester.test({
           ...source.connection,
           password,

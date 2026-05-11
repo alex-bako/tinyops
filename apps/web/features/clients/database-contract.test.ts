@@ -37,8 +37,8 @@ describe("clients database contract", () => {
       "timeline_events",
       "client_domain_events",
     ]) {
-      expect(migration).toMatch(
-        new RegExp(`alter table public\\.${table} enable row level security;`)
+      expect(migration).toContain(
+        `alter table public.${table} enable row level security;`
       )
     }
   })

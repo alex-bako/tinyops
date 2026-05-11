@@ -63,7 +63,7 @@ export function SectionMembers({
   return (
     <div>
       <div className="mb-6">
-        <h2 className="mb-1.5 font-sans text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-foreground">
+        <h2 className="mb-1.5 font-sans text-[22px] font-semibold leading-[1.2] tracking-[-0.02em] text-foreground">
           Members
         </h2>
         <p className="m-0 max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">
@@ -92,11 +92,15 @@ export function SectionMembers({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ROLE_ORDER.filter((r) => r !== "owner").map((r) => (
-                <SelectItem key={r} value={r}>
-                  {ROLE_DEFS[r].label}
-                </SelectItem>
-              ))}
+              {ROLE_ORDER.flatMap((r) =>
+                r === "owner"
+                  ? []
+                  : [
+                      <SelectItem key={r} value={r}>
+                        {ROLE_DEFS[r].label}
+                      </SelectItem>,
+                    ]
+              )}
             </SelectContent>
           </Select>
           <Button variant="primary" size="sm" onClick={submitInvite}>
@@ -107,7 +111,7 @@ export function SectionMembers({
       ) : null}
 
       <div className="flex flex-col">
-        <div className="grid grid-cols-[32px_1fr_110px_90px_130px_24px] gap-3 border-b border-border px-2 py-2 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+        <div className="grid grid-cols-[32px_1fr_110px_90px_130px_24px] gap-3 border-b border-border p-2 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
           <span />
           <span>Member</span>
           <span>Joined</span>
@@ -223,13 +227,15 @@ function MemberRow({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {ROLE_ORDER.filter(
-            (r) => r !== "owner" || member.role === "owner"
-          ).map((r) => (
-            <SelectItem key={r} value={r}>
-              {ROLE_DEFS[r].label}
-            </SelectItem>
-          ))}
+          {ROLE_ORDER.flatMap((r) =>
+            r !== "owner" || member.role === "owner"
+              ? [
+                  <SelectItem key={r} value={r}>
+                    {ROLE_DEFS[r].label}
+                  </SelectItem>,
+                ]
+              : []
+          )}
         </SelectContent>
       </Select>
       <button

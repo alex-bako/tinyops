@@ -61,7 +61,7 @@ export function SectionAudit() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="mb-1.5 font-sans text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-foreground">
+        <h2 className="mb-1.5 font-sans text-[22px] font-semibold leading-[1.2] tracking-[-0.02em] text-foreground">
           Audit log
         </h2>
         <p className="m-0 max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">
@@ -69,11 +69,11 @@ export function SectionAudit() {
         </p>
       </div>
       <div className="flex flex-col">
-        {EVENTS.map((e, i) => {
+        {EVENTS.map((e) => {
           const Icon = e.icon
           return (
             <div
-              key={i}
+              key={`${e.when}:${e.actor}:${e.what}`}
               className="grid grid-cols-[84px_24px_140px_1fr] items-center gap-3 border-b border-border px-1 py-2.5 text-[13px] last:border-b-0"
             >
               <span className="font-mono text-[11.5px] text-muted-foreground">

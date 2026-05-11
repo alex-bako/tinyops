@@ -45,10 +45,14 @@ export function ClientsToolbar({
   updateFilters: (patch: ClientListFilterPatch) => void
   counts: ClientListCounts
 }) {
+  const scrolled = useToolbarScrolled()
   return (
     <div
+      data-scrolled={scrolled ? "" : undefined}
       className={cn(
-        "sticky top-11 z-[2] -mx-1 flex flex-wrap items-center gap-1.5 border-b border-border bg-background px-1 py-2"
+        "sticky top-11 z-[2] -mx-1 flex flex-wrap items-center gap-1.5 border-b border-border bg-background px-1 py-2",
+        "transition-[background-color,backdrop-filter] duration-(--dur-fast) ease-(--ease-out)",
+        "data-scrolled:bg-paper/80 data-scrolled:supports-backdrop-filter:backdrop-blur-(--blur-sticky)"
       )}
     >
       <FilterTabs
@@ -116,4 +120,28 @@ export function ClientsToolbar({
       </div>
     </div>
   )
+}
+
+function useToolbarScrolled(threshold = 8): boolean {
+  const [scrolled, setScrolled] = React.useState(false)
+
+  React.useEffect(() => {
+    let rafId: number | null = null
+    const handle = () => {
+      if (rafId !== null) return
+      rafId = window.requestAnimationFrame(() => {
+        setScrolled(window.scrollY > threshold)
+        rafId = null
+      })
+    }
+
+    handle()
+    window.addEventListener("scroll", handle, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", handle)
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
+    }
+  }, [threshold])
+
+  return scrolled
 }

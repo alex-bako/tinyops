@@ -22,7 +22,7 @@ function SourceHeader({
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h1 className="m-0 font-sans text-[28px] font-bold leading-[1.1] tracking-[-0.02em] text-foreground">
+          <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-foreground">
             {header.title}
           </h1>
           {header.isNew ? (

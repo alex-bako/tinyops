@@ -2,7 +2,7 @@ import { UploadCloudIcon } from "lucide-react"
 
 function Dropzone() {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-md border border-dashed border-[color:var(--rule-strong)] bg-[var(--tint-hover)] px-6 py-6 text-center text-[13px] text-muted-foreground">
+    <div className="flex flex-col items-center gap-1 rounded-md border border-dashed border-[color:var(--rule-strong)] bg-[var(--tint-hover)] p-6 text-center text-[13px] text-muted-foreground">
       <UploadCloudIcon className="size-4 text-muted-foreground" />
       <span>
         Drop a CSV here, or{" "}

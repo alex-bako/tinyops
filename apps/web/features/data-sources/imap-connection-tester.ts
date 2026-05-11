@@ -57,9 +57,10 @@ export function createImapFlowConnectionTester({
             ...(folder.specialUse ? { specialUse: folder.specialUse } : {}),
             ...(folder.flags
               ? {
-                  flags: Array.from(folder.flags)
-                    .map((flag) => flag.trim())
-                    .filter(Boolean),
+                  flags: Array.from(folder.flags).flatMap((flag) => {
+                    const trimmed = flag.trim()
+                    return trimmed ? [trimmed] : []
+                  }),
                 }
               : {}),
           })),

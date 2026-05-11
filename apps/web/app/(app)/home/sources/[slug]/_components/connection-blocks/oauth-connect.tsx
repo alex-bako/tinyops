@@ -1,4 +1,5 @@
 import { BookOpenIcon, ExternalLinkIcon } from "lucide-react"
+import Link from "next/link"
 
 import { Button } from "@workspace/ui/components/button"
 import { Form, FormRow } from "@workspace/ui/components/form-row"
@@ -20,13 +21,13 @@ function OAuthConnect({ source }: { source: DataSource }) {
           <ExternalLinkIcon />
           Connect {source.title}
         </Button>
-        <a
-          href="#"
+        <Link
+          href="/home/sources"
           className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-cobalt-500"
         >
           <BookOpenIcon className="size-3" />
           What permissions are requested?
-        </a>
+        </Link>
       </div>
     )
   }

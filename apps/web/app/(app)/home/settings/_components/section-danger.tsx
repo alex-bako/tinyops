@@ -27,7 +27,7 @@ export function SectionDanger({
   return (
     <div>
       <div className="mb-6">
-        <h2 className="mb-1.5 font-sans text-[22px] leading-[1.2] font-bold tracking-[-0.02em] text-foreground">
+        <h2 className="mb-1.5 font-sans text-[22px] leading-[1.2] font-semibold tracking-[-0.02em] text-foreground">
           Danger zone
         </h2>
         <p className="m-0 max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">

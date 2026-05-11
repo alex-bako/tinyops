@@ -26,9 +26,19 @@ function revalidateDataSources() {
   revalidatePath("/home/sources")
 }
 
-async function createActionApplication() {
+type DataSourceActionApplication = ReturnType<
+  typeof createDataSourceCommandApplication
+>
+
+type DataSourceActionApplicationError = {
+  readonly error: "not_authenticated"
+}
+
+async function createActionApplication(): Promise<
+  DataSourceActionApplication | DataSourceActionApplicationError
+> {
   const context = await createDataSourceServerContext()
-  if (!context) return null
+  if (!context) return { error: "not_authenticated" } as const
 
   return createDataSourceCommandApplication({
     workspace: context.workspace,
@@ -38,9 +48,15 @@ async function createActionApplication() {
   })
 }
 
+function isActionApplicationError(
+  application: DataSourceActionApplication | DataSourceActionApplicationError
+): application is DataSourceActionApplicationError {
+  return "error" in application
+}
+
 export async function connectImapDataSourceAction(input: ImapConnectCommand) {
   const application = await createActionApplication()
-  if (!application) return { error: "source_action_failed" } as const
+  if (isActionApplicationError(application)) return application
 
   const result = await application.connectImap(input)
   if (result.data) {
@@ -54,7 +70,7 @@ export async function connectGoogleFormsManualCsvDataSourceAction(
   input: GoogleFormsManualCsvConnectCommand
 ) {
   const application = await createActionApplication()
-  if (!application) return { error: "source_action_failed" } as const
+  if (isActionApplicationError(application)) return application
 
   const result = await application.connectGoogleFormsManualCsv(input)
   if (result.data) {
@@ -69,7 +85,7 @@ export async function updateImapConnectionSettingsAction(
   input: ImapConnectionSettingsCommand
 ) {
   const application = await createActionApplication()
-  if (!application) return { error: "source_action_failed" } as const
+  if (isActionApplicationError(application)) return application
 
   const result = await application.updateImapConnectionSettings(sourceId, input)
   if (result.data) revalidateDataSources()
@@ -81,7 +97,7 @@ export async function updateImapImportSettingsAction(
   input: ImapImportSettingsCommand
 ) {
   const application = await createActionApplication()
-  if (!application) return { error: "source_action_failed" } as const
+  if (isActionApplicationError(application)) return application
 
   const result = await application.updateImapIntakeSettings(sourceId, input)
   if (result.data) revalidateDataSources()
@@ -90,7 +106,7 @@ export async function updateImapImportSettingsAction(
 
 export async function refreshImapFoldersAction(sourceId: string) {
   const application = await createActionApplication()
-  if (!application) return { error: "source_action_failed" } as const
+  if (isActionApplicationError(application)) return application
 
   const result = await application.refreshImapFolders(sourceId)
   if (result.data) revalidateDataSources()
@@ -99,7 +115,7 @@ export async function refreshImapFoldersAction(sourceId: string) {
 
 export async function disconnectDataSourceAction(sourceId: string) {
   const application = await createActionApplication()
-  if (!application) return { error: "source_action_failed" } as const
+  if (isActionApplicationError(application)) return application
 
   const result = await application.disconnect(sourceId)
   if (result.data === undefined && !result.error) revalidateDataSources()
@@ -108,7 +124,7 @@ export async function disconnectDataSourceAction(sourceId: string) {
 
 export async function requestDataSourceSyncAction(sourceId: string) {
   const application = await createActionApplication()
-  if (!application) return { error: "source_action_failed" } as const
+  if (isActionApplicationError(application)) return application
 
   const result = await application.requestSync(sourceId)
   if (result.data === undefined && !result.error) {
@@ -120,7 +136,7 @@ export async function requestDataSourceSyncAction(sourceId: string) {
 
 export async function requestAllDataSourceSyncsAction() {
   const application = await createActionApplication()
-  if (!application) return { error: "source_action_failed" } as const
+  if (isActionApplicationError(application)) return application
 
   const result = await application.requestAllConfiguredSyncs()
   if (result.data && result.data.queued > 0) {

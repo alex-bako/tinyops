@@ -17,13 +17,13 @@ describe("RecordRow", () => {
   it("keeps link semantics when rendered as child", () => {
     render(
       <RecordRow asChild>
-        <a href="/home/clients/anna-smith">Anna Smith</a>
+        <a href="https://example.com/home/clients/anna-smith">Anna Smith</a>
       </RecordRow>
     )
 
     expect(screen.getByRole("link", { name: "Anna Smith" })).toHaveAttribute(
       "href",
-      "/home/clients/anna-smith"
+      "https://example.com/home/clients/anna-smith"
     )
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })

@@ -37,7 +37,7 @@ export function SectionBilling({
   return (
     <div>
       <div className="mb-6">
-        <h2 className="mb-1.5 font-sans text-[22px] leading-[1.2] font-bold tracking-[-0.02em] text-foreground">
+        <h2 className="mb-1.5 font-sans text-[22px] leading-[1.2] font-semibold tracking-[-0.02em] text-foreground">
           Plan &amp; billing
         </h2>
         <p className="m-0 max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">
@@ -48,7 +48,7 @@ export function SectionBilling({
 
       <div className="rounded-md border border-border bg-background p-5">
         <div className="mb-3.5 flex items-baseline gap-3 border-b border-border pb-3.5">
-          <span className="font-sans text-[22px] font-bold tracking-[-0.02em] text-foreground">
+          <span className="font-sans text-[22px] font-semibold tracking-[-0.02em] text-foreground">
             {plan.tier}
           </span>
           <span className="ml-auto font-mono text-[13px] text-muted-foreground">

@@ -8,6 +8,7 @@ import { Section, SectionHead } from "@workspace/ui/components/section"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
 import { loadClientMemoryRepository } from "@/features/clients/adapters/client-memory-loader"
+import { clientProfileViewTransitionName } from "../_profile-routing"
 
 import { ClientHeader } from "./_components/client-header"
 import { MemoryCallout } from "./_components/memory-callout"
@@ -21,13 +22,15 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
-  const { slug } = await params
-  const repository = await loadClientMemoryRepository()
+  const [{ slug }, repository] = await Promise.all([
+    params,
+    loadClientMemoryRepository(),
+  ])
   const client = await repository.findClientBySlug(slug)
   if (!client) return { title: "Client" }
   return {
     title: client.name,
-    description: `What I know about ${client.name} — timeline, memory, next actions.`,
+    description: `What I know about ${client.name}: timeline, memory, next actions.`,
   }
 }
 
@@ -36,8 +39,10 @@ export default async function ClientDetailPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
-  const { slug } = await params
-  const repository = await loadClientMemoryRepository()
+  const [{ slug }, repository] = await Promise.all([
+    params,
+    loadClientMemoryRepository(),
+  ])
   const client = await repository.findClientBySlug(slug)
   if (!client) notFound()
 
@@ -54,7 +59,10 @@ export default async function ClientDetailPage({
         </Button>
       </div>
 
-      <ClientHeader header={view.header} />
+      <ClientHeader
+        header={view.header}
+        viewTransitionName={clientProfileViewTransitionName(slug)}
+      />
 
       <MemoryCallout memory={view.memory} />
 

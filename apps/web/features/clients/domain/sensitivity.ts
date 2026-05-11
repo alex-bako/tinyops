@@ -13,10 +13,12 @@ export function classifyTimelineSensitivity({
   const normalizedText = text.toLowerCase()
   const matchedKeywords = Array.from(
     new Set(
-      manualReviewKeywords
-        .map((keyword) => keyword.trim().toLowerCase())
-        .filter(Boolean)
-        .filter((keyword) => normalizedText.includes(keyword))
+      manualReviewKeywords.flatMap((keyword) => {
+        const normalized = keyword.trim().toLowerCase()
+        return normalized && normalizedText.includes(normalized)
+          ? [normalized]
+          : []
+      })
     )
   )
 

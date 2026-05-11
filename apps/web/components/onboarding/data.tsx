@@ -32,7 +32,7 @@ export const VERTICALS: ReadonlyArray<{
   {
     id: "therapy",
     label: "Therapy or counseling",
-    sub: "1:1 client work — sensitive content protected by default.",
+    sub: "1:1 client work - sensitive content protected by default.",
     icon: HeartHandshakeIcon,
     sensitivity: "strict",
   },
@@ -46,7 +46,7 @@ export const VERTICALS: ReadonlyArray<{
   {
     id: "course",
     label: "Course creator",
-    sub: "Cohort-based or self-paced — students at scale.",
+    sub: "Cohort-based or self-paced - students at scale.",
     icon: GraduationCapIcon,
     sensitivity: "balanced",
   },
@@ -174,7 +174,7 @@ export const QUOTES: Record<
   sensitivity: {
     text: (
       <>
-        Sensitive —{" "}
+        Sensitive -{" "}
         <em className="font-serif font-normal italic text-cobalt-700">
           review manually
         </em>
@@ -186,7 +186,7 @@ export const QUOTES: Record<
   source: {
     text: (
       <>
-        Type a client email — see{" "}
+        Type a client email - see{" "}
         <em className="font-serif font-normal italic text-cobalt-700">
           everything
         </em>{" "}

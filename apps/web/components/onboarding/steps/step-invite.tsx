@@ -38,7 +38,7 @@ export function StepInvite({ data, set }: StepProps) {
   return (
     <div className="flex w-full max-w-[520px] flex-col gap-6">
       <header className="flex flex-col gap-3">
-        <h1 className="m-0 text-[32px] font-bold leading-[1.1] tracking-[-0.025em] text-foreground">
+        <h1 className="m-0 text-[32px] font-semibold leading-[1.1] tracking-[-0.025em] text-foreground">
           Invite your team
         </h1>
         <p className="m-0 max-w-[56ch] text-[15px] leading-[1.55] text-[rgba(15,23,42,0.65)]">
@@ -50,7 +50,7 @@ export function StepInvite({ data, set }: StepProps) {
       <div className="flex flex-col gap-2">
         {data.invites.map((inv, i) => (
           <div
-            key={i}
+            key={`${inv.email}:${inv.role}`}
             className="grid grid-cols-[1fr_140px_28px] items-center gap-2"
           >
             <Input
@@ -81,7 +81,7 @@ export function StepInvite({ data, set }: StepProps) {
               type="button"
               onClick={() => remove(i)}
               title="Remove row"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-xs text-[rgba(15,23,42,0.5)] hover:bg-[rgba(15,23,42,0.05)] hover:text-foreground"
+              className="inline-flex size-7 items-center justify-center rounded-xs text-[rgba(15,23,42,0.5)] hover:bg-[rgba(15,23,42,0.05)] hover:text-foreground"
             >
               <XIcon className="size-3.5" />
             </button>
@@ -99,7 +99,7 @@ export function StepInvite({ data, set }: StepProps) {
 
       <p className="m-0 text-[12px] leading-[1.5] text-[rgba(15,23,42,0.55)]">
         New members default to{" "}
-        <strong className="font-semibold text-foreground">Operator</strong> —
+        <strong className="font-semibold text-foreground">Operator</strong> -
         read clients, draft, and send. Approving sensitive drafts requires
         Admin.
       </p>

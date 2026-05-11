@@ -77,10 +77,10 @@ function StripeConfig() {
           </Select>
         </FormRow>
         <FormRow label="Test mode">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] text-foreground">
-            <Switch />
+          <div className="inline-flex items-center gap-2 text-[13px] text-foreground">
+            <Switch aria-label="Include events from test keys" />
             Include events from test keys
-          </label>
+          </div>
         </FormRow>
       </Form>
     </DsSection>

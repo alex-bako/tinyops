@@ -70,9 +70,11 @@ export function buildSettingsRailView({
   role: WorkspaceRole
 }): { sections: SettingsSectionView[] } {
   return {
-    sections: SETTINGS_SECTIONS.filter(
-      (section) => section.id !== "billing" || canViewBilling(role)
-    ).map((section) => ({ ...section, active: section.id === active })),
+    sections: SETTINGS_SECTIONS.flatMap((section) =>
+      section.id !== "billing" || canViewBilling(role)
+        ? [{ ...section, active: section.id === active }]
+        : []
+    ),
   }
 }
 
@@ -131,16 +133,22 @@ export function buildWorkspaceSwitcherView(
     },
     active: toRow(state.active),
     activeRole: ROLE_DEFS[state.active.role],
-    switchRows: state.workspaces
-      .filter((workspace) => workspace.id !== state.active.id)
-      .filter((workspace) => matches(workspace.name, workspace.handle))
-      .map(toRow),
-    invitationRows: state.joinableWorkspaces
-      .filter((workspace) => matches(workspace.name, workspace.handle))
-      .map((workspace) => ({
-        ...workspace,
-        hint: `Invited by ${nameFromEmail(workspace.invitedByEmail)}`,
-      })),
+    switchRows: state.workspaces.flatMap((workspace) =>
+      workspace.id !== state.active.id &&
+      matches(workspace.name, workspace.handle)
+        ? [toRow(workspace)]
+        : []
+    ),
+    invitationRows: state.joinableWorkspaces.flatMap((workspace) =>
+      matches(workspace.name, workspace.handle)
+        ? [
+            {
+              ...workspace,
+              hint: `Invited by ${nameFromEmail(workspace.invitedByEmail)}`,
+            },
+          ]
+        : []
+    ),
   }
 }
 
@@ -205,16 +213,18 @@ function nameFromEmail(email: string | null | undefined) {
   return email?.split("@")[0] || "member"
 }
 
+const workspaceDateFormatter = new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+})
+
 function formatDate(value: string | null) {
   if (!value) return "Never"
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date)
+  return workspaceDateFormatter.format(date)
 }
 
 function formatRelativeDate(value: string, now: (() => Date) | undefined) {

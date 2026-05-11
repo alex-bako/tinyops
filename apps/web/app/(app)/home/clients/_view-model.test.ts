@@ -8,7 +8,12 @@ import {
   DEFAULT_CLIENT_LIST_FILTERS,
   applyClientListFilterPatch,
   createClientListView,
+  getNewClientSlugs,
 } from "./_view-model"
+import {
+  clientProfileHref,
+  clientProfileViewTransitionName,
+} from "./_profile-routing"
 
 describe("client list view model", () => {
   it("filters rows by status flag and keeps global counts", () => {
@@ -65,6 +70,22 @@ describe("client list view model", () => {
       query: "anna",
     })
     expect(DEFAULT_CLIENT_LIST_FILTERS.query).toBe("")
+  })
+
+  it("derives client navigation presentation from the slug", () => {
+    expect(clientProfileHref("anna-smith")).toBe("/home/clients/anna-smith")
+    expect(clientProfileViewTransitionName("anna-smith")).toBe(
+      "client-anna-smith"
+    )
+  })
+
+  it("detects newly inserted clients without treating reorder as new", () => {
+    const previous = new Set(["anna-smith", "eve-kowalski"])
+    const nextRows = [ALL_CLIENTS[8]!, ALL_CLIENTS[0]!, ALL_CLIENTS[1]!]
+
+    expect(getNewClientSlugs(previous, nextRows)).toEqual(
+      new Set([ALL_CLIENTS[1]!.slug])
+    )
   })
 
   it("does not hide a global client list inside the hook", () => {

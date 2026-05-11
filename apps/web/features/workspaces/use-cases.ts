@@ -321,9 +321,12 @@ function sanitizeSensitivityPatch(
     ...sensitivity,
     ...(sensitivity.manualReviewKeywords
       ? {
-          manualReviewKeywords: sensitivity.manualReviewKeywords
-            .map((keyword) => keyword.trim().toLowerCase())
-            .filter(Boolean),
+          manualReviewKeywords: sensitivity.manualReviewKeywords.flatMap(
+            (keyword) => {
+              const normalized = keyword.trim().toLowerCase()
+              return normalized ? [normalized] : []
+            }
+          ),
         }
       : {}),
   }

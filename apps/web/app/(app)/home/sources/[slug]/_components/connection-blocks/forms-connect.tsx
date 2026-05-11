@@ -25,21 +25,64 @@ type CsvState = {
 
 type FormsConnectionTab = "manual_csv" | "oauth_mock"
 
+type FormsConnectState = {
+  connectionMode: FormsConnectionTab
+  formUrlOrId: string
+  displayName: string
+  identityColumn: string
+  timestampColumn: string
+  csv: CsvState
+  error: string | null
+}
+
+type FormsConnectAction =
+  | { type: "set_connection_mode"; value: FormsConnectionTab }
+  | { type: "set_form_url_or_id"; value: string }
+  | { type: "set_display_name"; value: string }
+  | { type: "set_identity_column"; value: string }
+  | { type: "set_timestamp_column"; value: string }
+  | {
+      type: "csv_uploaded"
+      fileName: string
+      csvText: string
+      parsed: GoogleFormsParsedCsv
+    }
+  | { type: "csv_failed" }
+  | { type: "clear_error" }
+  | { type: "set_error"; value: string }
+
+const EMPTY_CSV_STATE: CsvState = {
+  fileName: "",
+  csvText: "",
+  parsed: null,
+}
+
+const INITIAL_FORMS_CONNECT_STATE: FormsConnectState = {
+  connectionMode: "manual_csv",
+  formUrlOrId: "",
+  displayName: "",
+  identityColumn: "",
+  timestampColumn: "",
+  csv: EMPTY_CSV_STATE,
+  error: null,
+}
+
 function FormsConnect({ source }: { source: DataSource }) {
   const { refresh } = useRouter()
   const [pending, startTransition] = React.useTransition()
-  const [connectionMode, setConnectionMode] =
-    React.useState<FormsConnectionTab>("manual_csv")
-  const [formUrlOrId, setFormUrlOrId] = React.useState("")
-  const [displayName, setDisplayName] = React.useState("")
-  const [identityColumn, setIdentityColumn] = React.useState("")
-  const [timestampColumn, setTimestampColumn] = React.useState("")
-  const [csv, setCsv] = React.useState<CsvState>({
-    fileName: "",
-    csvText: "",
-    parsed: null,
-  })
-  const [error, setError] = React.useState<string | null>(null)
+  const [state, dispatch] = React.useReducer(
+    formsConnectReducer,
+    INITIAL_FORMS_CONNECT_STATE
+  )
+  const {
+    connectionMode,
+    formUrlOrId,
+    displayName,
+    identityColumn,
+    timestampColumn,
+    csv,
+    error,
+  } = state
 
   const headers = csv.parsed?.headers ?? []
   const canSubmit =
@@ -50,26 +93,26 @@ function FormsConnect({ source }: { source: DataSource }) {
     timestampColumn
 
   const uploadCsv = async (file: File | undefined) => {
-    setError(null)
+    dispatch({ type: "clear_error" })
     if (!file) return
 
     try {
       const csvText = await file.text()
       const parsed = parseGoogleFormsCsv(csvText)
-      setCsv({ fileName: file.name, csvText, parsed })
-      setIdentityColumn(preferredColumn(parsed.headers, /email/i))
-      setTimestampColumn(preferredColumn(parsed.headers, /timestamp|time/i))
+      dispatch({
+        type: "csv_uploaded",
+        fileName: file.name,
+        csvText,
+        parsed,
+      })
     } catch {
-      setCsv({ fileName: "", csvText: "", parsed: null })
-      setIdentityColumn("")
-      setTimestampColumn("")
-      setError("CSV could not be parsed.")
+      dispatch({ type: "csv_failed" })
     }
   }
 
   const submit = () => {
     if (!canSubmit) return
-    setError(null)
+    dispatch({ type: "clear_error" })
     startTransition(async () => {
       const result = await connectGoogleFormsManualCsvDataSourceAction({
         formUrlOrId,
@@ -81,7 +124,7 @@ function FormsConnect({ source }: { source: DataSource }) {
       })
 
       if (result.error) {
-        setError(formsErrorLabel(result.error))
+        dispatch({ type: "set_error", value: formsErrorLabel(result.error) })
         return
       }
       refresh()
@@ -109,7 +152,9 @@ function FormsConnect({ source }: { source: DataSource }) {
             role="tab"
             aria-selected={connectionMode === "manual_csv"}
             className={modeTabClassName(connectionMode === "manual_csv")}
-            onClick={() => setConnectionMode("manual_csv")}
+            onClick={() =>
+              dispatch({ type: "set_connection_mode", value: "manual_csv" })
+            }
           >
             CSV upload
           </button>
@@ -118,7 +163,9 @@ function FormsConnect({ source }: { source: DataSource }) {
             role="tab"
             aria-selected={connectionMode === "oauth_mock"}
             className={modeTabClassName(connectionMode === "oauth_mock")}
-            onClick={() => setConnectionMode("oauth_mock")}
+            onClick={() =>
+              dispatch({ type: "set_connection_mode", value: "oauth_mock" })
+            }
           >
             OAuth
           </button>
@@ -136,7 +183,12 @@ function FormsConnect({ source }: { source: DataSource }) {
           <Input
             aria-label="Google Form URL or ID"
             value={formUrlOrId}
-            onChange={(event) => setFormUrlOrId(event.target.value)}
+            onChange={(event) =>
+              dispatch({
+                type: "set_form_url_or_id",
+                value: event.target.value,
+              })
+            }
             placeholder="https://docs.google.com/forms/d/..."
             className="font-mono text-[12.5px]"
           />
@@ -145,7 +197,12 @@ function FormsConnect({ source }: { source: DataSource }) {
           <Input
             aria-label="Form name"
             value={displayName}
-            onChange={(event) => setDisplayName(event.target.value)}
+            onChange={(event) =>
+              dispatch({
+                type: "set_display_name",
+                value: event.target.value,
+              })
+            }
             placeholder="Practice intake"
           />
         </FormRow>
@@ -177,7 +234,12 @@ function FormsConnect({ source }: { source: DataSource }) {
             <select
               aria-label="Client identity column"
               value={identityColumn}
-              onChange={(event) => setIdentityColumn(event.target.value)}
+              onChange={(event) =>
+                dispatch({
+                  type: "set_identity_column",
+                  value: event.target.value,
+                })
+              }
               className="h-8 rounded-md border border-input bg-background px-2 text-[13px]"
             >
               {headers.map((header) => (
@@ -194,7 +256,12 @@ function FormsConnect({ source }: { source: DataSource }) {
             <select
               aria-label="Response timestamp column"
               value={timestampColumn}
-              onChange={(event) => setTimestampColumn(event.target.value)}
+              onChange={(event) =>
+                dispatch({
+                  type: "set_timestamp_column",
+                  value: event.target.value,
+                })
+              }
               className="h-8 rounded-md border border-input bg-background px-2 text-[13px]"
             >
               {headers.map((header) => (
@@ -225,6 +292,47 @@ function FormsConnect({ source }: { source: DataSource }) {
       )}
     </Form>
   )
+}
+
+function formsConnectReducer(
+  state: FormsConnectState,
+  action: FormsConnectAction
+): FormsConnectState {
+  switch (action.type) {
+    case "set_connection_mode":
+      return { ...state, connectionMode: action.value }
+    case "set_form_url_or_id":
+      return { ...state, formUrlOrId: action.value }
+    case "set_display_name":
+      return { ...state, displayName: action.value }
+    case "set_identity_column":
+      return { ...state, identityColumn: action.value }
+    case "set_timestamp_column":
+      return { ...state, timestampColumn: action.value }
+    case "csv_uploaded":
+      return {
+        ...state,
+        csv: {
+          fileName: action.fileName,
+          csvText: action.csvText,
+          parsed: action.parsed,
+        },
+        identityColumn: preferredColumn(action.parsed.headers, /email/i),
+        timestampColumn: preferredColumn(action.parsed.headers, /timestamp|time/i),
+      }
+    case "csv_failed":
+      return {
+        ...state,
+        csv: EMPTY_CSV_STATE,
+        identityColumn: "",
+        timestampColumn: "",
+        error: "CSV could not be parsed.",
+      }
+    case "clear_error":
+      return { ...state, error: null }
+    case "set_error":
+      return { ...state, error: action.value }
+  }
 }
 
 function modeTabClassName(active: boolean) {

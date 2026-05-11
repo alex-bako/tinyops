@@ -120,9 +120,11 @@ export function mapWorkspaceRow(
       excludeFromOutbound: row.exclude_from_outbound,
     },
     members,
-    invites: (row.workspace_invitations ?? [])
-      .filter((invite) => !invite.accepted_at && !invite.revoked_at)
-      .map((invite) => mapWorkspaceInvite(invite)),
+    invites: (row.workspace_invitations ?? []).flatMap((invite) =>
+      !invite.accepted_at && !invite.revoked_at
+        ? [mapWorkspaceInvite(invite)]
+        : []
+    ),
   }
 }
 
