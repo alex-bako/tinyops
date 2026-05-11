@@ -24,6 +24,8 @@ export type ImapConnectionConfig = {
 export type ImapFolder = {
   path: string
   messages: number | null
+  specialUse?: string | null
+  flags?: string[]
 }
 
 export type ImapMessageFilterField = "from" | "to" | "subject" | "body"

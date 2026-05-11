@@ -1,29 +1,71 @@
-import type {
-  NormalizedConnectorRecord,
-  NormalizedParticipant,
-} from "@/features/clients/ingestion"
-import { classifyTimelineSensitivity } from "@/features/clients/sensitivity"
+import type { NormalizedConnectorRecord } from "@/features/clients/ingestion"
+import {
+  buildImapMessageFacts,
+  type ImapMessageFacts,
+  type ParsedMailLike,
+} from "@/features/data-sources/imap-message-facts"
+import type { ImapThreadHeaders } from "@/features/data-sources/imap-threading"
 import type { ImapDataSource } from "@/features/data-sources/types"
-import { normalizeEmail } from "@/lib/auth/email"
 
-export type ParsedAddress = {
-  address?: string
-  name?: string
+export {
+  addressEmails,
+  ownerEmailSet,
+  type ParsedAddress,
+  type ParsedAddressList,
+  type ParsedMailLike,
+} from "@/features/data-sources/imap-message-facts"
+
+type ImapRecordThreadContext = {
+  headers?: ImapThreadHeaders
+  folderRole: "watched" | "sent"
+  importReason: "filter_anchor" | "thread_member" | "thread_reply"
+  anchored: boolean
 }
 
-export type ParsedAddressList = {
-  value?: ParsedAddress[]
-}
+export function buildImapConnectorRecordFromFacts({
+  source,
+  facts,
+  thread,
+}: {
+  source: ImapDataSource
+  facts: ImapMessageFacts
+  thread?: ImapRecordThreadContext
+}): NormalizedConnectorRecord {
+  const threadHeaders = thread?.headers ?? facts.headers
 
-export type ParsedMailLike = {
-  messageId?: string
-  subject?: string
-  date?: Date
-  text?: string
-  from?: ParsedAddressList
-  to?: ParsedAddressList
-  cc?: ParsedAddressList
-  bcc?: ParsedAddressList
+  return {
+    workspaceId: source.workspaceId,
+    sourceId: source.id,
+    sourceType: "imap",
+    externalId: facts.externalId,
+    recordType: "email",
+    eventType: facts.eventType,
+    occurredAt: facts.occurredAt,
+    title: facts.title,
+    summary: facts.summary,
+    bodyText: facts.bodyText,
+    participants: facts.participants,
+    metadata: {
+      folder: facts.folder,
+      uid: facts.uid,
+      uidValidity: facts.uidValidity,
+      messageId: facts.messageId,
+      imapThread: {
+        messageId: threadHeaders.messageId,
+        inReplyTo: threadHeaders.inReplyTo,
+        references: threadHeaders.references,
+        linkedMessageIds: threadHeaders.linkedMessageIds,
+        relatedMessageIds: threadHeaders.relatedMessageIds,
+        threadKey: threadHeaders.threadKey,
+        folderRole: thread?.folderRole ?? "watched",
+        importReason: thread?.importReason ?? "filter_anchor",
+        anchored: thread?.anchored ?? false,
+      },
+      matchedSensitivityKeywords: facts.matchedSensitivityKeywords,
+    },
+    attributes: [],
+    sensitivityLevel: facts.sensitivityLevel,
+  }
 }
 
 export function buildImapConnectorRecord({
@@ -36,6 +78,7 @@ export function buildImapConnectorRecord({
   ownerEmails,
   manualReviewKeywords,
   fallbackDate,
+  thread,
 }: {
   source: ImapDataSource
   uid: number
@@ -46,103 +89,24 @@ export function buildImapConnectorRecord({
   ownerEmails: Set<string>
   manualReviewKeywords: string[]
   fallbackDate: Date
+  thread?: ImapRecordThreadContext
 }): NormalizedConnectorRecord | null {
-  if (shouldSkipSender(source, parsed)) return null
-
-  const bodyText = (parsed.text ?? "").trim()
-  const subject = (parsed.subject ?? "(no subject)").trim()
-  const fromEmails = addressEmails(parsed.from)
-  const senderIsOwner = fromEmails.some((email) => ownerEmails.has(email))
-  const participants = externalParticipants(parsed, ownerEmails)
-  if (participants.length === 0) return null
-
-  const sensitivity = classifyTimelineSensitivity({
-    text: `${subject}\n${bodyText}`,
+  const result = buildImapMessageFacts({
+    source,
+    uid,
+    uidValidity,
+    folder,
+    parsed,
+    internalDate,
+    ownerEmails,
     manualReviewKeywords,
+    fallbackDate,
   })
-  const messageId = parsed.messageId?.trim()
+  if (!result.ok) return null
 
-  return {
-    workspaceId: source.workspaceId,
-    sourceId: source.id,
-    sourceType: "imap",
-    externalId: messageId
-      ? `message:${messageId}`
-      : `imap:${folder}:${uidValidity}:${uid}`,
-    recordType: "email",
-    eventType: senderIsOwner ? "email_sent" : "email_received",
-    occurredAt: toIso(parsed.date ?? internalDate ?? fallbackDate),
-    title: subject,
-    summary: summarizeEmail(bodyText),
-    bodyText,
-    participants,
-    metadata: {
-      folder,
-      uid,
-      uidValidity,
-      messageId: messageId ?? null,
-      matchedSensitivityKeywords: sensitivity.matchedKeywords,
-    },
-    attributes: [],
-    sensitivityLevel: sensitivity.level,
-  }
-}
-
-export function ownerEmailSet(username: string, ownerEmails: string[]) {
-  return new Set(
-    [username, ...ownerEmails].flatMap((value) => {
-      const email = normalizeEmail(value)
-      return email ? [email] : []
-    })
-  )
-}
-
-export function addressEmails(list: ParsedAddressList | undefined) {
-  return (list?.value ?? []).flatMap((address) => {
-    const email = normalizeEmail(address.address ?? "")
-    return email ? [email] : []
+  return buildImapConnectorRecordFromFacts({
+    source,
+    facts: result.facts,
+    thread,
   })
-}
-
-function shouldSkipSender(source: ImapDataSource, parsed: ParsedMailLike) {
-  return addressEmails(parsed.from).some((email) =>
-    source.intake.skipSenders.some((pattern) => matchesEmailPattern(pattern, email))
-  )
-}
-
-function matchesEmailPattern(pattern: string, email: string) {
-  const escaped = pattern
-    .trim()
-    .toLowerCase()
-    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
-    .replaceAll("*", ".*")
-  return new RegExp(`^${escaped}$`).test(email)
-}
-
-function externalParticipants(
-  parsed: ParsedMailLike,
-  ownerEmails: Set<string>
-): NormalizedParticipant[] {
-  const seen = new Set<string>()
-  return [
-    ...(parsed.from?.value ?? []),
-    ...(parsed.to?.value ?? []),
-    ...(parsed.cc?.value ?? []),
-    ...(parsed.bcc?.value ?? []),
-  ].flatMap((address) => {
-    const email = normalizeEmail(address.address ?? "")
-    if (!email || ownerEmails.has(email) || seen.has(email)) return []
-    seen.add(email)
-    return [{ email, name: address.name ?? null, role: "external" as const }]
-  })
-}
-
-function summarizeEmail(bodyText: string) {
-  const compact = bodyText.replace(/\s+/g, " ").trim()
-  if (compact.length <= 180) return compact
-  return `${compact.slice(0, 177)}...`
-}
-
-function toIso(value: Date | string) {
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString()
 }

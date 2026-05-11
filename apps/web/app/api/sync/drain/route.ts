@@ -7,7 +7,7 @@ import { getCronSecret } from "@/lib/supabase/server-env"
 
 export const runtime = "nodejs"
 
-const CRON_BATCH_SIZE = 5
+const CRON_BATCH_SIZE = 50
 
 export async function GET(request: Request) {
   const logger = getLogger().child({ component: "sync_drain_route" })

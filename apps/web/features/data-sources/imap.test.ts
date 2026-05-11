@@ -106,13 +106,25 @@ describe("IMAP data source domain", () => {
   it("coerces folder snapshots and message filters from untrusted persistence", () => {
     expect(
       buildImapFolderSnapshot([
-        { path: " INBOX ", messages: 12 },
+        { path: " INBOX ", messages: 12, specialUse: "\\Inbox", flags: ["\\HasNoChildren"] },
+        { path: " Sent ", messages: 4, specialUse: "\\Sent", flags: ["\\Sent", 42] },
         { path: "Bad", messages: -1 },
         { path: "", messages: 3 },
       ])
     ).toEqual({
       availableFolders: [
-        { path: "INBOX", messages: 12 },
+        {
+          path: "INBOX",
+          messages: 12,
+          specialUse: "\\Inbox",
+          flags: ["\\HasNoChildren"],
+        },
+        {
+          path: "Sent",
+          messages: 4,
+          specialUse: "\\Sent",
+          flags: ["\\Sent"],
+        },
         { path: "Bad", messages: null },
       ],
     })
