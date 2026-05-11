@@ -6,8 +6,8 @@ import { ArrowLeftIcon } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
+import { SourceSyncRealtimeRefresh } from "@/features/data-sources/adapters/source-sync-realtime-refresh"
 import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
-import { DataSourceSyncRealtimeRefresh } from "@/features/data-sources/sync-realtime-refresh"
 
 import { ActivityBlock } from "./_components/activity-block"
 import { ConfigBlock } from "./_components/config-block"
@@ -54,7 +54,7 @@ export default async function SourceDetailPage({
 
   return (
     <WorkspacePageSurface>
-      <DataSourceSyncRealtimeRefresh
+      <SourceSyncRealtimeRefresh
         activeSourceRowIds={activeSourceRowIds}
         sourceRowIds={source.sourceRowId ? [source.sourceRowId] : []}
       />
