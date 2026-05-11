@@ -7,7 +7,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Section, SectionHead } from "@workspace/ui/components/section"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
-import { loadClientMemoryRepository } from "@/lib/client-memory/loaders"
+import { loadClientMemoryRepository } from "@/features/clients/adapters/client-memory-loader"
 
 import { ClientHeader } from "./_components/client-header"
 import { MemoryCallout } from "./_components/memory-callout"

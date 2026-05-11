@@ -1,4 +1,4 @@
-import type { Client } from "@/lib/clients"
+import type { Client } from "@/features/clients/application/client-memory"
 
 export type FilterId =
   | "all"

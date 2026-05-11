@@ -28,7 +28,7 @@ import {
 } from "@workspace/ui/components/select"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { COHORTS } from "@/lib/clients"
+import { COHORTS } from "@/features/clients/application/client-memory"
 import { FILTER_TABS, type FilterId } from "../_filters"
 import type {
   ClientListCounts,

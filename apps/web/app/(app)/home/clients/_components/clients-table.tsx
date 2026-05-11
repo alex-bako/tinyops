@@ -21,7 +21,7 @@ import {
   ClientFlagBadges,
   ClientStatusBadge,
 } from "@/components/client-state-badge"
-import type { ClientDetail } from "@/lib/clients"
+import type { ClientDetail } from "@/features/clients/application/client-memory"
 
 export function ClientsTable({
   rows,

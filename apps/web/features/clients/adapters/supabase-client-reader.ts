@@ -1,15 +1,54 @@
-import {
-  mapClientProfileToSearchResult,
-  mapClientRowToProfile,
-} from "@/features/clients/mappers"
+import { createClientSearchResult } from "@/features/clients/application/client-memory"
 import type {
-  ClientReader,
-  ClientRow,
+  ClientProfile,
+  ClientReaderPort,
   ClientSearchResult,
-} from "@/features/clients/types"
+  ClientTimelineEntry,
+} from "@/features/clients/domain/client-profile"
+import { mapTimelineEntryToEvent } from "@/features/clients/domain/client-profile"
+import type { Json } from "@/lib/database.types"
+
+export type ClientTimelineEventRow = {
+  id: string
+  workspace_id: string
+  client_id: string
+  source_id: string | null
+  raw_record_id: string | null
+  event_type: string
+  event_date: string
+  title: string
+  summary: string
+  body_text: string
+  participants: Json
+  metadata: Json
+  sensitivity_level: number
+  ai_extracted_fields: Json
+  created_at: string
+  updated_at: string
+}
+
+export type ClientRow = {
+  id: string
+  workspace_id: string
+  primary_email: string
+  display_name: string
+  slug: string
+  status: string
+  tags: string[]
+  first_seen_at: string | null
+  last_seen_at: string | null
+  last_contacted_at: string | null
+  do_not_contact: boolean
+  unsubscribe_status: string
+  consent_status: string
+  sensitivity_level: number
+  created_at: string
+  updated_at: string
+  timeline_events?: ClientTimelineEventRow[] | null
+}
 
 type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
-type SupabaseClientStoreClient = {
+type SupabaseClientReaderClient = {
   from(table: string): unknown
 }
 
@@ -59,11 +98,11 @@ const CLIENT_COLUMNS = `
   )
 `
 
-export function createSupabaseClientStore({
+export function createSupabaseClientReader({
   client,
 }: {
-  client: SupabaseClientStoreClient
-}): ClientReader {
+  client: SupabaseClientReaderClient
+}): ClientReaderPort {
   return {
     async listClients(workspaceId) {
       const { data, error } = await baseClientQuery(client)
@@ -119,12 +158,57 @@ export function createSupabaseClientStore({
         ...(nameResult ?? []),
       ]).slice(0, input.limit)
 
-      return rows.map((row) => mapClientProfileToSearchResult(mapClientRowToProfile(row)))
+      return rows.map((row) => createClientSearchResult(mapClientRowToProfile(row)))
     },
   }
 }
 
-function baseClientQuery(client: SupabaseClientStoreClient): ClientQuery {
+export function mapClientRowToProfile(row: ClientRow): ClientProfile {
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    primaryEmail: row.primary_email,
+    displayName: row.display_name,
+    slug: row.slug,
+    status: row.status,
+    tags: row.tags,
+    firstSeenAt: row.first_seen_at,
+    lastSeenAt: row.last_seen_at,
+    lastContactedAt: row.last_contacted_at,
+    doNotContact: row.do_not_contact,
+    unsubscribeStatus: row.unsubscribe_status,
+    consentStatus: row.consent_status,
+    sensitivityLevel: row.sensitivity_level,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    timeline: (row.timeline_events ?? []).map((event) =>
+      mapTimelineEntryToEvent(mapTimelineEventRow(event))
+    ),
+  }
+}
+
+function mapTimelineEventRow(row: ClientTimelineEventRow): ClientTimelineEntry {
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    clientId: row.client_id,
+    sourceId: row.source_id,
+    rawRecordId: row.raw_record_id,
+    eventType: row.event_type,
+    occurredAt: row.event_date,
+    title: row.title,
+    summary: row.summary,
+    bodyText: row.body_text,
+    participants: row.participants,
+    metadata: row.metadata,
+    sensitivityLevel: row.sensitivity_level,
+    aiExtractedFields: row.ai_extracted_fields,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function baseClientQuery(client: SupabaseClientReaderClient): ClientQuery {
   return (client.from("clients") as ClientQuery).select(CLIENT_COLUMNS)
 }
 
@@ -135,7 +219,7 @@ async function searchClientField({
   pattern,
   limit,
 }: {
-  client: SupabaseClientStoreClient
+  client: SupabaseClientReaderClient
   workspaceId: string
   field: "primary_email" | "display_name"
   pattern: string

@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest"
 import {
   previewConnectorRecords,
   syncConnectorRecords,
-  type ClientIngestionWriter,
+  type ClientIngestionWriterPort,
   type ConnectorIngestionPort,
   type NormalizedConnectorRecord,
-} from "@/features/clients/ingestion"
+} from "@/features/clients/application/connector-ingestion"
 
 const record = (externalId: string): NormalizedConnectorRecord => ({
   workspaceId: "workspace_1",
@@ -36,7 +36,7 @@ describe("connector ingestion core", () => {
         throw new Error("preview should not call sync")
       },
     }
-    const writer: ClientIngestionWriter = {
+    const writer: ClientIngestionWriterPort = {
       async persist() {
         throw new Error("preview should not persist")
       },
@@ -64,7 +64,7 @@ describe("connector ingestion core", () => {
         return { records: [record("one")], truncated: false, cursor: { done: true } }
       },
     }
-    const writer: ClientIngestionWriter = {
+    const writer: ClientIngestionWriterPort = {
       async persist(records) {
         persisted.push(records)
         return { clients: 1, rawRecords: 1, timelineEvents: 1 }
@@ -82,5 +82,43 @@ describe("connector ingestion core", () => {
       persisted: { clients: 1, rawRecords: 1, timelineEvents: 1 },
     })
     expect(persisted).toEqual([[record("one")]])
+  })
+
+  it("rejects invalid connector sync records before invoking persistence", async () => {
+    const connector: ConnectorIngestionPort = {
+      async preview() {
+        throw new Error("sync should not call preview")
+      },
+      async sync() {
+        return {
+          records: [
+            {
+              ...record("one"),
+              externalId: "",
+              sensitivityLevel: 9,
+            } as unknown as NormalizedConnectorRecord,
+          ],
+          truncated: false,
+        }
+      },
+    }
+    const writer: ClientIngestionWriterPort = {
+      async persist() {
+        throw new Error("invalid records should not persist")
+      },
+    }
+
+    await expect(
+      syncConnectorRecords({
+        connector,
+        writer,
+        input: { workspaceId: "workspace_1", sourceId: "source_1" },
+      })
+    ).rejects.toMatchObject({
+      message: "ingestion_failed",
+      cause: expect.objectContaining({
+        message: "invalid_connector_record",
+      }),
+    })
   })
 })

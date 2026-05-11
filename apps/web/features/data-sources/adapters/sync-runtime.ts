@@ -1,7 +1,7 @@
 import {
   createSupabaseClientIngestionWriter,
   type SupabaseClientIngestionWriterClient,
-} from "@/features/clients/supabase-ingestion-writer"
+} from "@/features/clients/adapters/supabase-ingestion-writer"
 import { createImapSourceSyncAdapter } from "@/features/data-sources/adapters/imap-source-sync-adapter"
 import {
   createSupabaseImapThreadIndexReader,

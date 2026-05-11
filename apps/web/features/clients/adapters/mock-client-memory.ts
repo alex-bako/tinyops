@@ -1,77 +1,10 @@
 import { clientStatusBadge } from "@/lib/client-state"
-
-export type ClientStatus = "active" | "inactive" | "sensitive" | "dnc"
-
-export type ClientFlag = "overdue" | "sensitive" | "idle" | "dnc"
-
-export type Client = {
-  name: string
-  email: string
-  cohort: string
-  status: ClientStatus
-  sources: number
-  lastContact: string
-  lastEvent: string
-  flags: ClientFlag[]
-}
-
-/* ──────────────────────────────────────────────────────────────────────
- * Detail-page extensions (mock-only).
- * ────────────────────────────────────────────────────────────────────── */
-
-export type ClientMemory = {
-  summary: string
-  confidence: number // 0..1
-  lastGenerated: string // e.g. "Generated 2h ago, from 9 events"
-}
-
-export type PropertyIcon =
-  | "circle-dot"
-  | "hash"
-  | "calendar"
-  | "send"
-  | "plug"
-  | "target"
-  | "activity"
-  | "wand"
-  | "shield-check"
-  | "shield-alert"
-  | "mail"
-  | "user"
-  | "map-pin"
-
-export type ClientPropertyValue =
-  | { kind: "text"; value: string }
-  | { kind: "tags"; values: string[] }
-  | { kind: "badge"; variant: "active" | "neutral" | "warn" | "sensitive" | "dnc"; label: string; dot?: boolean }
-  | { kind: "tag-and-text"; tag: string; text: string }
-  | { kind: "italic"; value: string }
-
-export type ClientProperty = {
-  key: string
-  icon: PropertyIcon
-  value: ClientPropertyValue
-  avoid?: boolean
-}
-
-export type TimelineEventType = "email" | "form" | "sent" | "csvimport"
-
-export type ClientTimelineEvent = {
-  type: TimelineEventType
-  date: string
-  title: string
-  summary: string
-  sensitive?: boolean
-}
-
-export type ClientDetail = Client & {
-  slug: string
-  joined: string
-  location: string
-  memory: ClientMemory
-  properties: ClientProperty[]
-  timeline: ClientTimelineEvent[]
-}
+import type {
+  Client,
+  ClientDetail,
+  ClientMemoryRepositoryPort,
+  ClientProperty,
+} from "@/features/clients/application/client-memory"
 
 /* ──────────────────────────────────────────────────────────────────────
  * Slug helpers.
@@ -177,38 +110,60 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
   ],
   timeline: [
     {
+      id: "anna-email-replay-access",
+      sourceId: "mock-imap",
       type: "email",
-      date: "Mar 8",
+      occurredAt: "2026-03-08T00:00:00.000Z",
       title: "Re: replay library access",
       summary:
         "Anna asked for clearer instructions on accessing the replay materials. Replied with a step-by-step the same day.",
+      bodyText:
+        "Anna asked for clearer instructions on accessing the replay materials. Replied with a step-by-step the same day.",
+      sensitivityLevel: 0,
     },
     {
+      id: "anna-form-intake",
+      sourceId: "mock-forms",
       type: "form",
-      date: "Mar 3",
-      sensitive: true,
+      occurredAt: "2026-03-03T00:00:00.000Z",
       title: "Intake form submitted",
       summary:
         "Highly personal answers stored — excluded from outbound personalization by default.",
+      bodyText:
+        "Highly personal answers stored — excluded from outbound personalization by default.",
+      sensitivityLevel: 2,
     },
     {
+      id: "anna-sent-monthly-check-in",
+      sourceId: "mock-tinyops",
       type: "sent",
-      date: "Feb 28",
+      occurredAt: "2026-02-28T00:00:00.000Z",
       title: "Monthly check-in (generic)",
       summary: "Sent via TinyOps · opened twice · no reply.",
+      bodyText: "Sent via TinyOps · opened twice · no reply.",
+      sensitivityLevel: 0,
     },
     {
+      id: "anna-email-welcome",
+      sourceId: "mock-imap",
       type: "email",
-      date: "Feb 12",
+      occurredAt: "2026-02-12T00:00:00.000Z",
       title: "Welcome to the March cohort",
       summary:
         "Onboarding email confirming course access and replay library.",
+      bodyText:
+        "Onboarding email confirming course access and replay library.",
+      sensitivityLevel: 0,
     },
     {
+      id: "anna-csv-import",
+      sourceId: "mock-csv",
       type: "csvimport",
-      date: "Feb 10",
+      occurredAt: "2026-02-10T00:00:00.000Z",
       title: "Imported from march-cohort.csv",
       summary: "Row 23 matched on email. Tagged: march-cohort, online.",
+      bodyText: "Row 23 matched on email. Tagged: march-cohort, online.",
+      sensitivityLevel: 0,
     },
   ],
 }
@@ -239,6 +194,12 @@ function joinedFor(cohort: string): string {
   if (cohort.startsWith("February")) return "Feb 1, 2026"
   if (cohort.startsWith("January")) return "Jan 12, 2026"
   return "2026"
+}
+
+function mockOccurredAt(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "2026-01-01T00:00:00.000Z"
+  return date.toISOString()
 }
 
 function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
@@ -323,16 +284,24 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
     properties: props,
     timeline: [
       {
+        id: `${slugify(c.name)}-sent-check-in`,
+        sourceId: "mock-tinyops",
         type: "sent",
-        date: c.lastContact,
+        occurredAt: mockOccurredAt(c.lastContact),
         title: "Monthly check-in",
         summary: `Sent via TinyOps · ${c.flags.includes("overdue") ? "no reply" : "opened once"}.`,
+        bodyText: `Sent via TinyOps · ${c.flags.includes("overdue") ? "no reply" : "opened once"}.`,
+        sensitivityLevel: 0,
       },
       {
+        id: `${slugify(c.name)}-csv-import`,
+        sourceId: "mock-csv",
         type: "csvimport",
-        date: joinedFor(c.cohort),
+        occurredAt: mockOccurredAt(joinedFor(c.cohort)),
         title: `Imported from ${c.cohort.toLowerCase().replace(" ", "-")}.csv`,
         summary: `Matched on email. Tagged: ${c.cohort.toLowerCase().replace(" ", "-")}.`,
+        bodyText: `Matched on email. Tagged: ${c.cohort.toLowerCase().replace(" ", "-")}.`,
+        sensitivityLevel: 0,
       },
     ],
   }
@@ -587,3 +556,25 @@ const BY_SLUG: Record<string, ClientDetail> = Object.fromEntries(
 export function clientBySlug(slug: string): ClientDetail | undefined {
   return BY_SLUG[slug]
 }
+
+export type MockClientMemoryRepositoryOptions = {
+  clients?: ClientDetail[]
+}
+
+export function createMockClientMemoryRepository({
+  clients = ALL_CLIENTS,
+}: MockClientMemoryRepositoryOptions = {}): ClientMemoryRepositoryPort {
+  return {
+    async listClients() {
+      return [...clients]
+    },
+    async getRecentClients(limit = 5) {
+      return clients.slice(0, limit)
+    },
+    async findClientBySlug(slug) {
+      return clients.find((client) => client.slug === slug) ?? null
+    },
+  }
+}
+
+export const mockClientMemoryRepository = createMockClientMemoryRepository()

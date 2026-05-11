@@ -1,4 +1,4 @@
-import type { NormalizedConnectorRecord } from "@/features/clients/ingestion"
+import type { NormalizedConnectorRecord } from "@/features/clients/application/connector-ingestion"
 import {
   buildImapMessageFacts,
   type ImapMessageFacts,

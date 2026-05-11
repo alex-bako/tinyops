@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
 
-import { ALL_CLIENTS } from "@/lib/clients"
+import { ALL_CLIENTS } from "@/features/clients/adapters/mock-client-memory"
 
 import {
   DEFAULT_CLIENT_LIST_FILTERS,

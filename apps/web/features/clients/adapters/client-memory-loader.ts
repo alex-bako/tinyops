@@ -1,27 +1,29 @@
-import { mockClientMemoryRepository } from "@/lib/client-memory/mock-repository"
-import type {
-  ClientMemoryRepository,
-  ClientNavItem,
-} from "@/lib/client-memory/repository"
+import {
+  createWorkspaceClientMemoryRepository,
+  type ClientMemoryRepositoryPort,
+  type ClientNavItem,
+} from "@/features/clients/application/client-memory"
 import { createWorkspaceRequestContext } from "@/features/data-sources/request-context"
 import type { WorkspaceRequestContext } from "@/features/data-sources/request-context"
-import { createWorkspaceClientMemoryRepository } from "@/features/clients/repository"
-import { createSupabaseClientStore } from "@/features/clients/supabase-store"
+import {
+  mockClientMemoryRepository,
+} from "@/features/clients/adapters/mock-client-memory"
+import { createSupabaseClientReader } from "@/features/clients/adapters/supabase-client-reader"
 
-export function getClientMemoryRepository(): ClientMemoryRepository {
+export function getClientMemoryRepository(): ClientMemoryRepositoryPort {
   return mockClientMemoryRepository
 }
 
 export function createClientMemoryRepositoryFromContext(
   context: WorkspaceRequestContext
-): ClientMemoryRepository {
+): ClientMemoryRepositoryPort {
   return createWorkspaceClientMemoryRepository({
     workspaceId: context.activeWorkspace.id,
-    reader: createSupabaseClientStore({ client: context.supabase }),
+    reader: createSupabaseClientReader({ client: context.supabase }),
   })
 }
 
-export async function loadClientMemoryRepository(): Promise<ClientMemoryRepository> {
+export async function loadClientMemoryRepository(): Promise<ClientMemoryRepositoryPort> {
   const context = await createWorkspaceRequestContext()
   if (!context) return getClientMemoryRepository()
 
@@ -29,7 +31,7 @@ export async function loadClientMemoryRepository(): Promise<ClientMemoryReposito
 }
 
 export async function loadClientNavItems(
-  repository?: ClientMemoryRepository
+  repository?: ClientMemoryRepositoryPort
 ): Promise<ClientNavItem[]> {
   const clientRepository = repository ?? (await loadClientMemoryRepository())
   const clients = await clientRepository.listClients()

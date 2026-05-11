@@ -7,11 +7,14 @@ type Listener = {
   callback: () => void
 }
 
+type SubscribeCallback = (status: string) => void
+
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   channel: vi.fn(),
   removeChannel: vi.fn(),
   listeners: [] as Listener[],
+  subscribeCallbacks: [] as SubscribeCallback[],
 }))
 
 vi.mock("next/navigation", () => ({
@@ -33,7 +36,10 @@ function realtimeChannel() {
       mocks.listeners.push({ type, filter, callback })
       return channel
     }),
-    subscribe: vi.fn(() => channel),
+    subscribe: vi.fn((callback?: SubscribeCallback) => {
+      if (callback) mocks.subscribeCallbacks.push(callback)
+      return channel
+    }),
   }
   return channel
 }
@@ -43,11 +49,13 @@ describe("DataSourceSyncRealtimeRefresh", () => {
     vi.clearAllMocks()
     vi.useFakeTimers()
     mocks.listeners.length = 0
+    mocks.subscribeCallbacks.length = 0
     mocks.channel.mockReturnValue(realtimeChannel())
   })
 
   afterEach(() => {
     mocks.listeners.length = 0
+    mocks.subscribeCallbacks.length = 0
     vi.useRealTimers()
   })
 
@@ -84,6 +92,36 @@ describe("DataSourceSyncRealtimeRefresh", () => {
 
     await act(async () => {
       vi.advanceTimersByTime(250)
+    })
+
+    expect(mocks.refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it("refreshes once after subscription is ready for active sync reconciliation", () => {
+    render(
+      <DataSourceSyncRealtimeRefresh
+        sourceRowIds={["source_1"]}
+        activeSourceRowIds={["source_1"]}
+      />
+    )
+
+    expect(mocks.subscribeCallbacks).toHaveLength(1)
+
+    mocks.subscribeCallbacks[0]?.("SUBSCRIBED")
+
+    expect(mocks.refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it("polls while syncs are active as a fallback when realtime events are missed", async () => {
+    render(
+      <DataSourceSyncRealtimeRefresh
+        sourceRowIds={["source_1"]}
+        activeSourceRowIds={["source_1"]}
+      />
+    )
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000)
     })
 
     expect(mocks.refresh).toHaveBeenCalledTimes(1)

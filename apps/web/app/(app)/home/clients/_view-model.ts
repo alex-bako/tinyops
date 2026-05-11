@@ -6,7 +6,7 @@ import {
   COHORTS,
   type ClientDetail,
   type CohortFilter,
-} from "@/lib/clients"
+} from "@/features/clients/application/client-memory"
 
 import { FILTER_TABS, countFor, matchesFilter, type FilterId } from "./_filters"
 

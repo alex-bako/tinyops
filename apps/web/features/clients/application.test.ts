@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
 
-import { createClientQueryApplication } from "@/features/clients/application"
-import type { ClientReader } from "@/features/clients/types"
+import { createClientQueryApplication } from "@/features/clients/application/client-query"
+import type { ClientReaderPort } from "@/features/clients/domain/client-profile"
 
 describe("client query application", () => {
   it("searches client profiles by normalized query within the active workspace", async () => {
     const calls: unknown[] = []
-    const reader: ClientReader = {
+    const reader: ClientReaderPort = {
       async listClients() {
         throw new Error("unexpected list")
       },

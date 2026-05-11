@@ -1,11 +1,11 @@
-import type { ClientReader } from "@/features/clients/types"
+import type { ClientReaderPort } from "@/features/clients/domain/client-profile"
 
 export function createClientQueryApplication({
   workspaceId,
   reader,
 }: {
   workspaceId: string
-  reader: ClientReader
+  reader: ClientReaderPort
 }) {
   return {
     listClients() {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { classifyTimelineSensitivity } from "@/features/clients/sensitivity"
+import { classifyTimelineSensitivity } from "@/features/clients/domain/sensitivity"
 
 describe("client sensitivity classifier", () => {
   it("flags manual-review keywords case-insensitively", () => {

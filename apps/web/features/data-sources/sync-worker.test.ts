@@ -4,7 +4,7 @@ import {
   createDataSourceSyncWorker,
   type SourceSyncAdapter,
 } from "@/features/data-sources/sync-worker"
-import type { NormalizedConnectorRecord } from "@/features/clients/ingestion"
+import type { NormalizedConnectorRecord } from "@/features/clients/application/connector-ingestion"
 import type { LoggerPort } from "@/lib/logging"
 
 const normalizedRecord: NormalizedConnectorRecord = {

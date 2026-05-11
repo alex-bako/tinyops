@@ -1,51 +1,14 @@
+import {
+  assertValidNormalizedRecords,
+  type NormalizedConnectorRecord,
+} from "@/features/clients/domain/connector-record"
 import type { Json } from "@/lib/database.types"
 
-export type ConnectorSourceType =
-  | "imap"
-  | "csv"
-  | "forms"
-  | "stripe"
-  | "mailerlite"
-  | "calendly"
-  | "teachable"
-
-export type NormalizedParticipantRole = "owner" | "external" | "unknown"
-
-export type NormalizedParticipant = {
-  email: string
-  name?: string | null
-  role: NormalizedParticipantRole
-}
-
-export type NormalizedClientAttribute = {
-  key: string
-  value: Json
-  confidence?: number
-}
-
-export type NormalizedConnectorRecord = {
-  workspaceId: string
-  sourceId: string
-  sourceType: ConnectorSourceType
-  externalId: string
-  recordType: string
-  eventType:
-    | "email_received"
-    | "email_sent"
-    | "form_submission"
-    | "csv_import_row"
-    | "manual_note"
-    | "tinyops_email"
-    | "system_event"
-  occurredAt: string
-  title: string
-  summary: string
-  bodyText: string
-  participants: NormalizedParticipant[]
-  metadata: Json
-  attributes: NormalizedClientAttribute[]
-  sensitivityLevel: 0 | 1 | 2 | 3 | 4
-}
+export type {
+  ConnectorSourceType,
+  NormalizedConnectorRecord,
+  NormalizedParticipant,
+} from "@/features/clients/domain/connector-record"
 
 export type ConnectorIngestionInput = {
   workspaceId: string
@@ -71,7 +34,7 @@ export type PersistedConnectorRecords = {
   timelineEvents: number
 }
 
-export type ClientIngestionWriter = {
+export type ClientIngestionWriterPort = {
   persist(
     records: NormalizedConnectorRecord[]
   ): Promise<PersistedConnectorRecords>
@@ -82,7 +45,7 @@ export async function previewConnectorRecords({
   input,
 }: {
   connector: ConnectorIngestionPort
-  writer?: ClientIngestionWriter
+  writer?: ClientIngestionWriterPort
   input: ConnectorIngestionInput
 }): Promise<ConnectorIngestionResult> {
   const result = await connector.preview(input)
@@ -102,10 +65,15 @@ export async function syncConnectorRecords({
   input,
 }: {
   connector: ConnectorIngestionPort
-  writer: ClientIngestionWriter
+  writer: ClientIngestionWriterPort
   input: ConnectorIngestionInput
 }) {
   const result = await connector.sync(input)
+  try {
+    assertValidNormalizedRecords(result.records)
+  } catch (cause) {
+    throw new Error("ingestion_failed", { cause })
+  }
   const persisted =
     result.records.length > 0
       ? await writer.persist(result.records)

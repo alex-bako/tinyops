@@ -1,6 +1,6 @@
 import type {
   ConnectorIngestionPort,
-} from "@/features/clients/ingestion"
+} from "@/features/clients/application/connector-ingestion"
 import type { ImapSyncCredentialReader } from "@/features/data-sources/application"
 import { createImapConnector } from "@/features/data-sources/imap-sync"
 import type { ImapThreadIndexReader } from "@/features/data-sources/imap-threading"
