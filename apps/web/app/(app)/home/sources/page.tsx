@@ -16,6 +16,7 @@ import {
 } from "@/components/page-surface"
 import { SourceSyncRealtimeRefresh } from "@/features/data-sources/adapters/source-sync-realtime-refresh"
 import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
+import type { DataSource } from "@/lib/sources"
 
 import { SourceRow } from "./_components/source-row"
 import { SourcesSyncAllButton } from "./_components/sources-sync-all-button"
@@ -24,14 +25,8 @@ import { createSourcesPageView } from "./_view-model"
 export default async function SourcesPage() {
   const sources = await loadWorkspaceSourceCatalog()
   const view = createSourcesPageView(sources)
-  const sourceRowIds = view.connected.rows.flatMap((source) =>
-    source.sourceRowId ? [source.sourceRowId] : []
-  )
-  const activeSourceRowIds = sources.flatMap((source) =>
-    source.sourceRowId && isActiveSyncStatus(source.imap?.syncStatus)
-      ? [source.sourceRowId]
-      : []
-  )
+  const sourceRowIds = view.connected.rows.flatMap((source) => source.sourceRowIds)
+  const activeSourceRowIds = sources.flatMap(activeSyncSourceRowIds)
 
   return (
     <WorkspacePageSurface>
@@ -82,6 +77,13 @@ export default async function SourcesPage() {
         </div>
       </Section>
     </WorkspacePageSurface>
+  )
+}
+
+function activeSyncSourceRowIds(source: DataSource) {
+  if (isActiveSyncStatus(source.imap?.syncStatus)) return source.sourceRowIds
+  return (source.forms?.connections ?? []).flatMap((connection) =>
+    isActiveSyncStatus(connection.syncStatus) ? [connection.sourceRowId] : []
   )
 }
 

@@ -2,14 +2,17 @@ export {
   CONNECTOR_DEFINITIONS,
   CONNECTOR_IDS as SOURCE_IDS,
   composeWorkspaceConnectorCatalog,
+  getConnectorMetadata,
   listConnectorDefinitions,
 } from "@/features/data-sources/connectors"
 
 export type {
   ConnectorDefinition,
   ConnectorId as SourceId,
+  ConnectorCardinality,
   DataSource,
   DataSourceAuth,
+  DataSourceGoogleFormsSettings,
   DataSourceHealth,
   DataSourceIcon,
   DataSourceImapSettings,

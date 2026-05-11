@@ -70,7 +70,37 @@ const sourceRow = {
   ],
   data_source_sync_states: {
     status: "queued",
-    history_window: "12mo",
+    cursor: null,
+    last_error: null,
+    last_synced_at: null,
+  },
+}
+
+const googleFormsSourceRow = {
+  id: "forms_source_1",
+  workspace_id: "workspace_1",
+  source_type: "forms",
+  display_name: "Practice intake",
+  status: "connected",
+  config_version: 1,
+  config: {
+    externalFormId: "1AbC_Def-1234567890",
+    connectionMode: "manual_csv",
+    mapping: {
+      identityColumn: "Email Address",
+      timestampColumn: "Timestamp",
+    },
+    latestUpload: {
+      id: "upload_1",
+      fileName: "practice-intake.csv",
+      rowCount: 1,
+      uploadedAt: "2026-05-10T00:00:00.000Z",
+    },
+  },
+  created_at: "2026-05-10T00:00:00.000Z",
+  updated_at: "2026-05-10T00:00:00.000Z",
+  data_source_sync_states: {
+    status: "queued",
     cursor: null,
     last_error: null,
     last_synced_at: null,
@@ -335,6 +365,82 @@ describe("supabase data source store", () => {
       args: {
         imap_available_folders: [{ path: "INBOX", messages: 2000 }],
         target_source_id: "source_1",
+        target_workspace_id: "workspace_1",
+      },
+    })
+  })
+
+  it("connects Google Forms manual CSV through the upload RPC then reloads the source", async () => {
+    const calls: unknown[] = []
+    const client = {
+      from(table: string) {
+        return queryChain(table, calls, {
+          data: googleFormsSourceRow,
+          error: null,
+        })
+      },
+      rpc(fn: string, args: unknown) {
+        calls.push({ method: "rpc", fn, args })
+        return Promise.resolve({ data: "forms_source_1", error: null })
+      },
+    }
+
+    const store = createSupabaseDataSourceStore({ client: client as never })
+
+    await expect(
+      store.connectGoogleFormsManualCsv({
+        workspaceId: "workspace_1",
+        source: {
+          externalFormId: "1AbC_Def-1234567890",
+          connectionMode: "manual_csv",
+          displayName: "Practice intake",
+          mapping: {
+            identityColumn: "Email Address",
+            timestampColumn: "Timestamp",
+          },
+        },
+        upload: {
+          fileName: "practice-intake.csv",
+          rows: [
+            {
+              rowNumber: 2,
+              payload: {
+                Timestamp: "2026-05-10T09:15:00.000Z",
+                "Email Address": "anna@example.com",
+                "Full name": "Anna Smith",
+              },
+            },
+          ],
+        },
+      })
+    ).resolves.toMatchObject({
+      id: "forms_source_1",
+      type: "forms",
+      externalFormId: "1AbC_Def-1234567890",
+    })
+
+    expect(calls[0]).toEqual({
+      method: "rpc",
+      fn: "connect_google_forms_manual_csv_data_source",
+      args: {
+        form_connection_mode: "manual_csv",
+        form_display_name: "Practice intake",
+        form_external_id: "1AbC_Def-1234567890",
+        form_mapping: {
+          identityColumn: "Email Address",
+          timestampColumn: "Timestamp",
+        },
+        upload_file_name: "practice-intake.csv",
+        upload_rows: [
+          {
+            rowNumber: 2,
+            payload: {
+              Timestamp: "2026-05-10T09:15:00.000Z",
+              "Email Address": "anna@example.com",
+              "Full name": "Anna Smith",
+            },
+          },
+        ],
         target_workspace_id: "workspace_1",
       },
     })

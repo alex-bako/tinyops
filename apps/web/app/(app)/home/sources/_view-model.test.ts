@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 
+import type { DataSource } from "@/lib/sources"
 import { createSourcesPageView } from "./_view-model"
 
 describe("sources page view", () => {
@@ -51,6 +52,31 @@ describe("sources page view", () => {
       primaryLabel: "Connect",
       configureLabel: "Configure Stripe",
       statusLabel: "Not connected",
+    })
+  })
+
+  it("carries all connected row ids and uses manage intent for plural connectors", () => {
+    const view = createSourcesPageView([
+      {
+        id: "forms",
+        icon: "clipboard-list",
+        title: "Google Forms",
+        sub: "2 forms connected",
+        category: "Forms",
+        auth: "multi",
+        cardinality: "plural",
+        connected: true,
+        sourceRowIds: ["forms_source_2", "forms_source_1"],
+        stats: [{ id: "events", label: "Forms", value: "2" }],
+        forms: { connections: [] },
+      } satisfies DataSource,
+    ])
+
+    expect(view.connected.rows[0]).toMatchObject({
+      id: "forms",
+      sourceRowIds: ["forms_source_2", "forms_source_1"],
+      action: "manage",
+      primaryLabel: "Manage",
     })
   })
 })

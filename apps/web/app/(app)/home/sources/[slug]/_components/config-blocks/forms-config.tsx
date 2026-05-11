@@ -1,73 +1,91 @@
 "use client"
 
+import * as React from "react"
+import { useRouter } from "next/navigation"
+import { PlugIcon } from "lucide-react"
+
+import { Button } from "@workspace/ui/components/button"
 import { Form, FormRow } from "@workspace/ui/components/form-row"
 
-import { ChipPicker } from "../chip-picker"
+import { disconnectDataSourceAction } from "@/features/data-sources/actions"
+import type { DataSource } from "@/lib/sources"
+
 import { DsSection, DsSectionHead } from "../ds-section"
-import { FormsListItem } from "../forms-list-item"
-import { SegmentedControl } from "../segmented-control"
+import { FileRow } from "../file-row"
+import { SourceSyncButton } from "../source-sync-button"
 
-const SENSITIVE_TOPICS = [
-  { id: "medication", label: "medication" },
-  { id: "diagnosis", label: "diagnosis" },
-  { id: "minor", label: "minor" },
-  { id: "income", label: "income" },
-]
-
-function FormsConfig() {
+function FormsConfig({ source }: { source: DataSource }) {
+  const connections = source.forms?.connections ?? []
   return (
     <DsSection>
       <DsSectionHead
-        title="Forms to sync"
-        hint="Pick which Forms in this Google account land on client timelines."
+        title="Forms"
+        hint="Connected Google Forms response imports."
       />
       <Form>
-        <FormRow label="Selected forms">
+        <FormRow label="Connected forms">
           <div className="flex flex-col gap-0.5">
-            <FormsListItem
-              name="Practice intake — 2026"
-              meta="142 responses · all-time"
-              defaultChecked
-            />
-            <FormsListItem
-              name="Monthly check-in"
-              meta="61 responses · last 30d"
-              defaultChecked
-            />
-            <FormsListItem
-              name="Course feedback (Cohort 4)"
-              meta="38 responses · last 30d"
-            />
-            <FormsListItem
-              name="Internal team retro"
-              meta="12 responses · last 30d"
-              muted
-            />
+            {connections.length > 0 ? (
+              connections.map((connection) => (
+                <FileRow
+                  key={connection.sourceRowId}
+                  name={connection.displayName}
+                  meta={[
+                    connection.connectionMode === "manual_csv"
+                      ? "manual CSV"
+                      : connection.connectionMode,
+                    connection.latestUpload
+                      ? `${connection.latestUpload.rowCount} responses`
+                      : "no upload",
+                    connection.syncStatus ?? "idle",
+                  ].join(" · ")}
+                >
+                  <div className="flex items-center gap-1">
+                    <SourceSyncButton sourceRowId={connection.sourceRowId} />
+                    <DisconnectFormButton
+                      sourceRowId={connection.sourceRowId}
+                      displayName={connection.displayName}
+                    />
+                  </div>
+                </FileRow>
+              ))
+            ) : (
+              <FileRow name="No forms connected" meta="Upload a CSV to connect" />
+            )}
           </div>
-        </FormRow>
-        <FormRow label="Match responses to clients by">
-          <SegmentedControl
-            ariaLabel="Match responses by"
-            defaultValue="email"
-            options={[
-              { value: "email", label: "Email field" },
-              { value: "name", label: "Name field" },
-              { value: "custom", label: "Custom column" },
-            ]}
-          />
-        </FormRow>
-        <FormRow
-          label="Mark sensitive when answer contains"
-          help="Flag any response touching these topics so it never auto-drafts replies."
-        >
-          <ChipPicker
-            items={SENSITIVE_TOPICS}
-            defaultValue={["medication", "diagnosis", "minor"]}
-            mono
-          />
         </FormRow>
       </Form>
     </DsSection>
+  )
+}
+
+function DisconnectFormButton({
+  sourceRowId,
+  displayName,
+}: {
+  sourceRowId: string
+  displayName: string
+}) {
+  const { refresh } = useRouter()
+  const [pending, startTransition] = React.useTransition()
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      aria-label={`Disconnect ${displayName}`}
+      disabled={pending}
+      onClick={() => {
+        startTransition(async () => {
+          const result = await disconnectDataSourceAction(sourceRowId)
+          if (!result.error) refresh()
+        })
+      }}
+    >
+      <PlugIcon />
+      Disconnect
+    </Button>
   )
 }
 

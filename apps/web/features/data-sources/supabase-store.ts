@@ -6,12 +6,19 @@ import {
 } from "@/features/data-sources/mappers"
 import type {
   DataSourceStore,
+  GoogleFormsDataSource,
   ImapDataSource,
 } from "@/features/data-sources/types"
 import type { Database } from "@/lib/database.types"
 
 type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
-type SupabaseDataSourceClient = Pick<SupabaseClient<Database>, "from" | "rpc">
+type SupabaseRpcResult = PromiseLike<{
+  data: unknown
+  error: { message: string } | null
+}>
+type SupabaseDataSourceClient = Pick<SupabaseClient<Database>, "from"> & {
+  rpc(fn: string, args: unknown): SupabaseRpcResult
+}
 
 type DataSourceQuery = {
   eq(column: string, value: unknown): DataSourceQuery
@@ -49,7 +56,6 @@ const DATA_SOURCE_COLUMNS = `
   ),
   data_source_sync_states (
     status,
-    history_window,
     cursor,
     last_error,
     last_synced_at
@@ -111,6 +117,17 @@ export function createSupabaseDataSourceStore({
     return source
   }
 
+  async function requireGoogleFormsById(input: {
+    workspaceId: string
+    sourceId: string
+  }): Promise<GoogleFormsDataSource> {
+    const source = await findByIdForWorkspace(input)
+    if (!source || source.type !== "forms") {
+      throw new Error("source_not_found")
+    }
+    return source
+  }
+
   return {
     async listForWorkspace(workspaceId) {
       const { data, error } = await withRecentSyncRuns(baseDataSourceQuery(client))
@@ -145,6 +162,30 @@ export function createSupabaseDataSourceStore({
       if (error) throwDataSourceStoreError(error, "Could not connect IMAP")
 
       return requireImapById({
+        workspaceId: input.workspaceId,
+        sourceId: String(data),
+      })
+    },
+
+    async connectGoogleFormsManualCsv(input) {
+      const { data, error } = await client.rpc(
+        "connect_google_forms_manual_csv_data_source",
+        {
+          target_workspace_id: input.workspaceId,
+          form_external_id: input.source.externalFormId,
+          form_connection_mode: input.source.connectionMode,
+          form_display_name: input.source.displayName,
+          form_mapping: input.source.mapping,
+          upload_file_name: input.upload.fileName,
+          upload_rows: input.upload.rows,
+        }
+      )
+
+      if (error) {
+        throwDataSourceStoreError(error, "Could not connect Google Forms")
+      }
+
+      return requireGoogleFormsById({
         workspaceId: input.workspaceId,
         sourceId: String(data),
       })
@@ -275,6 +316,10 @@ function throwDataSourceStoreError(error: unknown, fallback: string): never {
 
 const DATA_SOURCE_STORE_ERRORS = new Set([
   "invalid_imap_config",
+  "invalid_google_form_id",
+  "invalid_google_forms_csv",
+  "invalid_google_forms_csv_mapping",
+  "invalid_google_forms_csv_row",
   "source_not_found",
   "source_manage_forbidden",
 ])

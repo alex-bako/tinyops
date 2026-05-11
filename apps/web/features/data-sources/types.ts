@@ -1,4 +1,10 @@
 import type { SourceId } from "@/lib/sources"
+import type {
+  GoogleFormsConnectionMode,
+  GoogleFormsManualCsvMapping,
+  GoogleFormsManualCsvUploadRow,
+  GoogleFormsSourceConfig,
+} from "@/features/data-sources/google-forms"
 import type { WorkspaceRole } from "@/features/workspaces/types"
 
 export type DataSourceWorkspace = {
@@ -65,7 +71,6 @@ export type DataSourceSecret = {
 
 export type DataSourceSyncState = {
   status: DataSourceSyncStatus
-  historyWindow: ImapHistoryWindow
   cursor: Record<string, unknown> | null
   lastError: string | null
   lastSyncedAt: string | null
@@ -100,7 +105,31 @@ export type ImapDataSource = {
   updatedAt: string
 }
 
-export type WorkspaceDataSource = ImapDataSource
+export type GoogleFormsUpload = {
+  id: string
+  fileName: string
+  rowCount: number
+  uploadedAt: string
+}
+
+export type GoogleFormsDataSource = {
+  id: string
+  workspaceId: string
+  type: Extract<SourceId, "forms">
+  displayName: string
+  status: DataSourceStatus
+  configVersion: 1
+  externalFormId: string
+  connectionMode: GoogleFormsConnectionMode
+  mapping: GoogleFormsManualCsvMapping
+  latestUpload: GoogleFormsUpload | null
+  sync: DataSourceSyncState
+  syncRuns?: DataSourceSyncRun[]
+  createdAt: string
+  updatedAt: string
+}
+
+export type WorkspaceDataSource = ImapDataSource | GoogleFormsDataSource
 
 export type ConnectImapInput = {
   workspaceId: string
@@ -108,6 +137,15 @@ export type ConnectImapInput = {
   intake: ImapIntakeSettings
   folderSnapshot: ImapFolderSnapshot
   password: string
+}
+
+export type ConnectGoogleFormsManualCsvInput = {
+  workspaceId: string
+  source: GoogleFormsSourceConfig
+  upload: {
+    fileName: string
+    rows: GoogleFormsManualCsvUploadRow[]
+  }
 }
 
 export type UpdateImapConnectionInput = {
@@ -144,6 +182,9 @@ export type DataSourceReader = {
 
 export type DataSourceCommandStore = DataSourceReader & {
   connectImap(input: ConnectImapInput): Promise<ImapDataSource>
+  connectGoogleFormsManualCsv(
+    input: ConnectGoogleFormsManualCsvInput
+  ): Promise<GoogleFormsDataSource>
   updateImapConnection(input: UpdateImapConnectionInput): Promise<ImapDataSource>
   updateImapIntake(input: UpdateImapIntakeInput): Promise<ImapDataSource>
   updateImapFolderSnapshot(

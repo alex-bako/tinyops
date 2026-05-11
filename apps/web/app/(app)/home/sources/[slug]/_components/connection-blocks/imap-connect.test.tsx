@@ -29,7 +29,9 @@ function source(patch: Partial<DataSource> = {}): DataSource {
     sub: "hello@example.com",
     category: "Mail",
     auth: "imap",
+    cardinality: "singleton",
     sourceRowId: "source_1",
+    sourceRowIds: ["source_1"],
     connected: true,
     stats: [],
     imap: {
@@ -54,7 +56,7 @@ function source(patch: Partial<DataSource> = {}): DataSource {
       availableFolders: [{ path: "INBOX", messages: 1204 }],
     },
     ...patch,
-  }
+  } as DataSource
 }
 
 describe("ImapConnect", () => {

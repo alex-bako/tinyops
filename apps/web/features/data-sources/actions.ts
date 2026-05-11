@@ -5,6 +5,7 @@ import { after } from "next/server"
 
 import {
   createDataSourceCommandApplication,
+  type GoogleFormsManualCsvConnectCommand,
   type ImapConnectionSettingsCommand,
   type ImapConnectCommand,
   type ImapImportSettingsCommand,
@@ -42,6 +43,20 @@ export async function connectImapDataSourceAction(input: ImapConnectCommand) {
   if (!application) return { error: "source_action_failed" } as const
 
   const result = await application.connectImap(input)
+  if (result.data) {
+    revalidateDataSources()
+    after(scheduleDataSourceSyncDispatch)
+  }
+  return result
+}
+
+export async function connectGoogleFormsManualCsvDataSourceAction(
+  input: GoogleFormsManualCsvConnectCommand
+) {
+  const application = await createActionApplication()
+  if (!application) return { error: "source_action_failed" } as const
+
+  const result = await application.connectGoogleFormsManualCsv(input)
   if (result.data) {
     revalidateDataSources()
     after(scheduleDataSourceSyncDispatch)

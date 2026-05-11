@@ -7,6 +7,7 @@ import { CalendlyConfig } from "./_components/config-blocks/calendly-config"
 import { CsvConfig } from "./_components/config-blocks/csv-config"
 import { CsvConnect } from "./_components/connection-blocks/csv-connect"
 import { FormsConfig } from "./_components/config-blocks/forms-config"
+import { FormsConnect } from "./_components/connection-blocks/forms-connect"
 import { ImapConfig } from "./_components/config-blocks/imap-config"
 import { ImapConnect } from "./_components/connection-blocks/imap-connect"
 import { MailerLiteConfig } from "./_components/config-blocks/mailerlite-config"
@@ -54,7 +55,7 @@ export const SOURCE_UI_REGISTRY: Record<SourceId, SourceUiRegistryEntry> = {
   },
   forms: {
     id: "forms",
-    Connection: OAuthConnect,
+    Connection: FormsConnect,
     Config: FormsConfig,
     logoClassName: "bg-[#7B40F2] text-white",
     activity: ACTIVITY.forms,

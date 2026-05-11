@@ -18,6 +18,11 @@ import {
   syncFailure,
   syncFailureMessage,
 } from "@/features/data-sources/domain/sync"
+import {
+  createSourceSyncRegistry,
+  getSourceSyncAdapter,
+  type SourceSyncRegistry,
+} from "@/features/data-sources/sync-registry"
 import { createNoopLogger, type LoggerPort } from "@/lib/logging"
 import type { Json } from "@/lib/database.types"
 
@@ -35,7 +40,8 @@ type DataSourceSyncWorkerConfig = {
   jobStore: DataSourceSyncJobStore
   ingestionWriter: ClientIngestionWriterPort
   runRecorder: DataSourceSyncRunRecorder
-  sourceSyncAdapters: SourceSyncAdapter[]
+  sourceSyncRegistry?: SourceSyncRegistry
+  sourceSyncAdapters?: SourceSyncAdapter[]
   logger?: LoggerPort
 }
 
@@ -69,9 +75,13 @@ export function createDataSourceSyncWorker({
   jobStore,
   ingestionWriter,
   runRecorder,
+  sourceSyncRegistry,
   sourceSyncAdapters,
   logger = createNoopLogger(),
 }: DataSourceSyncWorkerConfig) {
+  const syncRegistry =
+    sourceSyncRegistry ?? createSourceSyncRegistry(sourceSyncAdapters ?? [])
+
   return {
     async runNext({
       trigger = "immediate",
@@ -116,9 +126,7 @@ export function createDataSourceSyncWorker({
         })
         const syncLogger = runId ? jobLogger.child({ runId }) : jobLogger
 
-        const adapter = sourceSyncAdapters.find(
-          (candidate) => candidate.sourceType === job.sourceType
-        )
+        const adapter = getSourceSyncAdapter(syncRegistry, job.sourceType)
         if (!adapter) {
           return failClaimedSync({
             jobStore,

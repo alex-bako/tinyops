@@ -22,6 +22,7 @@ vi.mock("@/features/data-sources/actions", () => ({
 const baseRow: SourcesPageRow = {
   id: "imap",
   sourceRowId: "source_1",
+  sourceRowIds: ["source_1"],
   icon: "mail",
   title: "IMAP mailbox",
   sub: "hello@example.com",
