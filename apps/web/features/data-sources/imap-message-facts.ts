@@ -51,8 +51,6 @@ export type ImapMessageFacts = {
     "email_received" | "email_sent"
   >
   occurredAt: string
-  title: string
-  summary: string
   participants: NormalizedParticipant[]
   matchedSensitivityKeywords: string[]
   sensitivityLevel: NormalizedConnectorRecord["sensitivityLevel"]
@@ -126,8 +124,6 @@ export function buildImapMessageFacts({
       bccEmails: addressEmails(parsed.bcc),
       eventType: senderIsOwner ? "email_sent" : "email_received",
       occurredAt: toIso(parsed.date ?? internalDate ?? fallbackDate),
-      title: subject,
-      summary: summarizeEmail(bodyText),
       participants,
       matchedSensitivityKeywords: sensitivity.matchedKeywords,
       sensitivityLevel: sensitivity.level,
@@ -167,12 +163,6 @@ function externalParticipants(
     seen.add(email)
     return [{ email, name: address.name ?? null, role: "external" as const }]
   })
-}
-
-function summarizeEmail(bodyText: string) {
-  const compact = bodyText.replace(/\s+/g, " ").trim()
-  if (compact.length <= 180) return compact
-  return `${compact.slice(0, 177)}...`
 }
 
 function toIso(value: Date | string) {

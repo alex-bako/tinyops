@@ -1,4 +1,9 @@
 import type { Json } from "@/lib/database.types"
+import {
+  timelineEventBodyToText,
+  timelineEventBodyFromJson,
+  type TimelineEventBody,
+} from "@/features/clients/domain/timeline-event-body"
 
 export type ClientStatus = "active" | "inactive" | "sensitive" | "dnc"
 
@@ -11,10 +16,14 @@ export type ClientTimelineEvent = {
   sourceId: string | null
   type: TimelineEventType
   occurredAt: string
+  display: TimelineEventDisplayFacts
+  body: TimelineEventBody
+  sensitivityLevel: number
+}
+
+export type TimelineEventDisplayFacts = {
   title: string
   summary: string
-  bodyText: string
-  sensitivityLevel: number
 }
 
 export type ClientTimelineEntry = {
@@ -25,9 +34,7 @@ export type ClientTimelineEntry = {
   rawRecordId: string | null
   eventType: string
   occurredAt: string
-  title: string
-  summary: string
-  bodyText: string
+  body: Json
   participants: Json
   metadata: Json
   sensitivityLevel: number
@@ -136,15 +143,34 @@ export function isSensitiveLevel(level: number) {
 export function mapTimelineEntryToEvent(
   event: ClientTimelineEntry
 ): ClientTimelineEvent {
+  const body = timelineEventBodyFromJson(event.body)
   return {
     id: event.id,
     sourceId: event.sourceId,
     type: TIMELINE_EVENT_TYPE[event.eventType] ?? "csvimport",
     occurredAt: event.occurredAt,
-    title: event.title,
-    summary: event.summary || event.bodyText,
-    bodyText: event.bodyText,
+    display: deriveTimelineEventDisplayFacts({
+      eventType: event.eventType,
+      body,
+      metadata: event.metadata,
+    }),
+    body,
     sensitivityLevel: event.sensitivityLevel,
+  }
+}
+
+export function deriveTimelineEventDisplayFacts({
+  eventType,
+  body,
+  metadata,
+}: {
+  eventType: string
+  body: TimelineEventBody
+  metadata: Json
+}): TimelineEventDisplayFacts {
+  return {
+    title: timelineEventTitle({ eventType, metadata }),
+    summary: timelineEventSummary(body),
   }
 }
 
@@ -154,4 +180,45 @@ export function sortTimelineEventsNewestFirst(
   return [...rows].sort(
     (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
   )
+}
+
+function timelineEventTitle({
+  eventType,
+  metadata,
+}: {
+  eventType: string
+  metadata: Json
+}): string {
+  if (eventType === "email_received" || eventType === "email_sent") {
+    return metadataText(metadata, "subject") ?? "Email"
+  }
+  if (eventType === "form_submission") {
+    return (
+      metadataText(metadata, "formTitle") ??
+      metadataText(metadata, "sourceDisplayName") ??
+      "Google Forms response"
+    )
+  }
+  if (eventType === "csv_import_row") return "CSV import row"
+  if (eventType === "manual_note") return "Manual note"
+  if (eventType === "tinyops_email") return "TinyOps email"
+  if (eventType === "system_event") return "System event"
+  return "Timeline event"
+}
+
+function timelineEventSummary(body: TimelineEventBody): string {
+  const compact = timelineEventBodyToText(body).replace(/\s+/g, " ").trim()
+  if (!compact) return "No body text"
+  if (compact.length <= 180) return compact
+  return `${compact.slice(0, 177)}...`
+}
+
+function metadataText(metadata: Json, key: string): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null
+  }
+  const value = (metadata as Record<string, unknown>)[key]
+  if (typeof value !== "string") return null
+  const normalized = value.trim()
+  return normalized || null
 }

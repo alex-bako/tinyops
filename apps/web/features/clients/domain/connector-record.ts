@@ -1,4 +1,8 @@
 import type { Json } from "@/lib/database.types"
+import {
+  isValidTimelineEventBody,
+  type TimelineEventBody,
+} from "@/features/clients/domain/timeline-event-body"
 
 export type ConnectorSourceType =
   | "imap"
@@ -38,9 +42,7 @@ export type NormalizedConnectorRecord = {
     | "tinyops_email"
     | "system_event"
   occurredAt: string
-  title: string
-  summary: string
-  bodyText: string
+  body: TimelineEventBody
   participants: NormalizedParticipant[]
   metadata: Json
   attributes: NormalizedClientAttribute[]
@@ -67,7 +69,7 @@ export function isValidNormalizedRecord(record: NormalizedConnectorRecord) {
     validEventType(record.eventType) &&
     nonEmpty(record.occurredAt) &&
     !Number.isNaN(Date.parse(record.occurredAt)) &&
-    nonEmpty(record.title) &&
+    isValidTimelineEventBody(record.body) &&
     Array.isArray(record.participants) &&
     record.participants.every(validParticipant) &&
     Array.isArray(record.attributes) &&

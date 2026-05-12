@@ -198,8 +198,21 @@ describe("Google Forms manual CSV domain", () => {
         recordType: "google_form_response",
         eventType: "form_submission",
         occurredAt: "2026-05-10T09:15:00.000Z",
-        title: "Practice intake response",
         participants: [{ email: "anna@example.com", role: "external" }],
+        metadata: {
+          formTitle: "Practice intake",
+        },
+        body: {
+          text: "Full name: Anna Smith\nWhat do you need?: Replay, workbook",
+          blocks: [
+            { kind: "qa", question: "Full name", answer: "Anna Smith" },
+            {
+              kind: "qa",
+              question: "What do you need?",
+              answer: "Replay, workbook",
+            },
+          ],
+        },
         attributes: [
           { key: "Full name", value: "Anna Smith", confidence: 1 },
           { key: "What do you need?", value: "Replay, workbook", confidence: 1 },

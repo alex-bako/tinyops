@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { createSupabaseClientIngestionWriter } from "@/features/clients/adapters/supabase-ingestion-writer"
 import type { NormalizedConnectorRecord } from "@/features/clients/application/connector-ingestion"
+import { createTextTimelineEventBody } from "@/features/clients/domain/timeline-event-body"
 
 const record: NormalizedConnectorRecord = {
   workspaceId: "workspace_1",
@@ -11,9 +12,7 @@ const record: NormalizedConnectorRecord = {
   recordType: "email",
   eventType: "email_received",
   occurredAt: "2026-05-07T08:00:00.000Z",
-  title: "Replay access",
-  summary: "Asked about replay access.",
-  bodyText: "Could you resend the replay link?",
+  body: createTextTimelineEventBody("Could you resend the replay link?"),
   participants: [
     { email: "owner@example.com", role: "owner" },
     { email: "anna@example.com", name: "Anna", role: "external" },

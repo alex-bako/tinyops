@@ -41,6 +41,7 @@ export function TimelineSection({
     <Timeline>
       {events.map((e) => {
         const expanded = expandedKeys.has(e.eventKey)
+        const hasBody = e.bodyItems.length > 0
         return (
           <TimelineEvent key={e.eventKey} tone={e.tone} sensitive={e.sensitive}>
             <TimelineHead>
@@ -49,26 +50,54 @@ export function TimelineSection({
             </TimelineHead>
             <TimelineTitle>{e.title}</TimelineTitle>
             <TimelineSummary>{e.summary}</TimelineSummary>
-            <div className="mt-2">
-              <Button
-                type="button"
-                variant="tertiary"
-                size="iaction"
-                aria-expanded={expanded}
-                onClick={() => toggleExpanded(e.eventKey)}
-              >
-                {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                {expanded ? e.expandedLabel : e.collapsedLabel}
-              </Button>
-            </div>
-            {expanded ? (
-              <div className="mt-2 max-h-72 overflow-auto rounded-sm border border-border bg-muted/40 p-3 text-[13px] leading-[1.55] whitespace-pre-wrap text-foreground">
-                {e.detailText}
+            {hasBody ? (
+              <div className="mt-2">
+                <Button
+                  type="button"
+                  variant="tertiary"
+                  size="iaction"
+                  aria-expanded={expanded}
+                  onClick={() => toggleExpanded(e.eventKey)}
+                >
+                  {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                  {expanded ? e.expandedLabel : e.collapsedLabel}
+                </Button>
               </div>
             ) : null}
+            {expanded ? <TimelineBodyBlocks event={e} /> : null}
           </TimelineEvent>
         )
       })}
     </Timeline>
+  )
+}
+
+function TimelineBodyBlocks({ event }: { event: ClientTimelineEventView }) {
+  return (
+    <div className="mt-2 max-h-72 overflow-auto rounded-sm border border-border bg-muted/40 p-3 text-[13px] leading-[1.55] text-foreground">
+      <dl className="space-y-3">
+        {event.bodyItems.map((block, index) => {
+          if (block.kind === "text") {
+            return (
+              <div
+                key={`${event.eventKey}-text-${index}`}
+                className="whitespace-pre-wrap"
+              >
+                {block.text}
+              </div>
+            )
+          }
+
+          return (
+            <div key={`${event.eventKey}-qa-${index}`} className="space-y-1.5">
+              <dt className="font-medium text-slate-900">{block.question}</dt>
+              <dd className="m-0 whitespace-pre-wrap text-slate-700">
+                {block.answer}
+              </dd>
+            </div>
+          )
+        })}
+      </dl>
+    </div>
   )
 }

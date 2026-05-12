@@ -13,12 +13,13 @@ export type ClientTimelineEventRow = {
   workspace_id: string
   client_id: string
   source_id: string | null
+  source?: {
+    display_name: string | null
+  } | null
   raw_record_id: string | null
   event_type: string
   event_date: string
-  title: string
-  summary: string
-  body_text: string
+  body: Json
   participants: Json
   metadata: Json
   sensitivity_level: number
@@ -83,12 +84,13 @@ const CLIENT_COLUMNS = `
     workspace_id,
     client_id,
     source_id,
+    source:data_sources (
+      display_name
+    ),
     raw_record_id,
     event_type,
     event_date,
-    title,
-    summary,
-    body_text,
+    body,
     participants,
     metadata,
     sensitivity_level,
@@ -196,16 +198,26 @@ function mapTimelineEventRow(row: ClientTimelineEventRow): ClientTimelineEntry {
     rawRecordId: row.raw_record_id,
     eventType: row.event_type,
     occurredAt: row.event_date,
-    title: row.title,
-    summary: row.summary,
-    bodyText: row.body_text,
+    body: row.body,
     participants: row.participants,
-    metadata: row.metadata,
+    metadata: timelineEventMetadata(row),
     sensitivityLevel: row.sensitivity_level,
     aiExtractedFields: row.ai_extracted_fields,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
+}
+
+function timelineEventMetadata(row: ClientTimelineEventRow): Json {
+  const sourceDisplayName = row.source?.display_name?.trim()
+  if (!sourceDisplayName) return row.metadata
+  if (!row.metadata || typeof row.metadata !== "object" || Array.isArray(row.metadata)) {
+    return { sourceDisplayName } satisfies Json
+  }
+  return {
+    sourceDisplayName,
+    ...row.metadata,
+  } satisfies Json
 }
 
 function baseClientQuery(client: SupabaseClientReaderClient): ClientQuery {

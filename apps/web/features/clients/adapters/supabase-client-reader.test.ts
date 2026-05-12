@@ -25,12 +25,14 @@ const clientRow = {
       workspace_id: "workspace_1",
       client_id: "client_1",
       source_id: "source_1",
+      source: { display_name: "Practice intake" },
       raw_record_id: "raw_1",
       event_type: "form_submission",
       event_date: "2026-05-07T08:00:00.000Z",
-      title: "Monthly feedback",
-      summary: "Shared progress update.",
-      body_text: "Progress update",
+      body: {
+        text: "Progress update",
+        blocks: [{ kind: "text", text: "Progress update" }],
+      },
       participants: [],
       metadata: {},
       sensitivity_level: 2,
@@ -87,13 +89,21 @@ describe("supabase client reader adapter", () => {
           id: "event_newer",
           occurredAt: "2026-05-07T08:00:00.000Z",
           type: "form",
-          bodyText: "Progress update",
+          body: {
+            text: "Progress update",
+            blocks: [{ kind: "text", text: "Progress update" }],
+          },
+          display: {
+            title: "Practice intake",
+            summary: "Progress update",
+          },
           sensitivityLevel: 2,
         },
       ],
     })
     expect(calls[0]).toMatchObject({ method: "select" })
     expect(JSON.stringify(calls[0])).toContain("timeline_events")
-    expect(JSON.stringify(calls[0])).toContain("body_text")
+    expect(JSON.stringify(calls[0])).toContain("body")
+    expect(JSON.stringify(calls[0])).toContain("source:data_sources")
   })
 })

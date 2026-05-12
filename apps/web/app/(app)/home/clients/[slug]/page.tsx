@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeftIcon, FilterIcon, EyeOffIcon, PlusIcon } from "lucide-react"
+import { ArrowLeftIcon, PlusIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 import { Section, SectionHead } from "@workspace/ui/components/section"
@@ -81,22 +81,7 @@ export default async function ClientDetailPage({
       </Section>
 
       <Section divider>
-        <SectionHead
-          title="Timeline"
-          count={view.timelineCount}
-          actions={
-            <>
-              <Button variant="tertiary" size="sm">
-                <FilterIcon />
-                Filter
-              </Button>
-              <Button variant="tertiary" size="sm">
-                <EyeOffIcon />
-                Hide sensitive
-              </Button>
-            </>
-          }
-        />
+        <SectionHead title="Timeline" count={view.timelineCount} />
         <TimelineSection events={view.timeline} />
       </Section>
 

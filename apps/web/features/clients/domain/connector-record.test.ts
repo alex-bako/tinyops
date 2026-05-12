@@ -5,6 +5,7 @@ import {
   isValidNormalizedRecord,
   type NormalizedConnectorRecord,
 } from "@/features/clients/domain/connector-record"
+import { createTextTimelineEventBody } from "@/features/clients/domain/timeline-event-body"
 
 const record: NormalizedConnectorRecord = {
   workspaceId: "workspace_1",
@@ -14,9 +15,7 @@ const record: NormalizedConnectorRecord = {
   recordType: "email",
   eventType: "email_received",
   occurredAt: "2026-05-07T08:00:00.000Z",
-  title: "Replay access",
-  summary: "Asked about replay access.",
-  bodyText: "Could you resend the replay link?",
+  body: createTextTimelineEventBody("Could you resend the replay link?"),
   participants: [
     { email: "owner@example.com", role: "owner" },
     { email: "anna@example.com", role: "external" },
@@ -32,11 +31,12 @@ describe("normalized connector record domain validation", () => {
     expect(() => assertValidNormalizedRecords([record])).not.toThrow()
   })
 
-  it("rejects invalid event type, timestamp, sensitivity, and participant email", () => {
+  it("rejects invalid event type, timestamp, body, sensitivity, and participant email", () => {
     const invalid = {
       ...record,
       eventType: "unknown",
       occurredAt: "not-a-date",
+      body: { text: "Missing blocks" },
       participants: [{ email: "", role: "external" }],
       sensitivityLevel: 9,
     } as unknown as NormalizedConnectorRecord

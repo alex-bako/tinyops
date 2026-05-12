@@ -776,7 +776,7 @@ export type Database = {
       timeline_events: {
         Row: {
           ai_extracted_fields: Json
-          body_text: string
+          body: Json
           client_id: string
           created_at: string
           event_date: string
@@ -787,14 +787,12 @@ export type Database = {
           raw_record_id: string | null
           sensitivity_level: number
           source_id: string | null
-          summary: string
-          title: string
           updated_at: string
           workspace_id: string
         }
         Insert: {
           ai_extracted_fields?: Json
-          body_text?: string
+          body?: Json
           client_id: string
           created_at?: string
           event_date: string
@@ -805,14 +803,12 @@ export type Database = {
           raw_record_id?: string | null
           sensitivity_level?: number
           source_id?: string | null
-          summary?: string
-          title: string
           updated_at?: string
           workspace_id: string
         }
         Update: {
           ai_extracted_fields?: Json
-          body_text?: string
+          body?: Json
           client_id?: string
           created_at?: string
           event_date?: string
@@ -823,8 +819,6 @@ export type Database = {
           raw_record_id?: string | null
           sensitivity_level?: number
           source_id?: string | null
-          summary?: string
-          title?: string
           updated_at?: string
           workspace_id?: string
         }
@@ -1183,6 +1177,15 @@ export type Database = {
         Args: { filters: Json }
         Returns: boolean
       }
+      mask_secret_tail: { Args: { value: string }; Returns: string }
+      normalize_data_source_display_name: {
+        Args: { value: string }
+        Returns: string
+      }
+      normalized_text_array: {
+        Args: { fallback: string[]; input_values: string[] }
+        Returns: string[]
+      }
       read_imap_data_source_password: {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: string
@@ -1197,6 +1200,40 @@ export type Database = {
       }
       request_data_source_sync: {
         Args: { target_source_id: string; target_workspace_id: string }
+        Returns: undefined
+      }
+      require_data_source_slug: {
+        Args: { display_name: string }
+        Returns: string
+      }
+      require_unique_data_source_name: {
+        Args: {
+          ignored_source_id: string
+          normalized_display_name: string
+          normalized_slug: string
+          target_source_type: string
+          target_workspace_id: string
+        }
+        Returns: undefined
+      }
+      require_unique_google_forms_source_config: {
+        Args: {
+          ignored_source_id: string
+          normalized_form_id: string
+          target_connection_mode: string
+          target_workspace_id: string
+        }
+        Returns: undefined
+      }
+      require_unique_imap_source_config: {
+        Args: {
+          ignored_source_id: string
+          normalized_host: string
+          normalized_username: string
+          target_encryption: string
+          target_port: number
+          target_workspace_id: string
+        }
         Returns: undefined
       }
       revoke_workspace_invitation: {

@@ -71,8 +71,6 @@ function facts(patch: Partial<ImapMessageFacts> = {}): ImapMessageFacts {
     bccEmails: [],
     eventType: "email_received",
     occurredAt: "2026-05-07T08:00:00.000Z",
-    title: "Different subject",
-    summary: "Following up.",
     participants: [{ email: "anna@example.com", name: null, role: "external" }],
     matchedSensitivityKeywords: [],
     sensitivityLevel: 0,
