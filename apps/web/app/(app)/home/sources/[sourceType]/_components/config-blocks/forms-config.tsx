@@ -15,7 +15,8 @@ import { FileRow } from "../file-row"
 import { SourceSyncButton } from "../source-sync-button"
 
 function FormsConfig({ source }: { source: DataSource }) {
-  const connections = source.forms?.connections ?? []
+  const connections =
+    source.kind === "data_source" ? source.forms?.connections ?? [] : []
   return (
     <DsSection>
       <DsSectionHead
@@ -28,7 +29,7 @@ function FormsConfig({ source }: { source: DataSource }) {
             {connections.length > 0 ? (
               connections.map((connection) => (
                 <FileRow
-                  key={connection.sourceRowId}
+                  key={connection.sourceId}
                   name={connection.displayName}
                   meta={[
                     connection.connectionMode === "manual_csv"
@@ -41,9 +42,9 @@ function FormsConfig({ source }: { source: DataSource }) {
                   ].join(" · ")}
                 >
                   <div className="flex items-center gap-1">
-                    <SourceSyncButton sourceRowId={connection.sourceRowId} />
+                    <SourceSyncButton sourceId={connection.sourceId} />
                     <DisconnectFormButton
-                      sourceRowId={connection.sourceRowId}
+                      sourceId={connection.sourceId}
                       displayName={connection.displayName}
                     />
                   </div>
@@ -60,10 +61,10 @@ function FormsConfig({ source }: { source: DataSource }) {
 }
 
 function DisconnectFormButton({
-  sourceRowId,
+  sourceId,
   displayName,
 }: {
-  sourceRowId: string
+  sourceId: string
   displayName: string
 }) {
   const { refresh } = useRouter()
@@ -78,7 +79,7 @@ function DisconnectFormButton({
       disabled={pending}
       onClick={() => {
         startTransition(async () => {
-          const result = await disconnectDataSourceAction(sourceRowId)
+          const result = await disconnectDataSourceAction(sourceId)
           if (!result.error) refresh()
         })
       }}

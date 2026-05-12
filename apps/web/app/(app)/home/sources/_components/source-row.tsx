@@ -29,13 +29,13 @@ import { useSourceSyncRequest } from "./source-sync-request"
 
 function SourceRow({ source }: { source: SourcesPageRow }) {
   const syncRequest = useSourceSyncRequest({
-    request: () => requestDataSourceSyncAction(source.sourceRowId!),
+    request: () => requestDataSourceSyncAction(source.sourceId!),
     successMessage: () => "Sync queued",
     errorMessage: "Could not queue sync",
   })
 
   const requestSync = () => {
-    if (!source.sourceRowId) return
+    if (!source.sourceId) return
     syncRequest.run()
   }
 
@@ -91,7 +91,7 @@ function SourceRow({ source }: { source: SourcesPageRow }) {
               type="button"
               variant="ghost"
               size="sm"
-              disabled={syncRequest.pending || !source.sourceRowId}
+              disabled={syncRequest.pending || !source.sourceId}
               onClick={requestSync}
             >
               <RefreshCwIcon />

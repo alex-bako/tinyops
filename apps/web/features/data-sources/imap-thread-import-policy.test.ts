@@ -14,6 +14,7 @@ function source(): ImapDataSource {
     workspaceId: "workspace_1",
     type: "imap",
     displayName: "IMAP mailbox",
+    sourceSlug: "imap-mailbox",
     status: "connected",
     configVersion: 1,
     connection: {
@@ -91,7 +92,11 @@ describe("IMAP thread import policy", () => {
     })
 
     expect(
-      decideImapThreadImport({ source: dataSource, facts: anchor, threadIndex: index })
+      decideImapThreadImport({
+        source: dataSource,
+        facts: anchor,
+        threadIndex: index,
+      })
     ).toEqual({ import: true, reason: "filter_anchor", anchored: true })
     index.anchor(anchor.headers)
 
@@ -121,7 +126,9 @@ describe("IMAP thread import policy", () => {
         source: dataSource,
         facts: facts({
           eventType: "email_sent",
-          headers: buildImapThreadHeaders({ messageId: "<unlinked@example.com>" }),
+          headers: buildImapThreadHeaders({
+            messageId: "<unlinked@example.com>",
+          }),
         }),
         threadIndex: index,
       })

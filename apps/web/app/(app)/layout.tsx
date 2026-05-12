@@ -38,7 +38,17 @@ export async function AuthenticatedAppShell({
       store: context.dataSourceStore,
     }),
   ])
-  const sourceNavItems = sourceCatalog.map(({ id, title }) => ({ id, title }))
+  const sourceNavItems = sourceCatalog.flatMap((source) =>
+    source.kind === "data_source"
+      ? [
+          {
+            sourceType: source.sourceType,
+            sourceSlug: source.sourceSlug,
+            title: source.title,
+          },
+        ]
+      : []
+  )
 
   return (
     <WorkspaceFeatureProvider data={workspaceFeatureData}>

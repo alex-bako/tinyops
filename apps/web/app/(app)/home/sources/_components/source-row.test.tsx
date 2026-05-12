@@ -20,9 +20,11 @@ vi.mock("@/features/data-sources/actions", () => ({
 }))
 
 const baseRow: SourcesPageRow = {
+  rowKey: "source_1",
   id: "imap",
-  sourceRowId: "source_1",
-  sourceRowIds: ["source_1"],
+  sourceId: "source_1",
+  sourceType: "imap",
+  sourceSlug: "primary-inbox",
   icon: "mail",
   title: "IMAP mailbox",
   sub: "hello@example.com",
@@ -30,7 +32,7 @@ const baseRow: SourcesPageRow = {
   isNew: false,
   stats: [{ id: "synced", label: "Synced", value: "2m ago" }],
   action: "sync",
-  href: "/home/sources/imap",
+  href: "/home/sources/imap/primary-inbox",
   primaryLabel: "Sync",
   configureLabel: "Configure IMAP mailbox",
   statusLabel: "2m ago",
@@ -47,7 +49,7 @@ describe("SourceRow", () => {
 
     expect(
       screen.getByRole("link", { name: "Configure IMAP mailbox" })
-    ).toHaveAttribute("href", "/home/sources/imap")
+    ).toHaveAttribute("href", "/home/sources/imap/primary-inbox")
     expect(screen.getByRole("button", { name: "Sync" })).toBeInTheDocument()
     expect(screen.getAllByRole("button")).toHaveLength(2)
   })

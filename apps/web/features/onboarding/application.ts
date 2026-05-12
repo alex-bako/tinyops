@@ -209,6 +209,7 @@ export function createOnboardingApplication({
         try {
           await dataSourceStore.connectImap({
             workspaceId: completed.workspaceId,
+            displayName: "IMAP mailbox",
             connection: imapConnection,
             intake: imapIntake,
             folderSnapshot: imapFolderSnapshot,
@@ -273,11 +274,7 @@ function normalizeCommand({
   const lastName = command.lastName?.trim() || null
   const defaultSenderName =
     command.senderName.trim() || [firstName, lastName].filter(Boolean).join(" ")
-  const iconLetter = (
-    command.iconLetter?.trim() ||
-    workspaceName.at(0) ||
-    "T"
-  )
+  const iconLetter = (command.iconLetter?.trim() || workspaceName.at(0) || "T")
     .at(0)!
     .toUpperCase()
   const iconTone = command.iconTone ?? "cobalt"

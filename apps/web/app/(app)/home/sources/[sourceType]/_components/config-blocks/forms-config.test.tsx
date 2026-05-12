@@ -23,19 +23,24 @@ vi.mock("@/features/data-sources/actions", () => ({
 function source(): DataSource {
   return {
     id: "forms",
+    kind: "data_source",
     icon: "clipboard-list",
     title: "Google Forms",
     sub: "2 forms connected",
     category: "Forms",
     auth: "multi",
-    cardinality: "plural",
     connected: true,
-    sourceRowIds: ["forms_source_1", "forms_source_2"],
+    sourceId: "forms_source_1",
+    sourceType: "forms",
+    sourceSlug: "practice-intake",
+    health: "healthy",
+    lastSync: "queued",
+    summaryStatId: "submissions",
     stats: [],
     forms: {
       connections: [
         {
-          sourceRowId: "forms_source_1",
+          sourceId: "forms_source_1",
           externalFormId: "1Practice",
           displayName: "Practice intake",
           connectionMode: "manual_csv",
@@ -43,11 +48,16 @@ function source(): DataSource {
             identityColumn: "Email Address",
             timestampColumn: "Timestamp",
           },
-          latestUpload: { id: "upload_1", fileName: "practice.csv", rowCount: 12, uploadedAt: "2026-05-10T00:00:00.000Z" },
+          latestUpload: {
+            id: "upload_1",
+            fileName: "practice.csv",
+            rowCount: 12,
+            uploadedAt: "2026-05-10T00:00:00.000Z",
+          },
           syncStatus: "idle",
         },
         {
-          sourceRowId: "forms_source_2",
+          sourceId: "forms_source_2",
           externalFormId: "1Monthly",
           displayName: "Monthly check-in",
           connectionMode: "manual_csv",

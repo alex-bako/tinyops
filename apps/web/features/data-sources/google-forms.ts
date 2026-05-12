@@ -3,9 +3,7 @@ import Papa from "papaparse"
 import type { NormalizedConnectorRecord } from "@/features/clients/domain/connector-record"
 import type { Json } from "@/lib/database.types"
 
-export const GOOGLE_FORMS_CONNECTION_MODES = [
-  "manual_csv",
-] as const
+export const GOOGLE_FORMS_CONNECTION_MODES = ["manual_csv"] as const
 
 export type GoogleFormsConnectionMode =
   (typeof GOOGLE_FORMS_CONNECTION_MODES)[number]
@@ -118,6 +116,8 @@ export function buildGoogleFormsManualCsvSourceConfig({
   identityColumn: string
   timestampColumn: string
 }): GoogleFormsSourceConfig {
+  const normalizedDisplayName = displayName.trim()
+  if (!normalizedDisplayName) throw new Error("invalid_data_source_name")
   const mapping = normalizeMapping({
     headers,
     identityColumn,
@@ -127,7 +127,7 @@ export function buildGoogleFormsManualCsvSourceConfig({
   return {
     externalFormId: extractGoogleFormId(formUrlOrId),
     connectionMode: "manual_csv",
-    displayName: displayName.trim() || "Google Form",
+    displayName: normalizedDisplayName,
     mapping,
   }
 }
@@ -186,7 +186,9 @@ function normalizeManualCsvConnectorRow({
   row: GoogleFormsManualCsvStoredRow
 }): GoogleFormsManualCsvConnectorRow {
   const email = requiredEmail(row.payload[source.mapping.identityColumn])
-  const occurredAt = requiredTimestamp(row.payload[source.mapping.timestampColumn])
+  const occurredAt = requiredTimestamp(
+    row.payload[source.mapping.timestampColumn]
+  )
   const responseKey = requiredResponseKey(row.responseKey)
   const attributes = Object.entries(row.payload).flatMap(([key, value]) =>
     key !== source.mapping.identityColumn &&
@@ -291,7 +293,8 @@ function requiredResponseKey(value: string): string {
 
 function requiredTimestamp(value: string | undefined): string {
   const timestamp = (value ?? "").trim()
-  const parsed = parseDottedGoogleFormsTimestamp(timestamp) ?? Date.parse(timestamp)
+  const parsed =
+    parseDottedGoogleFormsTimestamp(timestamp) ?? Date.parse(timestamp)
   if (Number.isNaN(parsed)) throw new Error("invalid_google_forms_csv_row")
   return new Date(parsed).toISOString()
 }
@@ -300,8 +303,15 @@ function parseDottedGoogleFormsTimestamp(value: string): number | null {
   const match = value.match(DOTTED_TIMESTAMP_PATTERN)
   if (!match) return null
 
-  const [, yearValue, monthValue, dayValue, hourValue, minuteValue, secondValue] =
-    match
+  const [
+    ,
+    yearValue,
+    monthValue,
+    dayValue,
+    hourValue,
+    minuteValue,
+    secondValue,
+  ] = match
   const year = Number(yearValue)
   const month = Number(monthValue)
   const day = Number(dayValue)

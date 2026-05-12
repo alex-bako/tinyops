@@ -37,7 +37,13 @@ describe("sources", () => {
   it("uses a named summary stat instead of stat order", () => {
     const source: DataSource = {
       ...SOURCES[0]!,
+      kind: "data_source",
       connected: true,
+      sourceId: "source_1",
+      sourceType: "imap",
+      sourceSlug: "primary-inbox",
+      health: "healthy",
+      lastSync: "2m ago",
       summaryStatId: "synced",
       stats: [
         { id: "events", label: "Events", value: "8,412" },

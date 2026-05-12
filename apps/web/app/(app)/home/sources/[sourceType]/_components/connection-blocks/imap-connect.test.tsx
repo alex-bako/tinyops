@@ -24,15 +24,19 @@ vi.mock("@/features/data-sources/actions", () => ({
 function source(patch: Partial<DataSource> = {}): DataSource {
   return {
     id: "imap",
+    kind: "data_source",
     icon: "mail",
     title: "IMAP mailbox",
     sub: "hello@example.com",
     category: "Mail",
     auth: "imap",
-    cardinality: "singleton",
-    sourceRowId: "source_1",
-    sourceRowIds: ["source_1"],
+    sourceId: "source_1",
+    sourceType: "imap",
+    sourceSlug: "primary-inbox",
     connected: true,
+    health: "healthy",
+    lastSync: "ready",
+    summaryStatId: "synced",
     stats: [],
     imap: {
       host: "imap.example.com",
@@ -78,6 +82,7 @@ describe("ImapConnect", () => {
       expect(updateImapConnectionSettingsAction).toHaveBeenCalledWith(
         "source_1",
         {
+          displayName: "IMAP mailbox",
           host: "imap.example.com",
           port: "993",
           encryption: "ssl",

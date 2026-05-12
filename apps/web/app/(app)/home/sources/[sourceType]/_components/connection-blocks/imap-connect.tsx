@@ -12,49 +12,54 @@ import {
   connectImapDataSourceAction,
   updateImapConnectionSettingsAction,
 } from "@/features/data-sources/actions"
-import type { DataSource } from "@/lib/sources"
+import type { DataSource, DataSourceImapSettings } from "@/lib/sources"
 
 import { SegmentedControl } from "../segmented-control"
 import { StatusDot } from "../status-dot"
 
 type ImapConnectionFormState = {
+  displayName: string
   server: string
   port: string
   username: string
   password: string
-  encryption: NonNullable<DataSource["imap"]>["encryption"]
+  encryption: DataSourceImapSettings["encryption"]
 }
 
 function ImapConnect({ source }: { source: DataSource }) {
   const { refresh } = useRouter()
   const [pending, startTransition] = React.useTransition()
   const [error, setError] = React.useState<string | null>(null)
-  const [form, setForm] = React.useState(() =>
-    imapConnectionFormState(source)
-  )
+  const [form, setForm] = React.useState(() => imapConnectionFormState(source))
 
   const connectionSettings = {
+    displayName: form.displayName,
     host: form.server,
     port: form.port,
     encryption: form.encryption,
     username: form.username,
   }
+  const canSubmit =
+    form.displayName.trim() &&
+    form.server.trim() &&
+    form.username.trim() &&
+    form.port.trim()
 
   const submit = () => {
     setError(null)
     startTransition(async () => {
       const result =
-        source.connected && source.sourceRowId
-          ? await updateImapConnectionSettingsAction(source.sourceRowId, {
+        source.kind === "data_source"
+          ? await updateImapConnectionSettingsAction(source.sourceId, {
               ...connectionSettings,
               password: form.password,
             })
           : await connectImapDataSourceAction({
               ...connectionSettings,
               password: form.password,
-              historyWindow: source.imap?.historyWindow ?? "12mo",
-              watchedFolders: source.imap?.watchedFolders ?? ["INBOX"],
-              skipSenders: source.imap?.skipSenders ?? [],
+              historyWindow: "12mo",
+              watchedFolders: ["INBOX"],
+              skipSenders: [],
             })
 
       if (result.error) {
@@ -68,6 +73,18 @@ function ImapConnect({ source }: { source: DataSource }) {
   return (
     <Form>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <FormRow label="Name" className="sm:grid-cols-[100px_minmax(0,1fr)]">
+          <Input
+            value={form.displayName}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                displayName: event.target.value,
+              }))
+            }
+            placeholder="Primary inbox"
+          />
+        </FormRow>
         <FormRow label="Server" className="sm:grid-cols-[100px_minmax(0,1fr)]">
           <Input
             value={form.server}
@@ -93,7 +110,10 @@ function ImapConnect({ source }: { source: DataSource }) {
         </FormRow>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormRow label="Username" className="sm:grid-cols-[100px_minmax(0,1fr)]">
+        <FormRow
+          label="Username"
+          className="sm:grid-cols-[100px_minmax(0,1fr)]"
+        >
           <Input
             value={form.username}
             onChange={(event) =>
@@ -121,7 +141,7 @@ function ImapConnect({ source }: { source: DataSource }) {
             }
             placeholder={
               source.connected
-                ? source.imap?.passwordMasked ?? "Leave blank to keep"
+                ? (source.imap?.passwordMasked ?? "Leave blank to keep")
                 : "App password"
             }
             className="font-mono text-[12.5px]"
@@ -160,7 +180,7 @@ function ImapConnect({ source }: { source: DataSource }) {
           type="button"
           variant="primary"
           size="sm"
-          disabled={pending}
+          disabled={pending || !canSubmit}
           onClick={submit}
         >
           {source.connected ? <SaveIcon /> : <PlugZapIcon />}
@@ -181,16 +201,27 @@ function imapErrorLabel(error: string) {
   if (error === "source_manage_forbidden") {
     return "Only workspace owners and admins can manage data sources."
   }
+  if (error === "invalid_data_source_name") {
+    return "Name this connector before saving."
+  }
+  if (error === "duplicate_data_source_name") {
+    return "Use a different connector name."
+  }
+  if (error === "duplicate_data_source_config") {
+    return "That mailbox is already connected."
+  }
   return "Could not save IMAP connection."
 }
 
 function imapConnectionFormState(source: DataSource): ImapConnectionFormState {
+  const imap = source.kind === "data_source" ? source.imap : undefined
   return {
-    server: source.imap?.host ?? "",
-    port: String(source.imap?.port ?? 993),
-    username: source.imap?.username ?? "",
+    displayName: source.kind === "data_source" ? source.title : "",
+    server: imap?.host ?? "",
+    port: String(imap?.port ?? 993),
+    username: imap?.username ?? "",
     password: "",
-    encryption: source.imap?.encryption ?? "ssl",
+    encryption: imap?.encryption ?? "ssl",
   }
 }
 

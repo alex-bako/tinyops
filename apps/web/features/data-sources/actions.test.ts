@@ -78,6 +78,7 @@ function imapSource(): ImapDataSource {
     workspaceId: "workspace_1",
     type: "imap",
     displayName: "IMAP mailbox",
+    sourceSlug: "imap-mailbox",
     status: "connected",
     configVersion: 1,
     connection: {
@@ -110,8 +111,8 @@ function store(overrides: Record<string, unknown> = {}) {
     async listForWorkspace() {
       return []
     },
-    async findForWorkspace() {
-      return null
+    async findBySlugForWorkspace() {
+      return imapSource()
     },
     async findByIdForWorkspace() {
       return imapSource()
@@ -134,6 +135,33 @@ function store(overrides: Record<string, unknown> = {}) {
         workspaceId: "workspace_1",
         type: "forms",
         displayName: "Practice intake",
+        sourceSlug: "practice-intake",
+        status: "connected",
+        configVersion: 1,
+        externalFormId: "1AbC_Def-1234567890",
+        connectionMode: "manual_csv",
+        mapping: {
+          identityColumn: "Email Address",
+          timestampColumn: "Timestamp",
+        },
+        latestUpload: null,
+        sync: {
+          status: "queued",
+          cursor: null,
+          lastError: null,
+          lastSyncedAt: null,
+        },
+        createdAt: "2026-05-10T00:00:00.000Z",
+        updatedAt: "2026-05-10T00:00:00.000Z",
+      }
+    },
+    async updateGoogleFormsManualCsv() {
+      return {
+        id: "forms_source_1",
+        workspaceId: "workspace_1",
+        type: "forms",
+        displayName: "Practice intake",
+        sourceSlug: "practice-intake",
         status: "connected",
         configVersion: 1,
         externalFormId: "1AbC_Def-1234567890",
@@ -189,6 +217,7 @@ describe("data source server actions", () => {
   it("schedules immediate worker dispatch after IMAP connect queues initial sync", async () => {
     await expect(
       connectImapDataSourceAction({
+        displayName: "Primary inbox",
         host: "imap.example.com",
         port: 993,
         encryption: "ssl",
@@ -274,7 +303,9 @@ describe("data source server actions", () => {
   })
 
   it("keeps queued state when immediate dispatch fails", async () => {
-    mocks.dispatchDataSourceSyncWorker.mockRejectedValue(new Error("network down"))
+    mocks.dispatchDataSourceSyncWorker.mockRejectedValue(
+      new Error("network down")
+    )
 
     await expect(requestDataSourceSyncAction("source_1")).resolves.toEqual({
       data: undefined,

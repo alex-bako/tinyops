@@ -11,6 +11,7 @@ function imapSource(patch: Partial<ImapDataSource> = {}): ImapDataSource {
     id: "source_1",
     workspaceId: "workspace_1",
     type: "imap",
+    sourceSlug: "imap-mailbox",
     displayName: "IMAP mailbox",
     status: "connected",
     configVersion: 1,
@@ -52,6 +53,7 @@ function googleFormsSource(
     id: "forms_source_1",
     workspaceId: "workspace_1",
     type: "forms",
+    sourceSlug: "practice-intake",
     displayName: "Practice intake",
     status: "connected",
     configVersion: 1,
@@ -94,10 +96,13 @@ describe("workspace source catalog", () => {
 
     expect(imap).toMatchObject({
       id: "imap",
+      kind: "data_source",
       connected: true,
       sub: "hello@example.com",
       health: "healthy",
-      sourceRowIds: ["source_1"],
+      sourceId: "source_1",
+      sourceType: "imap",
+      sourceSlug: "imap-mailbox",
       imap: {
         host: "imap.example.com",
         username: "hello@example.com",
@@ -116,11 +121,27 @@ describe("workspace source catalog", () => {
     })
   })
 
-  it("aggregates multiple Google Forms manual CSV sources under one connector", () => {
+  it("returns one connected row per workspace source and keeps type entries available for add-new", () => {
     const catalog = composeWorkspaceSourceCatalog([
+      imapSource({
+        id: "source_1",
+        displayName: "Primary inbox",
+      }),
+      imapSource({
+        id: "source_2",
+        sourceSlug: "support-inbox",
+        displayName: "Support inbox",
+        connection: {
+          host: "imap.example.com",
+          port: 993,
+          encryption: "ssl",
+          username: "support@example.com",
+        },
+      }),
       googleFormsSource(),
       googleFormsSource({
         id: "forms_source_2",
+        sourceSlug: "monthly-check-in",
         displayName: "Monthly check-in",
         externalFormId: "1Monthly_CheckIn",
         latestUpload: {
@@ -131,43 +152,57 @@ describe("workspace source catalog", () => {
         },
       }),
     ])
-    const forms = catalog.find((source) => source.id === "forms")
-
-    expect(forms).toMatchObject({
-      id: "forms",
-      connected: true,
-      sub: "2 forms connected",
-      sourceRowIds: ["forms_source_2", "forms_source_1"],
-      summaryStatId: "submissions",
-      stats: [
-        { id: "submissions", label: "Responses", value: "60" },
-        { id: "events", label: "Forms", value: "2" },
-        { id: "synced", label: "Sync", value: "Synced" },
-      ],
-      forms: {
-        connections: [
-          {
-            sourceRowId: "forms_source_2",
-            displayName: "Monthly check-in",
-            externalFormId: "1Monthly_CheckIn",
-            connectionMode: "manual_csv",
-            latestUpload: {
-              fileName: "monthly.csv",
-              rowCount: 18,
-            },
-          },
-          {
-            sourceRowId: "forms_source_1",
-            displayName: "Practice intake",
-            externalFormId: "1AbC_Def-1234567890",
-            connectionMode: "manual_csv",
-            latestUpload: {
-              fileName: "practice-intake.csv",
-              rowCount: 42,
-            },
-          },
-        ],
+    expect(
+      catalog
+        .filter((source) => source.connected)
+        .map((source) => ({
+          id: source.id,
+          title: source.title,
+          sourceId: source.kind === "data_source" ? source.sourceId : null,
+          sourceType: source.kind === "data_source" ? source.sourceType : null,
+          sourceSlug: source.kind === "data_source" ? source.sourceSlug : null,
+        }))
+    ).toEqual([
+      {
+        id: "imap",
+        title: "Primary inbox",
+        sourceId: "source_1",
+        sourceType: "imap",
+        sourceSlug: "imap-mailbox",
       },
-    })
+      {
+        id: "imap",
+        title: "Support inbox",
+        sourceId: "source_2",
+        sourceType: "imap",
+        sourceSlug: "support-inbox",
+      },
+      {
+        id: "forms",
+        title: "Practice intake",
+        sourceId: "forms_source_1",
+        sourceType: "forms",
+        sourceSlug: "practice-intake",
+      },
+      {
+        id: "forms",
+        title: "Monthly check-in",
+        sourceId: "forms_source_2",
+        sourceType: "forms",
+        sourceSlug: "monthly-check-in",
+      },
+    ])
+
+    expect(
+      catalog.filter((source) => !source.connected).map((source) => source.id)
+    ).toEqual([
+      "imap",
+      "csv",
+      "forms",
+      "stripe",
+      "mailerlite",
+      "calendly",
+      "teachable",
+    ])
   })
 })

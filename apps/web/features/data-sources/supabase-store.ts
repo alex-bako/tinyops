@@ -11,7 +11,10 @@ import type {
 } from "@/features/data-sources/types"
 import type { Database } from "@/lib/database.types"
 
-type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
+type QueryResult<T> = Promise<{
+  data: T | null
+  error: { message: string } | null
+}>
 type SupabaseRpcResult = PromiseLike<{
   data: unknown
   error: { message: string } | null
@@ -25,7 +28,11 @@ type DataSourceQuery = {
   is(column: string, value: unknown): DataSourceQuery
   order(
     column: string,
-    options: { referencedTable: string; ascending?: boolean; nullsFirst?: boolean }
+    options: {
+      referencedTable: string
+      ascending?: boolean
+      nullsFirst?: boolean
+    }
   ): DataSourceQuery
   order(column: string, options?: unknown): QueryResult<DataSourceRow[]>
   limit(count: number, options: { referencedTable: string }): DataSourceQuery
@@ -36,6 +43,7 @@ const DATA_SOURCE_COLUMNS = `
   id,
   workspace_id,
   source_type,
+  slug,
   display_name,
   status,
   config_version,
@@ -78,13 +86,15 @@ export function createSupabaseDataSourceStore({
 }: {
   client: SupabaseDataSourceClient
 }): DataSourceStore {
-  async function findForWorkspace(input: {
+  async function findByIdForWorkspace(input: {
     workspaceId: string
-    sourceType: "imap"
+    sourceId: string
   }) {
-    const { data, error } = await withRecentSyncRuns(baseDataSourceQuery(client))
+    const { data, error } = await withRecentSyncRuns(
+      baseDataSourceQuery(client)
+    )
+      .eq("id", input.sourceId)
       .eq("workspace_id", input.workspaceId)
-      .eq("source_type", input.sourceType)
       .is("disconnected_at", null)
       .maybeSingle()
 
@@ -92,13 +102,17 @@ export function createSupabaseDataSourceStore({
     return data ? mapDataSourceRow(data as DataSourceRow) : null
   }
 
-  async function findByIdForWorkspace(input: {
+  async function findBySlugForWorkspace(input: {
     workspaceId: string
-    sourceId: string
+    sourceType: string
+    sourceSlug: string
   }) {
-    const { data, error } = await withRecentSyncRuns(baseDataSourceQuery(client))
-      .eq("id", input.sourceId)
+    const { data, error } = await withRecentSyncRuns(
+      baseDataSourceQuery(client)
+    )
       .eq("workspace_id", input.workspaceId)
+      .eq("source_type", input.sourceType)
+      .eq("slug", input.sourceSlug)
       .is("disconnected_at", null)
       .maybeSingle()
 
@@ -130,23 +144,27 @@ export function createSupabaseDataSourceStore({
 
   return {
     async listForWorkspace(workspaceId) {
-      const { data, error } = await withRecentSyncRuns(baseDataSourceQuery(client))
+      const { data, error } = await withRecentSyncRuns(
+        baseDataSourceQuery(client)
+      )
         .eq("workspace_id", workspaceId)
         .is("disconnected_at", null)
         .order("source_type", { ascending: true })
 
-      if (error) throw new Error("Could not load data sources", { cause: error })
+      if (error)
+        throw new Error("Could not load data sources", { cause: error })
 
       return ((data ?? []) as DataSourceRow[]).map(mapDataSourceRow)
     },
 
-    findForWorkspace,
+    findBySlugForWorkspace,
 
     findByIdForWorkspace,
 
     async connectImap(input) {
       const { data, error } = await client.rpc("connect_imap_data_source", {
         target_workspace_id: input.workspaceId,
+        imap_display_name: input.displayName,
         imap_host: input.connection.host,
         imap_port: input.connection.port,
         imap_encryption: input.connection.encryption,
@@ -191,10 +209,34 @@ export function createSupabaseDataSourceStore({
       })
     },
 
+    async updateGoogleFormsManualCsv(input) {
+      const { error } = await client.rpc(
+        "update_google_forms_manual_csv_data_source",
+        {
+          target_workspace_id: input.workspaceId,
+          target_source_id: input.sourceId,
+          form_display_name: input.source.displayName,
+          form_mapping: input.source.mapping,
+          upload_file_name: input.upload.fileName,
+          upload_rows: input.upload.rows,
+        }
+      )
+
+      if (error) {
+        throwDataSourceStoreError(error, "Could not update Google Forms")
+      }
+
+      return requireGoogleFormsById({
+        workspaceId: input.workspaceId,
+        sourceId: input.sourceId,
+      })
+    },
+
     async updateImapConnection(input) {
       const { error } = await client.rpc("update_imap_connection_settings", {
         target_source_id: input.sourceId,
         target_workspace_id: input.workspaceId,
+        imap_display_name: input.displayName,
         imap_host: input.connection.host,
         imap_port: input.connection.port,
         imap_encryption: input.connection.encryption,
@@ -273,9 +315,12 @@ export function createSupabaseDataSourceStore({
     },
 
     async requestAllSyncs(input) {
-      const { data, error } = await client.rpc("request_all_data_source_syncs", {
-        target_workspace_id: input.workspaceId,
-      })
+      const { data, error } = await client.rpc(
+        "request_all_data_source_syncs",
+        {
+          target_workspace_id: input.workspaceId,
+        }
+      )
 
       if (error) {
         throwDataSourceStoreError(error, "Could not request data source syncs")
@@ -286,7 +331,9 @@ export function createSupabaseDataSourceStore({
   }
 }
 
-function baseDataSourceQuery(client: SupabaseDataSourceClient): DataSourceQuery {
+function baseDataSourceQuery(
+  client: SupabaseDataSourceClient
+): DataSourceQuery {
   return client
     .from("data_sources")
     .select(DATA_SOURCE_COLUMNS) as unknown as DataSourceQuery
@@ -320,6 +367,9 @@ const DATA_SOURCE_STORE_ERRORS = new Set([
   "invalid_google_forms_csv",
   "invalid_google_forms_csv_mapping",
   "invalid_google_forms_csv_row",
+  "invalid_data_source_name",
+  "duplicate_data_source_name",
+  "duplicate_data_source_config",
   "source_not_found",
   "source_manage_forbidden",
 ])

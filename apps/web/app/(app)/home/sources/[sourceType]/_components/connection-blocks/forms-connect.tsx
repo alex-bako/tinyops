@@ -8,7 +8,10 @@ import { Button } from "@workspace/ui/components/button"
 import { Form, FormRow } from "@workspace/ui/components/form-row"
 import { Input } from "@workspace/ui/components/input"
 
-import { connectGoogleFormsManualCsvDataSourceAction } from "@/features/data-sources/actions"
+import {
+  connectGoogleFormsManualCsvDataSourceAction,
+  updateGoogleFormsManualCsvDataSourceAction,
+} from "@/features/data-sources/actions"
 import {
   parseGoogleFormsCsv,
   type GoogleFormsParsedCsv,
@@ -72,7 +75,8 @@ function FormsConnect({ source }: { source: DataSource }) {
   const [pending, startTransition] = React.useTransition()
   const [state, dispatch] = React.useReducer(
     formsConnectReducer,
-    INITIAL_FORMS_CONNECT_STATE
+    source,
+    initialFormsConnectState
   )
   const {
     connectionMode,
@@ -83,6 +87,8 @@ function FormsConnect({ source }: { source: DataSource }) {
     csv,
     error,
   } = state
+  const connectedSourceId =
+    source.kind === "data_source" ? source.sourceId : undefined
 
   const headers = csv.parsed?.headers ?? []
   const canSubmit =
@@ -114,14 +120,22 @@ function FormsConnect({ source }: { source: DataSource }) {
     if (!canSubmit) return
     dispatch({ type: "clear_error" })
     startTransition(async () => {
-      const result = await connectGoogleFormsManualCsvDataSourceAction({
-        formUrlOrId,
+      const input = {
         displayName,
         fileName: csv.fileName,
         identityColumn,
         timestampColumn,
         csvText: csv.csvText,
-      })
+      }
+      const result = connectedSourceId
+        ? await updateGoogleFormsManualCsvDataSourceAction(
+            connectedSourceId,
+            input
+          )
+        : await connectGoogleFormsManualCsvDataSourceAction({
+            ...input,
+            formUrlOrId,
+          })
 
       if (result.error) {
         dispatch({ type: "set_error", value: formsErrorLabel(result.error) })
@@ -132,11 +146,16 @@ function FormsConnect({ source }: { source: DataSource }) {
   }
 
   const oauthSource: DataSource = {
-    ...source,
+    id: source.id,
+    kind: "connector_type",
+    icon: source.icon,
+    title: source.title,
+    sub: source.sub,
+    category: source.category,
     auth: "oauth",
+    isNew: source.isNew,
     connected: false,
-    sourceRowId: undefined,
-    sourceRowIds: [],
+    stats: [],
   }
 
   return (
@@ -175,123 +194,140 @@ function FormsConnect({ source }: { source: DataSource }) {
         <OAuthConnect source={oauthSource} />
       ) : (
         <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormRow
-          label="Google Form URL or ID"
-          className="sm:grid-cols-[140px_minmax(0,1fr)]"
-        >
-          <Input
-            aria-label="Google Form URL or ID"
-            value={formUrlOrId}
-            onChange={(event) =>
-              dispatch({
-                type: "set_form_url_or_id",
-                value: event.target.value,
-              })
-            }
-            placeholder="https://docs.google.com/forms/d/..."
-            className="font-mono text-[12.5px]"
-          />
-        </FormRow>
-        <FormRow label="Form name" className="sm:grid-cols-[100px_minmax(0,1fr)]">
-          <Input
-            aria-label="Form name"
-            value={displayName}
-            onChange={(event) =>
-              dispatch({
-                type: "set_display_name",
-                value: event.target.value,
-              })
-            }
-            placeholder="Practice intake"
-          />
-        </FormRow>
-      </div>
-      <FormRow
-        label="Responses CSV"
-        help="Export responses from Google Forms, then upload the CSV here."
-      >
-        <Input
-          aria-label="Responses CSV"
-          type="file"
-          accept=".csv,text/csv"
-          onChange={(event) => void uploadCsv(event.target.files?.[0])}
-          className="text-[12.5px]"
-        />
-        {csv.parsed ? (
-          <span className="text-[12px] text-muted-foreground">
-            {csv.parsed.rows.length}{" "}
-            {csv.parsed.rows.length === 1 ? "response" : "responses"} found
-          </span>
-        ) : null}
-      </FormRow>
-      {headers.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormRow
-            label="Client identity column"
-            className="sm:grid-cols-[150px_minmax(0,1fr)]"
-          >
-            <select
-              aria-label="Client identity column"
-              value={identityColumn}
-              onChange={(event) =>
-                dispatch({
-                  type: "set_identity_column",
-                  value: event.target.value,
-                })
-              }
-              className="h-8 rounded-md border border-input bg-background px-2 text-[13px]"
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormRow
+              label="Google Form URL or ID"
+              className="sm:grid-cols-[140px_minmax(0,1fr)]"
             >
-              {headers.map((header) => (
-                <option key={header} value={header}>
-                  {header}
-                </option>
-              ))}
-            </select>
-          </FormRow>
-          <FormRow
-            label="Response timestamp column"
-            className="sm:grid-cols-[170px_minmax(0,1fr)]"
-          >
-            <select
-              aria-label="Response timestamp column"
-              value={timestampColumn}
-              onChange={(event) =>
-                dispatch({
-                  type: "set_timestamp_column",
-                  value: event.target.value,
-                })
-              }
-              className="h-8 rounded-md border border-input bg-background px-2 text-[13px]"
+              <Input
+                aria-label="Google Form URL or ID"
+                value={formUrlOrId}
+                disabled={Boolean(connectedSourceId)}
+                onChange={(event) =>
+                  dispatch({
+                    type: "set_form_url_or_id",
+                    value: event.target.value,
+                  })
+                }
+                placeholder="https://docs.google.com/forms/d/..."
+                className="font-mono text-[12.5px]"
+              />
+            </FormRow>
+            <FormRow
+              label="Form name"
+              className="sm:grid-cols-[100px_minmax(0,1fr)]"
             >
-              {headers.map((header) => (
-                <option key={header} value={header}>
-                  {header}
-                </option>
-              ))}
-            </select>
+              <Input
+                aria-label="Form name"
+                value={displayName}
+                onChange={(event) =>
+                  dispatch({
+                    type: "set_display_name",
+                    value: event.target.value,
+                  })
+                }
+                placeholder="Practice intake"
+              />
+            </FormRow>
+          </div>
+          <FormRow
+            label="Responses CSV"
+            help="Export responses from Google Forms, then upload the CSV here."
+          >
+            <Input
+              aria-label="Responses CSV"
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(event) => void uploadCsv(event.target.files?.[0])}
+              className="text-[12.5px]"
+            />
+            {csv.parsed ? (
+              <span className="text-[12px] text-muted-foreground">
+                {csv.parsed.rows.length}{" "}
+                {csv.parsed.rows.length === 1 ? "response" : "responses"} found
+              </span>
+            ) : null}
           </FormRow>
-        </div>
-      ) : null}
-      <div className="inline-flex items-center gap-3">
-        <Button
-          type="button"
-          variant="primary"
-          size="sm"
-          disabled={pending || !canSubmit}
-          onClick={submit}
-        >
-          <UploadIcon />
-          {pending ? "Uploading" : "Upload CSV"}
-        </Button>
-        {error ? (
-          <span className="text-[12px] text-coral-700">{error}</span>
-        ) : null}
-      </div>
+          {headers.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormRow
+                label="Client identity column"
+                className="sm:grid-cols-[150px_minmax(0,1fr)]"
+              >
+                <select
+                  aria-label="Client identity column"
+                  value={identityColumn}
+                  onChange={(event) =>
+                    dispatch({
+                      type: "set_identity_column",
+                      value: event.target.value,
+                    })
+                  }
+                  className="h-8 rounded-md border border-input bg-background px-2 text-[13px]"
+                >
+                  {headers.map((header) => (
+                    <option key={header} value={header}>
+                      {header}
+                    </option>
+                  ))}
+                </select>
+              </FormRow>
+              <FormRow
+                label="Response timestamp column"
+                className="sm:grid-cols-[170px_minmax(0,1fr)]"
+              >
+                <select
+                  aria-label="Response timestamp column"
+                  value={timestampColumn}
+                  onChange={(event) =>
+                    dispatch({
+                      type: "set_timestamp_column",
+                      value: event.target.value,
+                    })
+                  }
+                  className="h-8 rounded-md border border-input bg-background px-2 text-[13px]"
+                >
+                  {headers.map((header) => (
+                    <option key={header} value={header}>
+                      {header}
+                    </option>
+                  ))}
+                </select>
+              </FormRow>
+            </div>
+          ) : null}
+          <div className="inline-flex items-center gap-3">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={pending || !canSubmit}
+              onClick={submit}
+            >
+              <UploadIcon />
+              {pending ? "Uploading" : "Upload CSV"}
+            </Button>
+            {error ? (
+              <span className="text-[12px] text-coral-700">{error}</span>
+            ) : null}
+          </div>
         </>
       )}
     </Form>
   )
+}
+
+function initialFormsConnectState(source: DataSource): FormsConnectState {
+  const connection =
+    source.kind === "data_source" ? source.forms?.connections[0] : undefined
+  if (!connection) return INITIAL_FORMS_CONNECT_STATE
+  return {
+    ...INITIAL_FORMS_CONNECT_STATE,
+    formUrlOrId: connection.externalFormId,
+    displayName: connection.displayName,
+    identityColumn: connection.mapping.identityColumn,
+    timestampColumn: connection.mapping.timestampColumn,
+  }
 }
 
 function formsConnectReducer(
@@ -318,7 +354,10 @@ function formsConnectReducer(
           parsed: action.parsed,
         },
         identityColumn: preferredColumn(action.parsed.headers, /email/i),
-        timestampColumn: preferredColumn(action.parsed.headers, /timestamp|time/i),
+        timestampColumn: preferredColumn(
+          action.parsed.headers,
+          /timestamp|time/i
+        ),
       }
     case "csv_failed":
       return {
@@ -351,6 +390,15 @@ function preferredColumn(headers: string[], pattern: RegExp) {
 function formsErrorLabel(error: string) {
   if (error === "source_manage_forbidden") {
     return "Only workspace owners and admins can manage data sources."
+  }
+  if (error === "invalid_data_source_name") {
+    return "Name this connector before uploading."
+  }
+  if (error === "duplicate_data_source_name") {
+    return "Use a different connector name."
+  }
+  if (error === "duplicate_data_source_config") {
+    return "That Google Form is already connected."
   }
   if (
     error === "invalid_google_form_id" ||

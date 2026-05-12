@@ -134,6 +134,7 @@ function source(patch: Partial<ImapDataSource> = {}): ImapDataSource {
     createdAt: "2026-05-07T00:00:00.000Z",
     updatedAt: "2026-05-07T00:00:00.000Z",
     ...patch,
+    sourceSlug: patch.sourceSlug ?? "imap-mailbox",
   }
 }
 
@@ -170,7 +171,9 @@ function fakeImapFlow(messages: Record<number, string>) {
   }
 }
 
-function fakeImapFlowByFolder(messagesByFolder: Record<string, Record<number, string>>) {
+function fakeImapFlowByFolder(
+  messagesByFolder: Record<string, Record<number, string>>
+) {
   return class FakeImapFlow {
     currentFolder = "INBOX"
 
@@ -263,7 +266,9 @@ describe("IMAP sync connector", () => {
     })
 
     expect(result).toMatchObject({
-      records: [expect.objectContaining({ externalId: "message:<m1@example.com>" })],
+      records: [
+        expect.objectContaining({ externalId: "message:<m1@example.com>" }),
+      ],
       truncated: true,
       cursor: {
         folders: {

@@ -32,7 +32,11 @@ vi.mock("@/components/app-shell", () => ({
     children: React.ReactNode
     userEmail?: string | null
     clientNavItems?: { slug: string; name: string }[]
-    sourceNavItems?: { id: string; title: string }[]
+    sourceNavItems?: {
+      sourceType: string
+      sourceSlug: string
+      title: string
+    }[]
   }) =>
     React.createElement(
       "section",
@@ -115,14 +119,19 @@ describe("AuthenticatedAppShell", () => {
     vi.mocked(loadWorkspaceSourceCatalogForWorkspace).mockResolvedValue([
       {
         id: "imap",
+        kind: "data_source",
         icon: "mail",
         title: "IMAP mailbox",
         sub: "hello@example.com",
         category: "Mail",
         auth: "imap",
-        cardinality: "singleton",
         connected: true,
-        sourceRowIds: ["source_1"],
+        sourceId: "source_1",
+        sourceType: "imap",
+        sourceSlug: "imap-mailbox",
+        health: "healthy",
+        lastSync: "ready",
+        summaryStatId: "synced",
         stats: [],
       },
     ])

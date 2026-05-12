@@ -164,7 +164,10 @@ function flattenNavItems(groups: NavGroup[]): NavItem[] {
   return groups.flatMap((group) => group.items)
 }
 
-function pickActiveNavItemId(items: NavItem[], pathname: string): string | null {
+function pickActiveNavItemId(
+  items: NavItem[],
+  pathname: string
+): string | null {
   let bestId: string | null = null
   let bestLen = -1
   for (const item of items) {
@@ -183,7 +186,10 @@ function deriveAppCrumbs(
   pathname: string,
   options: {
     resolveClientName?: (slug: string) => string | undefined
-    resolveSourceTitle?: (slug: string) => string | undefined
+    resolveSourceTitle?: (identity: {
+      sourceType: string
+      sourceSlug: string
+    }) => string | undefined
   } = {}
 ): Crumb[] {
   if (ROUTE_CRUMBS[pathname]) return ROUTE_CRUMBS[pathname]!
@@ -197,12 +203,20 @@ function deriveAppCrumbs(
     ]
   }
 
-  const sourceSlug = pathname.match(/^\/home\/sources\/([^/]+)\/?$/)?.[1]
-  if (sourceSlug) {
+  const sourceMatch = pathname.match(
+    /^\/home\/sources\/([^/]+)\/([^/]+)\/?$/
+  )
+  if (sourceMatch) {
+    const sourceType = sourceMatch[1]!
+    const sourceSlug = sourceMatch[2]!
     return [
       HOME,
       SOURCES,
-      { label: options.resolveSourceTitle?.(sourceSlug) ?? sourceSlug },
+      {
+        label:
+          options.resolveSourceTitle?.({ sourceType, sourceSlug }) ??
+          sourceSlug,
+      },
     ]
   }
 

@@ -107,6 +107,61 @@ exception
 end;
 $$;
 
+select pg_temp.assert_true(
+  to_regprocedure('public.normalize_data_source_display_name(text)') is not null,
+  'data source display name helper exists'
+);
+
+select pg_temp.assert_true(
+  to_regprocedure('public.require_data_source_slug(text)') is not null,
+  'data source slug helper exists'
+);
+
+select pg_temp.assert_true(
+  to_regprocedure('public.normalized_text_array(text[],text[])') is not null,
+  'text array normalization helper exists'
+);
+
+select pg_temp.assert_true(
+  to_regprocedure('public.require_unique_data_source_name(uuid,text,text,text,uuid)') is not null,
+  'data source name uniqueness helper exists'
+);
+
+select pg_temp.assert_true(
+  to_regprocedure('public.require_unique_imap_source_config(uuid,text,integer,text,text,uuid)') is not null,
+  'IMAP config uniqueness helper exists'
+);
+
+select pg_temp.assert_true(
+  to_regprocedure('public.require_unique_google_forms_source_config(uuid,text,text,uuid)') is not null,
+  'Google Forms config uniqueness helper exists'
+);
+
+select pg_temp.assert_true(
+  public.normalize_data_source_display_name('  Primary inbox  ') = 'Primary inbox',
+  'display name helper trims values'
+);
+
+select pg_temp.assert_true(
+  public.normalized_text_array(
+    array[' INBOX ', '', 'Clients']::text[],
+    array['Fallback']::text[]
+  ) = array['INBOX', 'Clients']::text[],
+  'text array helper trims and removes blanks'
+);
+
+select pg_temp.assert_true(
+  public.normalized_text_array(array[' ']::text[], array['INBOX']::text[]) =
+    array['INBOX']::text[],
+  'text array helper uses fallback when empty'
+);
+
+select pg_temp.expect_error(
+  'select public.require_data_source_slug(''new'')',
+  'invalid_data_source_name',
+  'reserved data source slug helper'
+);
+
 delete from public.workspaces
 where handle = 'data-source-rpc-owner';
 
@@ -169,8 +224,9 @@ set role authenticated;
 
 select pg_temp.expect_error(
   format(
-    'select public.connect_imap_data_source(%L::uuid, %L, %L, %L, %L, %L, %L, %L::text[], %L::text[], %L::jsonb, %L::jsonb)',
+    'select public.connect_imap_data_source(%L::uuid, %L, %L, %L, %L, %L, %L, %L, %L::text[], %L::text[], %L::jsonb, %L::jsonb)',
     current_setting('tinyops.workspace_id'),
+    'Broken mailbox',
     '',
     70000,
     'ssl',
@@ -188,8 +244,9 @@ select pg_temp.expect_error(
 
 select pg_temp.expect_error(
   format(
-    'select public.connect_imap_data_source(%L::uuid, %L, %L, %L, %L, %L, %L, %L::text[], %L::text[], %L::jsonb, %L::jsonb)',
+    'select public.connect_imap_data_source(%L::uuid, %L, %L, %L, %L, %L, %L, %L, %L::text[], %L::text[], %L::jsonb, %L::jsonb)',
     current_setting('tinyops.workspace_id'),
+    'Broken filters',
     'imap.example.com',
     993,
     'ssl',
@@ -207,6 +264,7 @@ select pg_temp.expect_error(
 
 select public.connect_imap_data_source(
   current_setting('tinyops.workspace_id')::uuid,
+  ' Primary inbox ',
   ' IMAP.EXAMPLE.COM ',
   993,
   'ssl',
@@ -238,6 +296,8 @@ select pg_temp.assert_true(
       'host', 'imap.example.com',
       'username', 'owner@example.com'
     )
+    and display_name = 'Primary inbox'
+    and slug = 'primary-inbox'
     and not (config ? 'watchedFolders')
     and not (config ? 'skipSenders')
     from public.data_sources
@@ -280,32 +340,35 @@ select pg_temp.assert_true(
   'raw IMAP password is not stored as metadata'
 );
 
+select public.connect_imap_data_source(
+  current_setting('tinyops.workspace_id')::uuid,
+  'Support inbox',
+  'imap2.example.com',
+  993,
+  'starttls',
+  'owner2@example.com',
+  'new-secret',
+  '90d',
+  array['INBOX']::text[],
+  array[]::text[],
+  '{"mode":"and","rules":[]}'::jsonb,
+  '[{"path":"INBOX","messages":1}]'::jsonb
+) as source_id_2 \gset
+
 select pg_temp.assert_true(
-  public.connect_imap_data_source(
-    current_setting('tinyops.workspace_id')::uuid,
-    'imap2.example.com',
-    993,
-    'starttls',
-    'owner2@example.com',
-    'new-secret',
-    '90d',
-    array['INBOX']::text[],
-    array[]::text[],
-    '{"mode":"and","rules":[]}'::jsonb,
-    '[{"path":"INBOX","messages":1}]'::jsonb
-  ) = current_setting('tinyops.source_id')::uuid,
-  'second connect updates the active IMAP source'
+  :'source_id_2'::uuid <> current_setting('tinyops.source_id')::uuid,
+  'second connect creates another active IMAP source'
 );
 
 select pg_temp.assert_true(
   (
-    select count(*) = 1
+    select count(*) = 2
     from public.data_sources
     where workspace_id = current_setting('tinyops.workspace_id')::uuid
       and source_type = 'imap'
       and disconnected_at is null
   ),
-  'only one active IMAP source remains after reconnect'
+  'workspace can connect multiple IMAP sources'
 );
 
 reset role;
@@ -318,6 +381,7 @@ set role authenticated;
 select public.update_imap_connection_settings(
   current_setting('tinyops.workspace_id')::uuid,
   current_setting('tinyops.source_id')::uuid,
+  'Primary inbox',
   'imap3.example.com',
   993,
   'ssl',
@@ -331,8 +395,8 @@ select pg_temp.assert_true(
     select count(*) = 1
     from public.data_source_intake_configs
     where source_id = current_setting('tinyops.source_id')::uuid
-      and history_window = '90d'
-      and watched_folders = array['INBOX']::text[]
+      and history_window = '12mo'
+      and watched_folders = array['INBOX', 'Clients']::text[]
       and message_filters @> '{"mode":"and"}'::jsonb
   ),
   'connection update preserves existing intake config'
@@ -438,7 +502,7 @@ select pg_temp.assert_true(
 select pg_temp.assert_true(
   public.request_all_data_source_syncs(
     current_setting('tinyops.workspace_id')::uuid
-  ) = 1,
+  ) = 2,
   'admin can request sync for all configured data sources'
 );
 
@@ -642,17 +706,28 @@ select public.connect_google_forms_manual_csv_data_source(
   '[{"rowNumber":2,"payload":{"Timestamp":"2026-05-11T09:15:00.000Z","Email Address":"priya@example.com"}}]'::jsonb
 ) as forms_source_id_2 \gset
 
-select pg_temp.assert_true(
-  public.connect_google_forms_manual_csv_data_source(
-    current_setting('tinyops.workspace_id')::uuid,
+select pg_temp.expect_error(
+  format(
+    'select public.connect_google_forms_manual_csv_data_source(%L::uuid, %L, %L, %L, %L::jsonb, %L, %L::jsonb)',
+    current_setting('tinyops.workspace_id'),
     '1AbC_Def-1234567890',
     'manual_csv',
-    'Practice intake',
-    '{"identityColumn":"Email Address","timestampColumn":"Timestamp"}'::jsonb,
+    'Practice intake copy',
+    '{"identityColumn":"Email Address","timestampColumn":"Timestamp"}',
     'practice-intake-reupload.csv',
-    '[{"rowNumber":2,"payload":{"Timestamp":"2026-05-12T09:15:00.000Z","Email Address":"mika@example.com"}}]'::jsonb
-  ) = :'forms_source_id'::uuid,
-  'manual CSV reconnect updates same Google Form source and mode'
+    '[{"rowNumber":2,"payload":{"Timestamp":"2026-05-12T09:15:00.000Z","Email Address":"mika@example.com"}}]'
+  ),
+  'duplicate_data_source_config',
+  'Google Forms duplicate external form and mode is rejected'
+);
+
+select public.update_google_forms_manual_csv_data_source(
+  current_setting('tinyops.workspace_id')::uuid,
+  :'forms_source_id'::uuid,
+  'Practice intake',
+  '{"identityColumn":"Email Address","timestampColumn":"Timestamp"}'::jsonb,
+  'practice-intake-reupload.csv',
+  '[{"rowNumber":2,"payload":{"Timestamp":"2026-05-12T09:15:00.000Z","Email Address":"mika@example.com"}}]'::jsonb
 );
 
 select pg_temp.assert_true(

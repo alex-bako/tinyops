@@ -55,7 +55,13 @@ describe("AppShell", () => {
       >
         <AppShell
           userEmail="profile@example.co"
-          sourceNavItems={[{ id: "imap", title: "IMAP mailbox" }]}
+          sourceNavItems={[
+            {
+              sourceType: "imap",
+              sourceSlug: "primary-inbox",
+              title: "IMAP mailbox",
+            },
+          ]}
         >
           <main>Workspace</main>
         </AppShell>
@@ -66,7 +72,7 @@ describe("AppShell", () => {
   })
 
   it("resolves source detail breadcrumbs from source nav items", () => {
-    pathname = "/home/sources/imap"
+    pathname = "/home/sources/imap/primary-inbox"
     installMatchMedia()
 
     render(
@@ -77,7 +83,15 @@ describe("AppShell", () => {
           usageByWorkspaceId: WORKSPACE_USAGE_BY_ID,
         }}
       >
-        <AppShell sourceNavItems={[{ id: "imap", title: "IMAP mailbox" }]}>
+        <AppShell
+          sourceNavItems={[
+            {
+              sourceType: "imap",
+              sourceSlug: "primary-inbox",
+              title: "IMAP mailbox",
+            },
+          ]}
+        >
           <main>Workspace</main>
         </AppShell>
       </WorkspaceFeatureProvider>

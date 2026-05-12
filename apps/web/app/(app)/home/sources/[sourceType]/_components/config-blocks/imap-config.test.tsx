@@ -6,7 +6,7 @@ import {
   refreshImapFoldersAction,
   updateImapImportSettingsAction,
 } from "@/features/data-sources/actions"
-import type { DataSource } from "@/lib/sources"
+import type { WorkspaceDataSourceCatalogItem } from "@/lib/sources"
 
 import { ImapConfig } from "./imap-config"
 
@@ -21,18 +21,24 @@ vi.mock("@/features/data-sources/actions", () => ({
   refreshImapFoldersAction: vi.fn(async () => ({ data: {} })),
 }))
 
-function source(patch: Partial<DataSource> = {}): DataSource {
+function source(
+  patch: Partial<WorkspaceDataSourceCatalogItem> = {}
+): WorkspaceDataSourceCatalogItem {
   return {
     id: "imap",
+    kind: "data_source",
     icon: "mail",
     title: "IMAP mailbox",
     sub: "hello@example.com",
     category: "Mail",
     auth: "imap",
-    cardinality: "singleton",
-    sourceRowId: "source_1",
-    sourceRowIds: ["source_1"],
+    sourceId: "source_1",
+    sourceType: "imap",
+    sourceSlug: "primary-inbox",
     connected: true,
+    health: "healthy",
+    lastSync: "ready",
+    summaryStatId: "synced",
     stats: [],
     imap: {
       host: "imap.example.com",
@@ -49,7 +55,7 @@ function source(patch: Partial<DataSource> = {}): DataSource {
       ],
     },
     ...patch,
-  } as DataSource
+  }
 }
 
 describe("ImapConfig", () => {
@@ -63,10 +69,15 @@ describe("ImapConfig", () => {
     render(
       <ImapConfig
         source={{
-          ...source(),
+          kind: "connector_type",
+          id: "imap",
+          icon: "mail",
+          title: "IMAP mailbox",
+          sub: "Import email conversations",
+          category: "Mail",
+          auth: "imap",
           connected: false,
-          sourceRowId: undefined,
-          imap: undefined,
+          stats: [],
         }}
       />
     )
@@ -109,7 +120,9 @@ describe("ImapConfig", () => {
     fireEvent.click(screen.getByRole("button", { name: /Add rule/i }))
     const ruleInput = screen.getAllByRole("textbox").at(-1)!
     fireEvent.change(ruleInput, { target: { value: "hello@example.com" } })
-    fireEvent.click(screen.getByRole("button", { name: /Save import settings/i }))
+    fireEvent.click(
+      screen.getByRole("button", { name: /Save import settings/i })
+    )
 
     await waitFor(() =>
       expect(updateImapImportSettingsAction).toHaveBeenCalledWith("source_1", {

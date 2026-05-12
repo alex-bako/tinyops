@@ -11,7 +11,10 @@ import {
 describe("navigation model", () => {
   it("marks nested client routes as clients nav", () => {
     expect(
-      pickActiveNavItemId(flattenNavItems(NAV_GROUPS), "/home/clients/anna-smith")
+      pickActiveNavItemId(
+        flattenNavItems(NAV_GROUPS),
+        "/home/clients/anna-smith"
+      )
     ).toBe("clients")
   })
 
@@ -44,15 +47,17 @@ describe("navigation model", () => {
   })
 
   it("derives source detail breadcrumbs with injected title lookup", () => {
-    const crumbs = deriveAppCrumbs("/home/sources/imap", {
-      resolveSourceTitle: (slug) =>
-        slug === "imap" ? "IMAP mailbox" : undefined,
+    const crumbs = deriveAppCrumbs("/home/sources/imap/primary-inbox", {
+      resolveSourceTitle: ({ sourceType, sourceSlug }) =>
+        sourceType === "imap" && sourceSlug === "primary-inbox"
+          ? "Primary inbox"
+          : undefined,
     })
 
     expect(crumbs.map((crumb) => crumb.label)).toEqual([
       "Home",
       "Data sources",
-      "IMAP mailbox",
+      "Primary inbox",
     ])
     expect(crumbs[0]?.href).toBe("/home")
     expect(crumbs[1]?.href).toBe("/home/sources")
@@ -61,15 +66,31 @@ describe("navigation model", () => {
 
   it("falls back to slug when source title cannot be resolved", () => {
     expect(
-      deriveAppCrumbs("/home/sources/unknown-source").map(
+      deriveAppCrumbs("/home/sources/imap/unknown-source").map(
         (crumb) => crumb.label
       )
     ).toEqual(["Home", "Data sources", "unknown-source"])
   })
 
+  it("passes source type and slug to source title resolver", () => {
+    const seen: unknown[] = []
+
+    deriveAppCrumbs("/home/sources/forms/shared-slug", {
+      resolveSourceTitle: (identity) => {
+        seen.push(identity)
+        return "Practice intake"
+      },
+    })
+
+    expect(seen).toEqual([{ sourceType: "forms", sourceSlug: "shared-slug" }])
+  })
+
   it("activates sources nav for nested source detail routes", () => {
     expect(
-      pickActiveNavItemId(flattenNavItems(NAV_GROUPS), "/home/sources/imap")
+      pickActiveNavItemId(
+        flattenNavItems(NAV_GROUPS),
+        "/home/sources/imap/primary-inbox"
+      )
     ).toBe("sources")
   })
 

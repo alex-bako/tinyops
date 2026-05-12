@@ -23,7 +23,7 @@ describe("SourceSyncButton", () => {
   })
 
   it("requests sync through the server action and refreshes the page", async () => {
-    render(<SourceSyncButton sourceRowId="source_1" />)
+    render(<SourceSyncButton sourceId="source_1" />)
 
     fireEvent.click(screen.getByRole("button", { name: "Sync now" }))
 
@@ -38,7 +38,7 @@ describe("SourceSyncButton", () => {
       error: "source_action_failed",
     })
 
-    render(<SourceSyncButton sourceRowId="source_1" />)
+    render(<SourceSyncButton sourceId="source_1" />)
 
     fireEvent.click(screen.getByRole("button", { name: "Sync now" }))
 

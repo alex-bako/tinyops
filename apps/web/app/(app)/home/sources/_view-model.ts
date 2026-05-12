@@ -8,12 +8,14 @@ import {
   type DataSourceStat,
 } from "@/lib/sources"
 
-type SourcesPageRowAction = "sync" | "connect" | "manage"
+type SourcesPageRowAction = "sync" | "connect"
 
 type SourcesPageRow = {
+  rowKey: string
   id: string
-  sourceRowId?: string
-  sourceRowIds: string[]
+  sourceId?: string
+  sourceType: string
+  sourceSlug?: string
   icon: DataSourceIcon
   title: string
   sub: string
@@ -38,16 +40,17 @@ type SourcesPageView = {
 }
 
 function sourcePageRow(source: DataSource): SourcesPageRow {
-  const sourceRowId = singleSourceRowId(source.sourceRowIds)
-  const action = source.connected
-    ? sourceRowId
-      ? "sync"
-      : "manage"
-    : "connect"
+  const action = source.kind === "data_source" ? "sync" : "connect"
+  const href = source.kind === "data_source"
+    ? `/home/sources/${source.sourceType}/${source.sourceSlug}`
+    : `/home/sources/${source.id}/new`
   return {
+    rowKey: source.kind === "data_source" ? source.sourceId : source.id,
     id: source.id,
-    ...(sourceRowId ? { sourceRowId } : {}),
-    sourceRowIds: source.sourceRowIds,
+    sourceType: source.kind === "data_source" ? source.sourceType : source.id,
+    ...(source.kind === "data_source"
+      ? { sourceId: source.sourceId, sourceSlug: source.sourceSlug }
+      : {}),
     icon: source.icon,
     title: source.title,
     sub: source.sub,
@@ -55,15 +58,11 @@ function sourcePageRow(source: DataSource): SourcesPageRow {
     isNew: source.isNew ?? false,
     stats: source.stats,
     action,
-    href: `/home/sources/${source.id}`,
-    primaryLabel: action === "sync" ? "Sync" : action === "manage" ? "Manage" : "Connect",
+    href,
+    primaryLabel: action === "sync" ? "Sync" : "Connect",
     configureLabel: `Configure ${source.title}`,
     statusLabel: sourceStatusLabel(source),
   }
-}
-
-function singleSourceRowId(sourceRowIds: string[]) {
-  return sourceRowIds.length === 1 ? sourceRowIds[0] : undefined
 }
 
 function createSourcesPageView(

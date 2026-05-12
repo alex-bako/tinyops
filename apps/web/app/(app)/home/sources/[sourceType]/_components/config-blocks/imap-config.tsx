@@ -16,7 +16,7 @@ import type {
   ImapMessageFilterRule,
   ImapMessageFilters,
 } from "@/features/data-sources/types"
-import type { DataSource } from "@/lib/sources"
+import type { DataSource, DataSourceImapSettings } from "@/lib/sources"
 
 import { ChipPicker } from "../chip-picker"
 import { DsSection, DsSectionHead } from "../ds-section"
@@ -27,7 +27,7 @@ const FOLDER_COUNT_FORMATTER = new Intl.NumberFormat("en-US")
 
 type ImapConfigFormState = {
   folders: string[]
-  historyWindow: NonNullable<DataSource["imap"]>["historyWindow"]
+  historyWindow: DataSourceImapSettings["historyWindow"]
   skipSenders: string
   messageFilters: ImapMessageFilters
 }
@@ -38,7 +38,7 @@ function ImapConfig({ source }: { source: DataSource }) {
   const [refreshing, startRefreshTransition] = React.useTransition()
   const [form, setForm] = React.useState(() => imapConfigFormState(source))
 
-  if (!source.connected || !source.sourceRowId || !source.imap) return null
+  if (source.kind !== "data_source" || !source.imap) return null
 
   const folderItems = uniqueFolderItems([
     ...source.imap.availableFolders.map((folder) => ({
@@ -51,7 +51,7 @@ function ImapConfig({ source }: { source: DataSource }) {
 
   const save = () => {
     startTransition(async () => {
-      const result = await updateImapImportSettingsAction(source.sourceRowId!, {
+      const result = await updateImapImportSettingsAction(source.sourceId, {
         historyWindow: form.historyWindow,
         watchedFolders: form.folders,
         skipSenders: form.skipSenders.split("\n").flatMap((sender) => {
@@ -72,7 +72,7 @@ function ImapConfig({ source }: { source: DataSource }) {
 
   const refreshFolders = () => {
     startRefreshTransition(async () => {
-      const result = await refreshImapFoldersAction(source.sourceRowId!)
+      const result = await refreshImapFoldersAction(source.sourceId)
       if (!result.error) refresh()
     })
   }
@@ -238,11 +238,12 @@ function uniqueFolderItems(items: Array<{ id: string; label: string; meta?: stri
 }
 
 function imapConfigFormState(source: DataSource): ImapConfigFormState {
+  const imap = source.kind === "data_source" ? source.imap : undefined
   return {
-    folders: source.imap?.watchedFolders ?? ["INBOX"],
-    historyWindow: source.imap?.historyWindow ?? "12mo",
-    skipSenders: (source.imap?.skipSenders ?? []).join("\n"),
-    messageFilters: source.imap?.messageFilters ?? { mode: "and", rules: [] },
+    folders: imap?.watchedFolders ?? ["INBOX"],
+    historyWindow: imap?.historyWindow ?? "12mo",
+    skipSenders: (imap?.skipSenders ?? []).join("\n"),
+    messageFilters: imap?.messageFilters ?? { mode: "and", rules: [] },
   }
 }
 
