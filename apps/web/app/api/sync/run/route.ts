@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 import type { SyncFailure } from "@/features/data-sources/domain/sync"
 import { createDataSourceSyncRuntime } from "@/features/data-sources/adapters/sync-runtime"
-import { isAuthorizedSyncWorkerRequest } from "@/features/data-sources/sync-route-auth"
+import { isAuthorizedBearerRequest } from "@/lib/http/bearer-auth"
 import { getLogger } from "@/lib/logging"
 import { getSyncWorkerSecret } from "@/lib/supabase/server-env"
 
@@ -11,7 +11,7 @@ export const runtime = "nodejs"
 export async function POST(request: Request) {
   const logger = getLogger().child({ component: "sync_run_route" })
   if (
-    !isAuthorizedSyncWorkerRequest({
+    !isAuthorizedBearerRequest({
       authorization: request.headers.get("authorization"),
       expectedSecret: getSyncWorkerSecret(),
     })

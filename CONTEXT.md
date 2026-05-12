@@ -9,6 +9,8 @@
 - **Manual CSV Upload**: Google Forms response export uploaded by a workspace owner or admin. The app sends row number and payload only; storage validates mapped identity/timestamp fields and derives the response key.
 - **Source Sync Job**: leased request to sync one data source for one workspace. A job includes source id, workspace id, source type, and lease token.
 - **Sync Run**: observable attempt to process a source sync job. Runs record trigger, status, persisted counts, cursor, and safe failure details.
+- **Deploy Environment**: named release target for TinyOps infrastructure. Current environments are Staging and Production, each with its own Vercel project, Supabase project, GitHub environment, and Source Sync Job schedule.
+- **Deploy Health Check**: service-role-only smoke check used after deployment. It verifies the deployed Next.js app can authenticate the deploy health request and reach Supabase through the deploy health RPC.
 - **Connector Record**: normalized record emitted by a source connector before ingestion into client memory.
 - **Client Memory**: workspace-scoped client profile, identities, source records, timeline events, and attributes derived from connector records.
 - **Client Profile**: domain read model for one imported client, independent of UI formatting.

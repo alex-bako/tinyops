@@ -29,6 +29,10 @@ export function getCronSecret() {
   return requiredEnv("CRON_SECRET")
 }
 
+export function getDeployHealthSecret() {
+  return requiredEnv("DEPLOY_HEALTH_SECRET")
+}
+
 export function getSupabaseServerEnv(): SupabaseServerEnv {
   return {
     url: getSupabaseServerUrl(),

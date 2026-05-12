@@ -1,4 +1,4 @@
-export function isAuthorizedSyncWorkerRequest({
+export function isAuthorizedBearerRequest({
   authorization,
   expectedSecret,
 }: {

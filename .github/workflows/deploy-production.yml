@@ -1,0 +1,22 @@
+name: Deploy production
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      deploy-env: production
+      include-seed: false
+      require-tag-on-main: true
+    secrets: inherit

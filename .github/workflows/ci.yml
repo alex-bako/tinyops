@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "10.18.3"
+  SUPABASE_CLI_VERSION: "2.98.2"
+
+jobs:
+  app:
+    name: App checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+        env:
+          TINYOPS_DEPLOY_ENV: staging
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-publishable-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+          SYNC_WORKER_SECRET: ci-sync-secret
+          CRON_SECRET: ci-cron-secret
+          DEPLOY_HEALTH_SECRET: ci-health-secret
+          TINYOPS_APP_BASE_URL: http://localhost:3000
+          TINYOPS_LOG_LEVEL: debug
+
+  database:
+    name: Supabase contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+
+      - name: Start Supabase
+        run: pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" start
+
+      - name: Reset local database
+        run: pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" db reset
+
+      - name: Run SQL contract tests
+        run: |
+          pnpm supabase:test:workspace-rpc
+          pnpm supabase:test:deploy-health-rpc
+          pnpm supabase:test:data-sources-rpc
+          pnpm supabase:test:client-ingestion-rpc
+          pnpm supabase:test:imap-thread-index-rpc
+          pnpm supabase:test:onboarding-rpc
+
+      - name: Check generated database types
+        run: |
+          pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" gen types typescript --local > /tmp/database.types.ts
+          diff -u apps/web/lib/database.types.ts /tmp/database.types.ts
+
+      - name: Stop Supabase
+        if: always()
+        run: pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" stop

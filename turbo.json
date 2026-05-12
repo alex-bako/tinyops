@@ -1,15 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalEnv": [
-    "NODE_ENV",
-    "SYNC_WORKER_SECRET",
-    "TINYOPS_APP_BASE_URL",
-    "TINYOPS_LOG_LEVEL"
-  ],
+  "globalEnv": ["NODE_ENV"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SYNC_WORKER_SECRET",
+        "CRON_SECRET",
+        "DEPLOY_HEALTH_SECRET",
+        "TINYOPS_APP_BASE_URL",
+        "TINYOPS_DEPLOY_ENV",
+        "TINYOPS_LOG_LEVEL"
+      ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**"]
     },
@@ -27,7 +33,18 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SYNC_WORKER_SECRET",
+        "CRON_SECRET",
+        "DEPLOY_HEALTH_SECRET",
+        "TINYOPS_APP_BASE_URL",
+        "TINYOPS_DEPLOY_ENV",
+        "TINYOPS_LOG_LEVEL"
+      ]
     }
   }
 }
