@@ -1,4 +1,5 @@
 import type { NormalizedConnectorRecord } from "@/features/clients/application/connector-ingestion"
+import { createTextTimelineEventBody } from "@/features/clients/domain/timeline-event-body"
 import {
   buildImapMessageFacts,
   type ImapMessageFacts,
@@ -41,11 +42,10 @@ export function buildImapConnectorRecordFromFacts({
     recordType: "email",
     eventType: facts.eventType,
     occurredAt: facts.occurredAt,
-    title: facts.title,
-    summary: facts.summary,
-    bodyText: facts.bodyText,
+    body: createTextTimelineEventBody(facts.bodyText),
     participants: facts.participants,
     metadata: {
+      subject: facts.subject,
       folder: facts.folder,
       uid: facts.uid,
       uidValidity: facts.uidValidity,

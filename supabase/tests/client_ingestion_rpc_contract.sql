@@ -100,6 +100,7 @@ values (
 insert into public.data_sources (
   workspace_id,
   source_type,
+  slug,
   display_name,
   status,
   config
@@ -107,6 +108,7 @@ insert into public.data_sources (
 values (
   :'workspace_id',
   'imap',
+  'imap-mailbox',
   'IMAP mailbox',
   'connected',
   '{"host":"imap.example.com","port":993,"encryption":"ssl","username":"owner@example.com"}'::jsonb
@@ -115,13 +117,11 @@ returning id as source_id \gset
 
 insert into public.data_source_sync_states (
   source_id,
-  status,
-  history_window
+  status
 )
 values (
   :'source_id',
-  'idle',
-  '90d'
+  'idle'
 );
 
 set role service_role;
@@ -136,9 +136,15 @@ select public.ingest_client_connector_records(
       'recordType', 'email',
       'eventType', 'email_received',
       'occurredAt', '2026-05-10T08:00:00.000Z',
-      'title', 'Replay access',
-      'summary', 'Asked about replay access.',
-      'bodyText', 'Could you resend the replay link?',
+      'body', jsonb_build_object(
+        'text', 'Could you resend the replay link?',
+        'blocks', jsonb_build_array(
+          jsonb_build_object(
+            'kind', 'text',
+            'text', 'Could you resend the replay link?'
+          )
+        )
+      ),
       'participants', jsonb_build_array(
         jsonb_build_object(
           'email', 'owner@example.com',
@@ -183,9 +189,12 @@ select public.ingest_client_connector_records(
       'recordType', 'email',
       'eventType', 'email_received',
       'occurredAt', '2026-05-10T08:00:00.000Z',
-      'title', 'Replay access updated',
-      'summary', 'Asked about replay access again.',
-      'bodyText', 'Updated body',
+      'body', jsonb_build_object(
+        'text', 'Updated body',
+        'blocks', jsonb_build_array(
+          jsonb_build_object('kind', 'text', 'text', 'Updated body')
+        )
+      ),
       'participants', jsonb_build_array(
         jsonb_build_object(
           'email', 'client@example.com',
@@ -226,6 +235,17 @@ select pg_temp.assert_true(
 
 select pg_temp.assert_true(
   (
+    select body @> '{"text":"Could you resend the replay link?","blocks":[{"kind":"text","text":"Could you resend the replay link?"}]}'::jsonb
+    from public.timeline_events
+    where workspace_id = :'workspace_id'
+      and source_id = :'source_id'
+      and event_type = 'email_received'
+  ),
+  'timeline events store structured body'
+);
+
+select pg_temp.assert_true(
+  (
     select count(*) = 0
     from public.clients
     where workspace_id = :'workspace_id'
@@ -254,9 +274,12 @@ select public.ingest_client_connector_records(
       'recordType', 'email',
       'eventType', 'email_received',
       'occurredAt', '2026-05-11T08:00:00.000Z',
-      'title', 'Sensitive context',
-      'summary', 'Shared sensitive context.',
-      'bodyText', 'Sensitive context',
+      'body', jsonb_build_object(
+        'text', 'Sensitive context',
+        'blocks', jsonb_build_array(
+          jsonb_build_object('kind', 'text', 'text', 'Sensitive context')
+        )
+      ),
       'participants', jsonb_build_array(
         jsonb_build_object(
           'email', 'client@example.com',
@@ -286,6 +309,34 @@ select pg_temp.expect_error(
   'select public.ingest_client_connector_records(''{}''::jsonb)',
   'invalid_connector_records',
   'ingestion RPC rejects non-array payloads'
+);
+
+select pg_temp.expect_error(
+  'select public.ingest_client_connector_records(jsonb_build_array(jsonb_build_object(' ||
+    quote_literal('workspaceId') || ', ' || quote_literal(:'workspace_id') || ', ' ||
+    quote_literal('sourceId') || ', ' || quote_literal(:'source_id') || ', ' ||
+    quote_literal('sourceType') || ', ' || quote_literal('forms') || ', ' ||
+    quote_literal('externalId') || ', ' || quote_literal('forms:bad-body') || ', ' ||
+    quote_literal('recordType') || ', ' || quote_literal('google_form_response') || ', ' ||
+    quote_literal('eventType') || ', ' || quote_literal('form_submission') || ', ' ||
+    quote_literal('occurredAt') || ', ' || quote_literal('2026-05-12T08:00:00.000Z') || ', ' ||
+    quote_literal('body') || ', jsonb_build_object(' ||
+      quote_literal('text') || ', ' || quote_literal('Goal') || ', ' ||
+      quote_literal('blocks') || ', jsonb_build_array(jsonb_build_object(' ||
+        quote_literal('kind') || ', ' || quote_literal('qa') || ', ' ||
+        quote_literal('question') || ', ' || quote_literal('Goal') ||
+      '))' ||
+    '), ' ||
+    quote_literal('participants') || ', jsonb_build_array(jsonb_build_object(' ||
+      quote_literal('email') || ', ' || quote_literal('client@example.com') || ', ' ||
+      quote_literal('role') || ', ' || quote_literal('external') ||
+    ')), ' ||
+    quote_literal('metadata') || ', ' || quote_literal('{}') || '::jsonb, ' ||
+    quote_literal('attributes') || ', ' || quote_literal('[]') || '::jsonb, ' ||
+    quote_literal('sensitivityLevel') || ', 0' ||
+  ')))',
+  'invalid_connector_records',
+  'ingestion RPC rejects malformed Timeline Event body blocks'
 );
 
 reset role;

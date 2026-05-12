@@ -55,9 +55,6 @@ function createTimelineView(
 }
 
 function createClientDetailView(client: ClientDetail): ClientDetailView {
-  const timelineShown = client.timeline.length
-  const timelineTotal = Math.max(timelineShown, 9)
-
   return {
     header: {
       name: client.name,
@@ -73,7 +70,7 @@ function createClientDetailView(client: ClientDetail): ClientDetailView {
     properties: client.properties,
     propertiesCount: `${client.properties.length} fields`,
     timeline: createTimelineView(client.timeline),
-    timelineCount: `${timelineTotal} events · ${timelineShown} shown`,
+    timelineCount: `${client.timeline.length} events`,
   }
 }
 

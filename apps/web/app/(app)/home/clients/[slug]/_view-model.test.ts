@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { clientBySlug } from "@/features/clients/adapters/mock-client-memory"
 import type { ClientTimelineEvent } from "@/features/clients/domain/client-profile"
+import { createTextTimelineEventBody } from "@/features/clients/domain/timeline-event-body"
 
 import { createClientDetailView } from "./_view-model"
 
@@ -47,9 +48,11 @@ describe("client detail view model", () => {
         sourceId: "source_1",
         type: "email",
         occurredAt: "2026-03-08T00:00:00.000Z",
-        title: "Re: replay library access",
-        summary: "Short generated summary.",
-        bodyText: "Full imported email body.",
+        display: {
+          title: "Replay access",
+          summary: "Full imported email body.",
+        },
+        body: createTextTimelineEventBody("Full imported email body."),
         sensitivityLevel: 0,
       },
       {
@@ -57,9 +60,11 @@ describe("client detail view model", () => {
         sourceId: "source_2",
         type: "form",
         occurredAt: "2026-03-03T00:00:00.000Z",
-        title: "Intake form submitted",
-        summary: "Summary fallback.",
-        bodyText: "   ",
+        display: {
+          title: "Intake form",
+          summary: "No body text",
+        },
+        body: { text: "", blocks: [] },
         sensitivityLevel: 2,
       },
     ]
@@ -72,12 +77,14 @@ describe("client detail view model", () => {
 
     expect(view.timeline[0]).toMatchObject({
       eventKey: "event_email",
-      summary: "Short generated summary.",
-      detailText: "Full imported email body.",
+      title: "Replay access",
+      summary: "Full imported email body.",
+      bodyItems: [{ kind: "text", text: "Full imported email body." }],
     })
     expect(view.timeline[1]).toMatchObject({
       eventKey: "event_form",
-      detailText: "Summary fallback.",
+      title: "Intake form",
+      summary: "No body text",
       sensitive: true,
     })
   })
@@ -87,6 +94,6 @@ describe("client detail view model", () => {
     const view = createClientDetailView(client)
 
     expect(view.propertiesCount).toBe("10 fields")
-    expect(view.timelineCount).toBe("9 events · 5 shown")
+    expect(view.timelineCount).toBe("5 events")
   })
 })

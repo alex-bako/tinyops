@@ -6,12 +6,16 @@ import {
   type TimelineEventType,
 } from "@/features/clients/domain/client-profile"
 
+export type ClientTimelineBodyItem =
+  | { kind: "text"; text: string }
+  | { kind: "qa"; question: string; answer: string }
+
 export type ClientTimelineEventView = {
   eventKey: string
   date: string
   title: string
   summary: string
-  detailText: string
+  bodyItems: ClientTimelineBodyItem[]
   sensitive: boolean
   tone: TimelineTone
   sourceLabel: string
@@ -52,14 +56,14 @@ export function createTimelineEventView(
   return {
     eventKey: event.id,
     date: formatTimelineDate(event.occurredAt),
-    title: event.title,
-    summary: event.summary,
-    detailText: event.bodyText.trim() || event.summary,
+    title: event.display.title,
+    summary: event.display.summary,
+    bodyItems: event.body.blocks.map((block) => ({ ...block })),
     sensitive,
     tone: TONE_OF[event.type],
     sourceLabel: `${LABEL_OF[event.type]}${sensitive ? " · sensitive" : ""}`,
-    collapsedLabel: sensitive ? "Show sensitive event" : "Show full event",
-    expandedLabel: sensitive ? "Hide sensitive event" : "Hide full event",
+    collapsedLabel: sensitive ? "Show sensitive body" : "Show body",
+    expandedLabel: sensitive ? "Hide sensitive body" : "Hide body",
   }
 }
 

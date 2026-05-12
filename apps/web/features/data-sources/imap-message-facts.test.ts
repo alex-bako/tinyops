@@ -91,8 +91,12 @@ describe("IMAP message facts", () => {
 
     expect(record).toMatchObject({
       externalId: "message:<reply@example.com>",
-      bodyText: result.facts.bodyText,
+      body: {
+        text: result.facts.bodyText,
+        blocks: [{ kind: "text", text: result.facts.bodyText }],
+      },
       metadata: {
+        subject: "Replay access",
         imapThread: {
           threadKey: "<root@example.com>",
           importReason: "thread_member",

@@ -232,8 +232,13 @@ describe("IMAP sync connector", () => {
     expect(result.records[0]).toMatchObject({
       externalId: "message:<m1@example.com>",
       eventType: "email_received",
-      title: "Replay access",
-      bodyText: "Could you resend the replay library link?",
+      body: {
+        text: "Could you resend the replay library link?",
+        blocks: [
+          { kind: "text", text: "Could you resend the replay library link?" },
+        ],
+      },
+      metadata: { subject: "Replay access" },
       participants: [{ email: "anna@example.com", role: "external" }],
       sensitivityLevel: 0,
     })

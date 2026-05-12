@@ -5,6 +5,7 @@ import {
   type SourceSyncAdapter,
 } from "@/features/data-sources/sync-worker"
 import type { NormalizedConnectorRecord } from "@/features/clients/application/connector-ingestion"
+import { createTextTimelineEventBody } from "@/features/clients/domain/timeline-event-body"
 import type { LoggerPort } from "@/lib/logging"
 
 const normalizedRecord: NormalizedConnectorRecord = {
@@ -15,9 +16,7 @@ const normalizedRecord: NormalizedConnectorRecord = {
   recordType: "email",
   eventType: "email_received",
   occurredAt: "2026-05-07T08:00:00.000Z",
-  title: "Replay access",
-  summary: "Asked about replay access.",
-  bodyText: "Could you resend the replay link?",
+  body: createTextTimelineEventBody("Could you resend the replay link?"),
   participants: [{ email: "anna@example.com", role: "external" }],
   metadata: {},
   attributes: [],

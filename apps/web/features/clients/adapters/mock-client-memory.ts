@@ -5,6 +5,7 @@ import type {
   ClientMemoryRepositoryPort,
   ClientProperty,
 } from "@/features/clients/application/client-memory"
+import { createTextTimelineEventBody } from "@/features/clients/domain/timeline-event-body"
 
 /* ──────────────────────────────────────────────────────────────────────
  * Slug helpers.
@@ -114,11 +115,14 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
       sourceId: "mock-imap",
       type: "email",
       occurredAt: "2026-03-08T00:00:00.000Z",
-      title: "Re: replay library access",
-      summary:
+      display: {
+        title: "Re: replay library access",
+        summary:
+          "Anna asked for clearer instructions on accessing the replay materials. Replied with a step-by-step the same day.",
+      },
+      body: createTextTimelineEventBody(
         "Anna asked for clearer instructions on accessing the replay materials. Replied with a step-by-step the same day.",
-      bodyText:
-        "Anna asked for clearer instructions on accessing the replay materials. Replied with a step-by-step the same day.",
+      ),
       sensitivityLevel: 0,
     },
     {
@@ -126,11 +130,14 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
       sourceId: "mock-forms",
       type: "form",
       occurredAt: "2026-03-03T00:00:00.000Z",
-      title: "Intake form submitted",
-      summary:
+      display: {
+        title: "Intake form submitted",
+        summary:
+          "Highly personal answers stored — excluded from outbound personalization by default.",
+      },
+      body: createTextTimelineEventBody(
         "Highly personal answers stored — excluded from outbound personalization by default.",
-      bodyText:
-        "Highly personal answers stored — excluded from outbound personalization by default.",
+      ),
       sensitivityLevel: 2,
     },
     {
@@ -138,9 +145,11 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
       sourceId: "mock-tinyops",
       type: "sent",
       occurredAt: "2026-02-28T00:00:00.000Z",
-      title: "Monthly check-in (generic)",
-      summary: "Sent via TinyOps · opened twice · no reply.",
-      bodyText: "Sent via TinyOps · opened twice · no reply.",
+      display: {
+        title: "Monthly check-in (generic)",
+        summary: "Sent via TinyOps · opened twice · no reply.",
+      },
+      body: createTextTimelineEventBody("Sent via TinyOps · opened twice · no reply."),
       sensitivityLevel: 0,
     },
     {
@@ -148,11 +157,13 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
       sourceId: "mock-imap",
       type: "email",
       occurredAt: "2026-02-12T00:00:00.000Z",
-      title: "Welcome to the March cohort",
-      summary:
+      display: {
+        title: "Welcome to the March cohort",
+        summary: "Onboarding email confirming course access and replay library.",
+      },
+      body: createTextTimelineEventBody(
         "Onboarding email confirming course access and replay library.",
-      bodyText:
-        "Onboarding email confirming course access and replay library.",
+      ),
       sensitivityLevel: 0,
     },
     {
@@ -160,9 +171,13 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
       sourceId: "mock-csv",
       type: "csvimport",
       occurredAt: "2026-02-10T00:00:00.000Z",
-      title: "Imported from march-cohort.csv",
-      summary: "Row 23 matched on email. Tagged: march-cohort, online.",
-      bodyText: "Row 23 matched on email. Tagged: march-cohort, online.",
+      display: {
+        title: "Imported from march-cohort.csv",
+        summary: "Row 23 matched on email. Tagged: march-cohort, online.",
+      },
+      body: createTextTimelineEventBody(
+        "Row 23 matched on email. Tagged: march-cohort, online.",
+      ),
       sensitivityLevel: 0,
     },
   ],
@@ -288,9 +303,13 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
         sourceId: "mock-tinyops",
         type: "sent",
         occurredAt: mockOccurredAt(c.lastContact),
-        title: "Monthly check-in",
-        summary: `Sent via TinyOps · ${c.flags.includes("overdue") ? "no reply" : "opened once"}.`,
-        bodyText: `Sent via TinyOps · ${c.flags.includes("overdue") ? "no reply" : "opened once"}.`,
+        display: {
+          title: "Monthly check-in",
+          summary: `Sent via TinyOps · ${c.flags.includes("overdue") ? "no reply" : "opened once"}.`,
+        },
+        body: createTextTimelineEventBody(
+          `Sent via TinyOps · ${c.flags.includes("overdue") ? "no reply" : "opened once"}.`
+        ),
         sensitivityLevel: 0,
       },
       {
@@ -298,9 +317,13 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
         sourceId: "mock-csv",
         type: "csvimport",
         occurredAt: mockOccurredAt(joinedFor(c.cohort)),
-        title: `Imported from ${c.cohort.toLowerCase().replace(" ", "-")}.csv`,
-        summary: `Matched on email. Tagged: ${c.cohort.toLowerCase().replace(" ", "-")}.`,
-        bodyText: `Matched on email. Tagged: ${c.cohort.toLowerCase().replace(" ", "-")}.`,
+        display: {
+          title: `Imported from ${c.cohort.toLowerCase().replace(" ", "-")}.csv`,
+          summary: `Matched on email. Tagged: ${c.cohort.toLowerCase().replace(" ", "-")}.`,
+        },
+        body: createTextTimelineEventBody(
+          `Matched on email. Tagged: ${c.cohort.toLowerCase().replace(" ", "-")}.`
+        ),
         sensitivityLevel: 0,
       },
     ],

@@ -1,6 +1,7 @@
 import Papa from "papaparse"
 
 import type { NormalizedConnectorRecord } from "@/features/clients/domain/connector-record"
+import { createQaTimelineEventBody } from "@/features/clients/domain/timeline-event-body"
 import type { Json } from "@/lib/database.types"
 
 export const GOOGLE_FORMS_CONNECTION_MODES = ["manual_csv"] as const
@@ -216,12 +217,11 @@ function normalizeManualCsvConnectorRow({
       recordType: "google_form_response",
       eventType: "form_submission",
       occurredAt,
-      title: `${source.displayName} response`,
-      summary: `${source.displayName} response from ${email}`,
-      bodyText: formResponseBodyText(row.payload),
+      body: formResponseBody(row.payload, source.mapping),
       participants: [{ email, role: "external" }],
       metadata: {
         externalFormId: source.externalFormId,
+        formTitle: source.displayName,
         connectionMode: source.connectionMode,
         rowNumber: row.rowNumber,
         responseKey,
@@ -335,10 +335,17 @@ function parseDottedGoogleFormsTimestamp(value: string): number | null {
   return parsed
 }
 
-function formResponseBodyText(values: Record<string, string>) {
-  return Object.entries(values)
-    .flatMap(([key, value]) =>
-      value.trim().length > 0 ? [`${key}: ${value}`] : []
+function formResponseBody(
+  values: Record<string, string>,
+  mapping: GoogleFormsManualCsvMapping
+) {
+  return createQaTimelineEventBody(
+    Object.entries(values).flatMap(([key, value]) =>
+      key !== mapping.identityColumn &&
+      key !== mapping.timestampColumn &&
+      value.trim().length > 0
+        ? [{ question: key, answer: value }]
+        : []
     )
-    .join("\n")
+  )
 }

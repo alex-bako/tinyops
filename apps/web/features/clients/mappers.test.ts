@@ -34,11 +34,12 @@ const baseRow: ClientRow = {
       raw_record_id: "raw_1",
       event_type: "email_received",
       event_date: "2026-03-08T10:00:00.000Z",
-      title: "Replay access",
-      summary: "Asked for help opening replay library.",
-      body_text: "Could you send the replay link again?",
+      body: {
+        text: "Could you send the replay link again?",
+        blocks: [{ kind: "text", text: "Could you send the replay link again?" }],
+      },
       participants: [],
-      metadata: {},
+      metadata: { subject: "Replay access" },
       sensitivity_level: 0,
       ai_extracted_fields: {},
       created_at: "2026-03-08T10:00:00.000Z",
@@ -52,11 +53,12 @@ const baseRow: ClientRow = {
       raw_record_id: "raw_2",
       event_type: "form_submission",
       event_date: "2026-05-07T08:00:00.000Z",
-      title: "Monthly feedback",
-      summary: "Shared progress update.",
-      body_text: "Progress update",
+      body: {
+        text: "Progress update",
+        blocks: [{ kind: "text", text: "Progress update" }],
+      },
       participants: [],
-      metadata: {},
+      metadata: { formTitle: "Monthly feedback" },
       sensitivity_level: 2,
       ai_extracted_fields: {},
       created_at: "2026-05-07T08:00:00.000Z",
@@ -96,16 +98,22 @@ describe("client mappers", () => {
       status: "active",
       flags: ["sensitive"],
     })
-    expect(detail.timeline.map((event) => event.title)).toEqual([
-      "Monthly feedback",
-      "Replay access",
+    expect(detail.timeline.map((event) => event.body.text)).toEqual([
+      "Progress update",
+      "Could you send the replay link again?",
     ])
     expect(detail.timeline[0]).toMatchObject({
       id: "event_newer",
       type: "form",
       sensitivityLevel: 2,
-      summary: "Shared progress update.",
-      bodyText: "Progress update",
+      display: {
+        title: "Monthly feedback",
+        summary: "Progress update",
+      },
+      body: {
+        text: "Progress update",
+        blocks: [{ kind: "text", text: "Progress update" }],
+      },
     })
   })
 
@@ -133,7 +141,6 @@ describe("client mappers", () => {
             ...baseRow.timeline_events![0]!,
             id: "event_sent",
             event_type: "email_sent",
-            title: "Re: replay library access",
           },
         ],
       })
@@ -141,7 +148,12 @@ describe("client mappers", () => {
 
     expect(detail.timeline[0]).toMatchObject({
       type: "sent",
-      title: "Re: replay library access",
+      display: {
+        title: "Replay access",
+      },
+      body: {
+        text: "Could you send the replay link again?",
+      },
     })
   })
 })
