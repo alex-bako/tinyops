@@ -5,6 +5,7 @@ import path from "node:path"
 import { getSupabasePublicEnv } from "@/lib/supabase/public-env"
 import {
   getCronSecret,
+  getDeployHealthSecret,
   getOptionalTinyOpsAppBaseUrl,
   getSupabaseServerEnv,
 } from "@/lib/supabase/server-env"
@@ -67,6 +68,12 @@ describe("Supabase env adapters", () => {
     setEnv("CRON_SECRET", " cron-secret ")
 
     expect(getCronSecret()).toBe("cron-secret")
+  })
+
+  it("reads the deploy health secret through the server env adapter", () => {
+    setEnv("DEPLOY_HEALTH_SECRET", " deploy-health-secret ")
+
+    expect(getDeployHealthSecret()).toBe("deploy-health-secret")
   })
 
   it("reads an optional trusted app base URL for server-side worker dispatch", () => {

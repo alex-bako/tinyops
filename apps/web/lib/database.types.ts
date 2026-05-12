@@ -1136,6 +1136,7 @@ export type Database = {
         Returns: Json
       }
       data_source_slug_from_name: { Args: { value: string }; Returns: string }
+      deploy_health_check: { Args: never; Returns: boolean }
       disconnect_data_source: {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: undefined
@@ -1177,6 +1178,7 @@ export type Database = {
         Args: { filters: Json }
         Returns: boolean
       }
+      is_valid_timeline_event_body: { Args: { value: Json }; Returns: boolean }
       mask_secret_tail: { Args: { value: string }; Returns: string }
       normalize_data_source_display_name: {
         Args: { value: string }

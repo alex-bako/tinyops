@@ -71,6 +71,7 @@ insert into public.data_sources (
   workspace_id,
   source_type,
   display_name,
+  slug,
   status,
   config
 )
@@ -78,6 +79,7 @@ values (
   :'workspace_id',
   'imap',
   'IMAP mailbox',
+  'imap-mailbox',
   'connected',
   '{"host":"imap.example.com","port":993,"encryption":"ssl","username":"owner@example.com"}'::jsonb
 )
@@ -85,13 +87,11 @@ returning id as source_id \gset
 
 insert into public.data_source_sync_states (
   source_id,
-  status,
-  history_window
+  status
 )
 values (
   :'source_id',
-  'idle',
-  '90d'
+  'idle'
 );
 
 set role service_role;

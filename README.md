@@ -46,6 +46,11 @@ The seeded local invited email is `anna@example.co`. Magic-link emails are
 captured by Supabase Inbucket in local development; open the Inbucket URL shown
 by `pnpm supabase:status` to finish sign-in.
 
+## Deployment
+
+See [docs/deployment.md](docs/deployment.md) for the Vercel, Supabase, and
+GitHub Actions setup.
+
 ## Adding components
 
 To add shadcn components, run this from the repository root:
