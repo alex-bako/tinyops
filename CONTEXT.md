@@ -2,9 +2,10 @@
 
 ## Domain Language
 
-- **Data Source**: workspace-owned external system connection that can produce client memory records. IMAP is singleton per workspace; Google Forms is plural per workspace.
-- **Google Forms Connector**: catalog-level connector that groups all Google Form Sources for a workspace.
-- **Google Form Source**: one connected Google Form response source. The current supported connection mode is Manual CSV Upload.
+- **Connector Type**: catalog-level integration family such as IMAP mailbox or Google Forms. A workspace can create multiple connector instances of the same type when each has a distinct name and configuration.
+- **Data Source**: one named, workspace-owned connector instance that can produce client memory records. Each active instance has a stable slug scoped to its workspace and connector type; display names can change without changing the slug.
+- **IMAP Source**: one connected mailbox connector instance. Active IMAP sources in the same workspace cannot share the same host, port, encryption, and username.
+- **Google Form Source**: one connected Google Form response source. Active Google Form sources in the same workspace cannot share the same external form id and connection mode. The current supported connection mode is Manual CSV Upload.
 - **Manual CSV Upload**: Google Forms response export uploaded by a workspace owner or admin. The app sends row number and payload only; storage validates mapped identity/timestamp fields and derives the response key.
 - **Source Sync Job**: leased request to sync one data source for one workspace. A job includes source id, workspace id, source type, and lease token.
 - **Sync Run**: observable attempt to process a source sync job. Runs record trigger, status, persisted counts, cursor, and safe failure details.

@@ -15,58 +15,58 @@ const SYNC_CHANGE_TABLES = [
 
 const SYNC_CHANGE_EVENTS = ["INSERT", "UPDATE"] as const
 const ACTIVE_SYNC_POLL_MS = 2000
-const EMPTY_SOURCE_ROW_IDS: string[] = []
+const EMPTY_SOURCE_IDS: string[] = []
 
 function SourceSyncRealtimeRefresh({
-  activeSourceRowIds = EMPTY_SOURCE_ROW_IDS,
-  sourceRowIds,
+  activeSourceIds = EMPTY_SOURCE_IDS,
+  sourceIds,
 }: {
-  activeSourceRowIds?: string[]
-  sourceRowIds: string[]
+  activeSourceIds?: string[]
+  sourceIds: string[]
 }) {
   const { refresh } = useRouter()
-  const activeSourceRowIdKey = normalizeSourceRowIds(activeSourceRowIds).join(",")
-  const sourceRowIdKey = normalizeSourceRowIds(sourceRowIds).join(",")
+  const activeSourceIdKey = normalizeSourceIds(activeSourceIds).join(",")
+  const sourceIdKey = normalizeSourceIds(sourceIds).join(",")
   const spec = React.useMemo(
     () =>
       createSourceSyncRealtimeRefreshSpec({
-        sourceRowIds: sourceRowIdKey.split(","),
-        refreshOnSubscribe: Boolean(activeSourceRowIdKey),
+        sourceIds: sourceIdKey.split(","),
+        refreshOnSubscribe: Boolean(activeSourceIdKey),
       }),
-    [activeSourceRowIdKey, sourceRowIdKey]
+    [activeSourceIdKey, sourceIdKey]
   )
 
   React.useEffect(() => {
-    if (!activeSourceRowIdKey) return
+    if (!activeSourceIdKey) return
 
     const pollTimer = setInterval(refresh, ACTIVE_SYNC_POLL_MS)
     return () => clearInterval(pollTimer)
-  }, [activeSourceRowIdKey, refresh])
+  }, [activeSourceIdKey, refresh])
 
   if (!spec) return null
 
   return <RealtimeRouteRefresh spec={spec} />
 }
 
-function normalizeSourceRowIds(sourceRowIds: string[]) {
+function normalizeSourceIds(sourceIds: string[]) {
   return Array.from(
-    new Set(sourceRowIds.flatMap((id) => (id.trim() ? [id.trim()] : [])))
+    new Set(sourceIds.flatMap((id) => (id.trim() ? [id.trim()] : [])))
   ).sort()
 }
 
 function createSourceSyncRealtimeRefreshSpec({
-  sourceRowIds,
+  sourceIds,
   refreshOnSubscribe = false,
 }: {
-  sourceRowIds: string[]
+  sourceIds: string[]
   refreshOnSubscribe?: boolean
 }): RealtimeRouteRefreshSpec | null {
-  const normalizedSourceRowIds = normalizeSourceRowIds(sourceRowIds)
-  if (normalizedSourceRowIds.length === 0) return null
+  const normalizedSourceIds = normalizeSourceIds(sourceIds)
+  if (normalizedSourceIds.length === 0) return null
 
   const spec: RealtimeRouteRefreshSpec = {
-    channelName: `source-sync:${normalizedSourceRowIds.join(",")}`,
-    changes: normalizedSourceRowIds.flatMap((sourceId) =>
+    channelName: `source-sync:${normalizedSourceIds.join(",")}`,
+    changes: normalizedSourceIds.flatMap((sourceId) =>
       SYNC_CHANGE_TABLES.flatMap((table) =>
         SYNC_CHANGE_EVENTS.map((event) => ({
           event,

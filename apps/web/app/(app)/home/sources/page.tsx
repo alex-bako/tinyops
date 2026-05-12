@@ -6,8 +6,7 @@ import { Section, SectionHead } from "@workspace/ui/components/section"
 
 export const metadata: Metadata = {
   title: "Data sources",
-  description:
-    "Connectors that feed client memory: inboxes, sheets, forms.",
+  description: "Connectors that feed client memory: inboxes, sheets, forms.",
 }
 
 import {
@@ -25,14 +24,16 @@ import { createSourcesPageView } from "./_view-model"
 export default async function SourcesPage() {
   const sources = await loadWorkspaceSourceCatalog()
   const view = createSourcesPageView(sources)
-  const sourceRowIds = view.connected.rows.flatMap((source) => source.sourceRowIds)
-  const activeSourceRowIds = sources.flatMap(activeSyncSourceRowIds)
+  const sourceIds = view.connected.rows.flatMap((source) =>
+    source.sourceId ? [source.sourceId] : []
+  )
+  const activeSourceIds = sources.flatMap(activeSyncSourceIds)
 
   return (
     <WorkspacePageSurface>
       <SourceSyncRealtimeRefresh
-        activeSourceRowIds={activeSourceRowIds}
-        sourceRowIds={sourceRowIds}
+        activeSourceIds={activeSourceIds}
+        sourceIds={sourceIds}
       />
 
       <WorkspacePageHeader
@@ -47,14 +48,12 @@ export default async function SourcesPage() {
           title="Connected"
           count={view.connected.count}
           actions={
-            <SourcesSyncAllButton
-              disabled={view.connected.rows.length === 0}
-            />
+            <SourcesSyncAllButton disabled={view.connected.rows.length === 0} />
           }
         />
         <div className="flex flex-col">
           {view.connected.rows.map((source) => (
-            <SourceRow key={source.id} source={source} />
+            <SourceRow key={source.rowKey} source={source} />
           ))}
         </div>
       </Section>
@@ -72,7 +71,7 @@ export default async function SourcesPage() {
         />
         <div className="flex flex-col">
           {view.available.rows.map((source) => (
-            <SourceRow key={source.id} source={source} />
+            <SourceRow key={source.rowKey} source={source} />
           ))}
         </div>
       </Section>
@@ -80,10 +79,11 @@ export default async function SourcesPage() {
   )
 }
 
-function activeSyncSourceRowIds(source: DataSource) {
-  if (isActiveSyncStatus(source.imap?.syncStatus)) return source.sourceRowIds
+function activeSyncSourceIds(source: DataSource) {
+  if (source.kind !== "data_source") return []
+  if (isActiveSyncStatus(source.imap?.syncStatus)) return [source.sourceId]
   return (source.forms?.connections ?? []).flatMap((connection) =>
-    isActiveSyncStatus(connection.syncStatus) ? [connection.sourceRowId] : []
+    isActiveSyncStatus(connection.syncStatus) ? [connection.sourceId] : []
   )
 }
 

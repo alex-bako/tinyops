@@ -5,21 +5,22 @@ import type {
   ImapIntakeSettingsCommand,
 } from "@/features/data-sources/imap"
 import {
-  createDataSourceCommandRegistry,
-  type DataSourceCommandRegistry,
+  createDataSourceUseCases,
   type GoogleFormsManualCsvConnectCommand,
+  type GoogleFormsManualCsvUpdateCommand,
   type ImapCredentialReader,
-} from "@/features/data-sources/command-registry"
+} from "@/features/data-sources/use-cases"
+import { isConnectorId } from "@/features/data-sources/connector-metadata"
 import type {
-  DataSourceCommandStore,
-  DataSourceReader,
+  DataSourceQueryPort,
+  DataSourceStore,
   DataSourceWorkspace,
+  GoogleFormsSourceCommandPort,
   ImapConnectionTester,
+  ImapSourceCommandPort,
+  SourceLifecycleCommandPort,
 } from "@/features/data-sources/types"
-import type {
-  Result,
-  SyncFailure,
-} from "@/features/data-sources/domain/sync"
+import type { Result, SyncFailure } from "@/features/data-sources/domain/sync"
 
 export type {
   Result,
@@ -40,6 +41,9 @@ export type DataSourceActionError =
   | "invalid_google_forms_csv"
   | "invalid_google_forms_csv_mapping"
   | "invalid_google_forms_csv_row"
+  | "invalid_data_source_name"
+  | "duplicate_data_source_name"
+  | "duplicate_data_source_config"
   | "imap_connection_failed"
   | "source_manage_forbidden"
   | "source_not_found"
@@ -55,12 +59,12 @@ export type RequestAllDataSourceSyncsResult = {
 
 export type ImapConnectCommand = ImapConnectCommandDraft
 export type ImapImportSettingsCommand = ImapIntakeSettingsCommand
-export type { GoogleFormsManualCsvConnectCommand }
-
 export type {
-  ImapConnectionSettingsCommand,
-  ImapIntakeSettingsCommand,
+  GoogleFormsManualCsvConnectCommand,
+  GoogleFormsManualCsvUpdateCommand,
 }
+
+export type { ImapConnectionSettingsCommand, ImapIntakeSettingsCommand }
 
 export type { ImapCredentialReader }
 
@@ -78,18 +82,19 @@ export function createDataSourceQueryApplication({
   reader,
 }: {
   workspace: DataSourceWorkspace
-  reader: DataSourceReader
+  reader: DataSourceQueryPort
 }) {
   return {
     async listDataSources() {
       return reader.listForWorkspace(workspace.id)
     },
 
-    async findDataSource(sourceType: string) {
-      if (!isReadableSingletonSourceType(sourceType)) return null
-      return reader.findForWorkspace({
+    async findDataSourceBySlug(sourceType: string, sourceSlug: string) {
+      if (!isReadableSourceType(sourceType)) return null
+      return reader.findBySlugForWorkspace({
         workspaceId: workspace.id,
         sourceType,
+        sourceSlug,
       })
     },
   }
@@ -98,21 +103,35 @@ export function createDataSourceQueryApplication({
 export function createDataSourceCommandApplication({
   workspace,
   store,
+  queryPort = store,
+  imapCommands = store,
+  formsCommands = store,
+  lifecycleCommands = store,
   imapConnectionTester,
   imapCredentialReader,
-  commandRegistry = createDataSourceCommandRegistry({
-    workspace,
-    store,
-    imapConnectionTester,
-    imapCredentialReader,
-  }),
 }: {
   workspace: DataSourceWorkspace
-  store: DataSourceCommandStore
+  store?: DataSourceStore
+  queryPort?: DataSourceQueryPort
+  imapCommands?: ImapSourceCommandPort
+  formsCommands?: GoogleFormsSourceCommandPort
+  lifecycleCommands?: SourceLifecycleCommandPort
   imapConnectionTester: ImapConnectionTester
   imapCredentialReader: ImapCredentialReader
-  commandRegistry?: DataSourceCommandRegistry
 }) {
+  if (!queryPort || !imapCommands || !formsCommands || !lifecycleCommands) {
+    throw new Error("data_source_ports_required")
+  }
+  const useCases = createDataSourceUseCases({
+    workspace,
+    queryPort,
+    imapCommands,
+    formsCommands,
+    lifecycleCommands,
+    imapConnectionTester,
+    imapCredentialReader,
+  })
+
   async function runManaged<T>(
     operation: () => Promise<T>
   ): Promise<DataSourceActionResult<T>> {
@@ -128,16 +147,25 @@ export function createDataSourceCommandApplication({
   }
 
   return {
-    ...createDataSourceQueryApplication({ workspace, reader: store }),
+    ...createDataSourceQueryApplication({ workspace, reader: queryPort }),
 
     async connectImap(input: ImapConnectCommand) {
-      return runManaged(() => commandRegistry.imap.connect(input))
+      return runManaged(() => useCases.connectImap(input))
     },
 
     async connectGoogleFormsManualCsv(
       input: GoogleFormsManualCsvConnectCommand
     ) {
-      return runManaged(() => commandRegistry.forms.connectManualCsv(input))
+      return runManaged(() => useCases.connectGoogleFormsManualCsv(input))
+    },
+
+    async updateGoogleFormsManualCsv(
+      sourceId: string,
+      input: GoogleFormsManualCsvUpdateCommand
+    ) {
+      return runManaged(() =>
+        useCases.updateGoogleFormsManualCsv(sourceId, input)
+      )
     },
 
     async updateImapConnectionSettings(
@@ -145,7 +173,7 @@ export function createDataSourceCommandApplication({
       input: ImapConnectionSettingsCommand
     ) {
       return runManaged(() =>
-        commandRegistry.imap.updateConnectionSettings(sourceId, input)
+        useCases.updateImapConnectionSettings(sourceId, input)
       )
     },
 
@@ -154,38 +182,42 @@ export function createDataSourceCommandApplication({
       input: ImapImportSettingsCommand
     ) {
       return runManaged(() =>
-        commandRegistry.imap.updateIntakeSettings(sourceId, input)
+        useCases.updateImapIntakeSettings(sourceId, input)
       )
     },
 
     async refreshImapFolders(sourceId: string) {
-      return runManaged(() => commandRegistry.imap.refreshFolders(sourceId))
+      return runManaged(() => useCases.refreshImapFolders(sourceId))
     },
 
     async disconnect(sourceId: string) {
       return runManaged(async () => {
-        await commandRegistry.lifecycle.disconnect(sourceId)
+        await useCases.disconnect(sourceId)
         return undefined
       })
     },
 
     async requestSync(sourceId: string) {
       return runManaged(async () => {
-        await commandRegistry.lifecycle.requestSync(sourceId)
+        await useCases.requestSync(sourceId)
         return undefined
       })
     },
 
     async requestAllConfiguredSyncs() {
       return runManaged<RequestAllDataSourceSyncsResult>(async () => {
-        return commandRegistry.lifecycle.requestAllConfiguredSyncs()
+        return useCases.requestAllConfiguredSyncs()
       })
     },
   }
 }
 
-function isReadableSingletonSourceType(value: string): value is "imap" {
-  return value === "imap"
+function isReadableSourceType(
+  value: string
+): value is Parameters<
+  DataSourceQueryPort["findBySlugForWorkspace"]
+>[0]["sourceType"] {
+  return isConnectorId(value)
 }
 
 function mapDataSourceActionError(error: unknown): DataSourceActionError {
@@ -194,13 +226,18 @@ function mapDataSourceActionError(error: unknown): DataSourceActionError {
   return "source_action_failed"
 }
 
-function isDataSourceActionError(value: string): value is DataSourceActionError {
+function isDataSourceActionError(
+  value: string
+): value is DataSourceActionError {
   return (
     value === "invalid_imap_config" ||
     value === "invalid_google_form_id" ||
     value === "invalid_google_forms_csv" ||
     value === "invalid_google_forms_csv_mapping" ||
     value === "invalid_google_forms_csv_row" ||
+    value === "invalid_data_source_name" ||
+    value === "duplicate_data_source_name" ||
+    value === "duplicate_data_source_config" ||
     value === "imap_connection_failed" ||
     value === "source_manage_forbidden" ||
     value === "not_authenticated" ||

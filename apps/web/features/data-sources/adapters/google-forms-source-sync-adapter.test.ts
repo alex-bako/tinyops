@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { createGoogleFormsSourceSyncAdapter } from "@/features/data-sources/adapters/google-forms-source-sync-adapter"
 import type {
-  DataSourceReader,
+  DataSourceQueryPort,
   GoogleFormsDataSource,
 } from "@/features/data-sources/types"
 
@@ -12,6 +12,7 @@ function source(): GoogleFormsDataSource {
     workspaceId: "workspace_1",
     type: "forms",
     displayName: "Practice intake",
+    sourceSlug: "practice-intake",
     status: "connected",
     configVersion: 1,
     externalFormId: "1AbC_Def-1234567890",
@@ -41,12 +42,12 @@ function source(): GoogleFormsDataSource {
 describe("Google Forms source sync adapter", () => {
   it("prepares a manual CSV connector for claimed forms jobs", async () => {
     const calls: unknown[] = []
-    const reader: DataSourceReader = {
+    const reader: DataSourceQueryPort = {
       async listForWorkspace() {
         throw new Error("unexpected list")
       },
-      async findForWorkspace() {
-        throw new Error("unexpected find")
+      async findBySlugForWorkspace() {
+        throw new Error("unexpected find by slug")
       },
       async findByIdForWorkspace(input) {
         calls.push(input)

@@ -42,8 +42,8 @@ function SourceHeader({
 
       {isConnected ? (
         <div className="flex items-center gap-1 pt-1.5">
-          {actions.canSync && actions.sourceRowId ? (
-            <SourceSyncButton sourceRowId={actions.sourceRowId} />
+          {actions.canSync && actions.sourceId ? (
+            <SourceSyncButton sourceId={actions.sourceId} />
           ) : null}
           <Button
             type="button"

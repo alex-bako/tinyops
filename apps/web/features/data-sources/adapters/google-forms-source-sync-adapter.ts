@@ -5,7 +5,7 @@ import {
 } from "@/features/data-sources/google-forms-sync"
 import type { SourceSyncAdapter } from "@/features/data-sources/sync-worker"
 import type {
-  DataSourceReader,
+  DataSourceQueryPort,
   GoogleFormsDataSource,
   WorkspaceDataSource,
 } from "@/features/data-sources/types"
@@ -22,7 +22,7 @@ export function createGoogleFormsSourceSyncAdapter({
   rowReader,
   connectorFactory = createGoogleFormsManualCsvConnector,
 }: {
-  dataSourceReader: DataSourceReader
+  dataSourceReader: DataSourceQueryPort
   rowReader: GoogleFormsManualCsvRowReader
   connectorFactory?: (input: ConnectorFactoryInput) => ConnectorIngestionPort
 }): SourceSyncAdapter {
@@ -56,7 +56,7 @@ async function loadClaimedGoogleFormsSource({
   dataSourceReader,
   job,
 }: {
-  dataSourceReader: DataSourceReader
+  dataSourceReader: DataSourceQueryPort
   job: DataSourceSyncJob
 }): Promise<GoogleFormsDataSource | null> {
   const source = await dataSourceReader.findByIdForWorkspace({

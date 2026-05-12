@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import { mapDataSourceRow, type DataSourceRow } from "@/features/data-sources/mappers"
+import {
+  mapDataSourceRow,
+  type DataSourceRow,
+} from "@/features/data-sources/mappers"
 
 describe("data source row mapper", () => {
   it("maps Google Forms manual CSV rows from source config", () => {
@@ -8,6 +11,7 @@ describe("data source row mapper", () => {
       id: "forms_source_1",
       workspace_id: "workspace_1",
       source_type: "forms",
+      slug: "practice-intake",
       display_name: "Practice intake",
       status: "connected",
       config_version: 1,
@@ -40,6 +44,7 @@ describe("data source row mapper", () => {
       id: "forms_source_1",
       workspaceId: "workspace_1",
       type: "forms",
+      sourceSlug: "practice-intake",
       displayName: "Practice intake",
       externalFormId: "1AbC_Def-1234567890",
       connectionMode: "manual_csv",

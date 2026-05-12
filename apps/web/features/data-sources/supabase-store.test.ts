@@ -43,6 +43,7 @@ const sourceRow = {
   id: "source_1",
   workspace_id: "workspace_1",
   source_type: "imap",
+  slug: "primary-inbox",
   display_name: "IMAP mailbox",
   status: "connected",
   config_version: 1,
@@ -80,6 +81,7 @@ const googleFormsSourceRow = {
   id: "forms_source_1",
   workspace_id: "workspace_1",
   source_type: "forms",
+  slug: "practice-intake",
   display_name: "Practice intake",
   status: "connected",
   config_version: 1,
@@ -183,6 +185,7 @@ describe("supabase data source store", () => {
     await expect(
       store.connectImap({
         workspaceId: "workspace_1",
+        displayName: "Primary inbox",
         password: "top-secret",
         connection: {
           host: "imap.example.com",
@@ -207,6 +210,7 @@ describe("supabase data source store", () => {
       fn: "connect_imap_data_source",
       args: {
         imap_available_folders: [{ path: "INBOX", messages: 1204 }],
+        imap_display_name: "Primary inbox",
         imap_encryption: "ssl",
         imap_history_window: "12mo",
         imap_host: "imap.example.com",
@@ -224,6 +228,44 @@ describe("supabase data source store", () => {
       method: "eq",
       column: "id",
       value: "source_1",
+    })
+  })
+
+  it("finds one workspace data source by type and stable slug", async () => {
+    const calls: unknown[] = []
+    const client = {
+      from(table: string) {
+        return queryChain(table, calls, { data: sourceRow, error: null })
+      },
+      rpc() {
+        throw new Error("unexpected rpc call")
+      },
+    }
+
+    const store = createSupabaseDataSourceStore({ client: client as never })
+
+    await expect(
+      store.findBySlugForWorkspace({
+        workspaceId: "workspace_1",
+        sourceType: "imap",
+        sourceSlug: "primary-inbox",
+      })
+    ).resolves.toMatchObject({
+      id: "source_1",
+      type: "imap",
+      sourceSlug: "primary-inbox",
+    })
+    expect(calls).toContainEqual({
+      table: "data_sources",
+      method: "eq",
+      column: "source_type",
+      value: "imap",
+    })
+    expect(calls).toContainEqual({
+      table: "data_sources",
+      method: "eq",
+      column: "slug",
+      value: "primary-inbox",
     })
   })
 
@@ -245,6 +287,7 @@ describe("supabase data source store", () => {
       store.updateImapConnection({
         workspaceId: "workspace_1",
         sourceId: "source_1",
+        displayName: "Primary inbox",
         connection: {
           host: "imap.new.com",
           port: 993,
@@ -263,6 +306,7 @@ describe("supabase data source store", () => {
       fn: "update_imap_connection_settings",
       args: {
         imap_available_folders: [{ path: "Receipts", messages: 9 }],
+        imap_display_name: "Primary inbox",
         imap_encryption: "starttls",
         imap_host: "imap.new.com",
         imap_password: "new-secret",

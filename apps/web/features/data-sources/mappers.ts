@@ -26,15 +26,22 @@ export type DataSourceRow = {
   id: string
   workspace_id: string
   source_type: string
+  slug: string
   display_name: string
   status: string
   config_version: number
   config: Json
   created_at: string
   updated_at: string
-  data_source_intake_configs?: DataSourceIntakeConfigRow | DataSourceIntakeConfigRow[] | null
+  data_source_intake_configs?:
+    | DataSourceIntakeConfigRow
+    | DataSourceIntakeConfigRow[]
+    | null
   data_source_secrets?: DataSourceSecretRow[] | null
-  data_source_sync_states?: DataSourceSyncStateRow | DataSourceSyncStateRow[] | null
+  data_source_sync_states?:
+    | DataSourceSyncStateRow
+    | DataSourceSyncStateRow[]
+    | null
   data_source_sync_runs?: DataSourceSyncRunRow[] | null
 }
 
@@ -88,6 +95,7 @@ function mapImapDataSourceRow(row: DataSourceRow): ImapDataSource {
     id: row.id,
     workspaceId: row.workspace_id,
     type: "imap",
+    sourceSlug: row.slug,
     displayName: row.display_name,
     status: coerceStatus(row.status),
     configVersion: 1,
@@ -105,7 +113,9 @@ function mapImapDataSourceRow(row: DataSourceRow): ImapDataSource {
   } satisfies ImapDataSource
 }
 
-function mapGoogleFormsDataSourceRow(row: DataSourceRow): GoogleFormsDataSource {
+function mapGoogleFormsDataSourceRow(
+  row: DataSourceRow
+): GoogleFormsDataSource {
   const config = jsonObject(row.config)
   if (!config) throw new Error("Invalid Google Forms config")
 
@@ -113,6 +123,7 @@ function mapGoogleFormsDataSourceRow(row: DataSourceRow): GoogleFormsDataSource 
     id: row.id,
     workspaceId: row.workspace_id,
     type: "forms",
+    sourceSlug: row.slug,
     displayName: row.display_name,
     status: coerceStatus(row.status),
     configVersion: 1,
@@ -151,7 +162,9 @@ function mapImapIntakeSettings(
     watchedFolders:
       row?.watched_folders ?? stringArray(legacy?.watchedFolders, ["INBOX"]),
     skipSenders: row?.skip_senders ?? stringArray(legacy?.skipSenders, []),
-    messageFilters: messageFiltersValue(row?.message_filters ?? legacy?.messageFilters),
+    messageFilters: messageFiltersValue(
+      row?.message_filters ?? legacy?.messageFilters
+    ),
   })
 }
 
@@ -161,7 +174,9 @@ function mapImapFolderSnapshot(
 ): ImapFolderSnapshot {
   const row = Array.isArray(rowOrRows) ? rowOrRows[0] : rowOrRows
   const legacy = jsonObject(legacyConfig)
-  return buildImapFolderSnapshot(row?.available_folders ?? legacy?.availableFolders)
+  return buildImapFolderSnapshot(
+    row?.available_folders ?? legacy?.availableFolders
+  )
 }
 
 function mapSecret(
@@ -177,7 +192,11 @@ function mapSecret(
 }
 
 function mapSyncState(
-  rowOrRows: DataSourceSyncStateRow | DataSourceSyncStateRow[] | null | undefined
+  rowOrRows:
+    | DataSourceSyncStateRow
+    | DataSourceSyncStateRow[]
+    | null
+    | undefined
 ): DataSourceSyncState {
   const row = Array.isArray(rowOrRows) ? rowOrRows[0] : rowOrRows
 
@@ -213,7 +232,9 @@ function coerceStatus(value: string): WorkspaceDataSource["status"] {
   return "connected"
 }
 
-function coerceSyncStatus(value: string | undefined): DataSourceSyncState["status"] {
+function coerceSyncStatus(
+  value: string | undefined
+): DataSourceSyncState["status"] {
   if (value === "running" || value === "error" || value === "idle") return value
   return "queued"
 }
@@ -229,7 +250,9 @@ function jsonObject(value: Json | undefined): Record<string, unknown> | null {
     : null
 }
 
-function jsonObjectOrNull(value: Json | undefined): Record<string, unknown> | null {
+function jsonObjectOrNull(
+  value: Json | undefined
+): Record<string, unknown> | null {
   return jsonObject(value)
 }
 

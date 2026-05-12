@@ -7,27 +7,25 @@ import { Button } from "@workspace/ui/components/button"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
 import { SourceSyncRealtimeRefresh } from "@/features/data-sources/adapters/source-sync-realtime-refresh"
-import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
+import { loadWorkspaceSourceBySlug } from "@/features/data-sources/loaders"
 import type { DataSource } from "@/lib/sources"
 
-import { ActivityBlock } from "./_components/activity-block"
-import { ConfigBlock } from "./_components/config-block"
-import { ConnectionBlock } from "./_components/connection-block"
-import { DangerZone } from "./_components/danger-zone"
-import { SourceHeader } from "./_components/source-header"
-import { SyncAttemptsBlock } from "./_components/sync-attempts-block"
-import { createSourceDetailView } from "./_view-model"
-import { getSourceUi } from "./source-registry"
+import { ActivityBlock } from "../_components/activity-block"
+import { ConfigBlock } from "../_components/config-block"
+import { ConnectionBlock } from "../_components/connection-block"
+import { DangerZone } from "../_components/danger-zone"
+import { SourceHeader } from "../_components/source-header"
+import { SyncAttemptsBlock } from "../_components/sync-attempts-block"
+import { createSourceDetailView } from "../_view-model"
+import { getSourceUi } from "../source-registry"
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ sourceType: string; sourceSlug: string }>
 }): Promise<Metadata> {
-  const { slug } = await params
-  const source = (await loadWorkspaceSourceCatalog()).find(
-    (candidate) => candidate.id === slug
-  )
+  const { sourceType, sourceSlug } = await params
+  const source = await loadWorkspaceSourceBySlug({ sourceType, sourceSlug })
   if (!source) return { title: "Data source" }
   return {
     title: source.title,
@@ -38,23 +36,21 @@ export async function generateMetadata({
 export default async function SourceDetailPage({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ sourceType: string; sourceSlug: string }>
 }) {
-  const { slug } = await params
-  const source = (await loadWorkspaceSourceCatalog()).find(
-    (candidate) => candidate.id === slug
-  )
+  const { sourceType, sourceSlug } = await params
+  const source = await loadWorkspaceSourceBySlug({ sourceType, sourceSlug })
   if (!source) notFound()
 
   const sourceUi = getSourceUi(source.id)
   const view = createSourceDetailView(source, sourceUi)
-  const activeSourceRowIds = activeSyncSourceRowIds(source)
+  const activeSourceIds = activeSyncSourceIds(source)
 
   return (
     <WorkspacePageSurface>
       <SourceSyncRealtimeRefresh
-        activeSourceRowIds={activeSourceRowIds}
-        sourceRowIds={source.sourceRowIds}
+        activeSourceIds={activeSourceIds}
+        sourceIds={detailSourceIds(source)}
       />
 
       <div className="mb-[18px]">
@@ -80,17 +76,25 @@ export default async function SourceDetailPage({
         <SyncAttemptsBlock attempts={view.syncAttempts} />
       ) : null}
 
-      {view.connected && view.actions.sourceRowId ? (
-        <DangerZone sourceRowId={view.actions.sourceRowId} title={view.header.title} />
+      {view.connected && view.actions.sourceId ? (
+        <DangerZone
+          sourceId={view.actions.sourceId}
+          title={view.header.title}
+        />
       ) : null}
     </WorkspacePageSurface>
   )
 }
 
-function activeSyncSourceRowIds(source: DataSource) {
-  if (isActiveSyncStatus(source.imap?.syncStatus)) return source.sourceRowIds
+function detailSourceIds(source: DataSource) {
+  return source.kind === "data_source" ? [source.sourceId] : []
+}
+
+function activeSyncSourceIds(source: DataSource) {
+  if (source.kind !== "data_source") return []
+  if (isActiveSyncStatus(source.imap?.syncStatus)) return [source.sourceId]
   return (source.forms?.connections ?? []).flatMap((connection) =>
-    isActiveSyncStatus(connection.syncStatus) ? [connection.sourceRowId] : []
+    isActiveSyncStatus(connection.syncStatus) ? [connection.sourceId] : []
   )
 }
 

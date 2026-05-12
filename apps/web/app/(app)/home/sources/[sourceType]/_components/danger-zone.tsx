@@ -12,17 +12,17 @@ import { DsSection, DsSectionHead } from "./ds-section"
 
 function DangerZone({
   title,
-  sourceRowId,
+  sourceId,
 }: {
   title: string
-  sourceRowId: string
+  sourceId: string
 }) {
   const { refresh } = useRouter()
   const [pending, startTransition] = React.useTransition()
 
   const disconnect = () => {
     startTransition(async () => {
-      const result = await disconnectDataSourceAction(sourceRowId)
+      const result = await disconnectDataSourceAction(sourceId)
       if (!result.error) refresh()
     })
   }

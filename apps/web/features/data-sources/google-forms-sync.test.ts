@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest"
 import { createGoogleFormsManualCsvConnector } from "@/features/data-sources/google-forms-sync"
 import type { GoogleFormsDataSource } from "@/features/data-sources/types"
 
-function source(patch: Partial<GoogleFormsDataSource> = {}): GoogleFormsDataSource {
+function source(
+  patch: Partial<GoogleFormsDataSource> = {}
+): GoogleFormsDataSource {
   return {
     id: "forms_source_1",
     workspaceId: "workspace_1",
@@ -33,6 +35,7 @@ function source(patch: Partial<GoogleFormsDataSource> = {}): GoogleFormsDataSour
     createdAt: "2026-05-10T00:00:00.000Z",
     updatedAt: "2026-05-10T00:00:00.000Z",
     ...patch,
+    sourceSlug: patch.sourceSlug ?? "practice-intake",
   }
 }
 
@@ -47,8 +50,7 @@ describe("Google Forms manual CSV sync connector", () => {
           return [
             {
               rowNumber: 2,
-              responseKey:
-                "manual_csv:1AbC_Def-1234567890:stored-anna",
+              responseKey: "manual_csv:1AbC_Def-1234567890:stored-anna",
               payload: {
                 Timestamp: "2026-05-10T09:15:00.000Z",
                 "Email Address": "anna@example.com",

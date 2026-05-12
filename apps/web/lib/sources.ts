@@ -9,7 +9,7 @@ export {
 export type {
   ConnectorDefinition,
   ConnectorId as SourceId,
-  ConnectorCardinality,
+  ConnectorTypeCatalogItem,
   DataSource,
   DataSourceAuth,
   DataSourceGoogleFormsSettings,
@@ -19,6 +19,7 @@ export type {
   DataSourceStat,
   DataSourceStatId,
   HomeSourceRow,
+  WorkspaceDataSourceCatalogItem,
 } from "@/features/data-sources/connectors"
 
 import {

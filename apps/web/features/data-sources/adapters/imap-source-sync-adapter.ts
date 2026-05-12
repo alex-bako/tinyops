@@ -6,7 +6,7 @@ import { createImapConnector } from "@/features/data-sources/imap-sync"
 import type { ImapThreadIndexReader } from "@/features/data-sources/imap-threading"
 import type { SourceSyncAdapter } from "@/features/data-sources/sync-worker"
 import type {
-  DataSourceReader,
+  DataSourceQueryPort,
   ImapDataSource,
   WorkspaceDataSource,
 } from "@/features/data-sources/types"
@@ -31,7 +31,7 @@ export function createImapSourceSyncAdapter({
   manualReviewKeywordsForWorkspace = async () => [],
   logger = createNoopLogger(),
 }: {
-  dataSourceReader: DataSourceReader
+  dataSourceReader: DataSourceQueryPort
   imapCredentialReader: ImapSyncCredentialReader
   connectorFactory?: (input: ConnectorFactoryInput) => ConnectorIngestionPort
   imapThreadIndexReader?: ImapThreadIndexReader
@@ -102,7 +102,7 @@ async function loadClaimedImapSource({
   dataSourceReader,
   job,
 }: {
-  dataSourceReader: DataSourceReader
+  dataSourceReader: DataSourceQueryPort
   job: DataSourceSyncJob
 }): Promise<ImapDataSource | null> {
   const source = await dataSourceReader.findByIdForWorkspace({

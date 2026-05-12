@@ -9,8 +9,11 @@ describe("source detail view", () => {
   it("describes a healthy connected source with sync timing", () => {
     const source: DataSource = {
       ...findSourceById("imap")!,
+      kind: "data_source",
       connected: true,
-      sourceRowIds: ["source_1"],
+      sourceId: "source_1",
+      sourceType: "imap",
+      sourceSlug: "primary-inbox",
       health: "healthy",
       lastSync: "queued",
       summaryStatId: "synced",
@@ -20,12 +23,12 @@ describe("source detail view", () => {
 
     expect(view.connected).toBe(true)
     expect(view.connection.auth).toBe("imap")
-    expect(view.connection.sourceId).toBe("imap")
-    expect(view.config.sourceId).toBe("imap")
+    expect(view.connection.sourceType).toBe("imap")
+    expect(view.config.sourceType).toBe("imap")
     expect(view.actions).toEqual({
       canDisconnect: true,
       canSync: true,
-      sourceRowId: "source_1",
+      sourceId: "source_1",
     })
     expect(view.header.logoClassName).toContain("cobalt")
     expect(view.header.status).toEqual({
@@ -38,9 +41,14 @@ describe("source detail view", () => {
   it("flags a stale connected source as warn", () => {
     const source: DataSource = {
       ...findSourceById("csv")!,
+      kind: "data_source",
       connected: true,
+      sourceId: "source_1",
+      sourceType: "csv",
+      sourceSlug: "csv-import",
       health: "stale",
       lastSync: "3 days ago",
+      summaryStatId: "imported",
       stats: [],
     }
     const view = createSourceDetailView(source, getSourceUi("csv"))
@@ -54,9 +62,14 @@ describe("source detail view", () => {
   it("labels secret read failures as sync errors with safe detail", () => {
     const source: DataSource = {
       ...findSourceById("imap")!,
+      kind: "data_source",
       connected: true,
+      sourceId: "source_1",
+      sourceType: "imap",
+      sourceSlug: "primary-inbox",
       health: "error",
       lastSync: "error",
+      summaryStatId: "synced",
       stats: [],
       imap: {
         host: "imap.example.com",
@@ -84,9 +97,14 @@ describe("source detail view", () => {
   it("labels IMAP failures as connection errors", () => {
     const source: DataSource = {
       ...findSourceById("imap")!,
+      kind: "data_source",
       connected: true,
+      sourceId: "source_1",
+      sourceType: "imap",
+      sourceSlug: "primary-inbox",
       health: "error",
       lastSync: "error",
+      summaryStatId: "synced",
       stats: [],
       imap: {
         host: "imap.example.com",
@@ -114,9 +132,14 @@ describe("source detail view", () => {
   it("keeps recent sync attempts for the detail activity panel", () => {
     const source: DataSource = {
       ...findSourceById("imap")!,
+      kind: "data_source",
       connected: true,
+      sourceId: "source_1",
+      sourceType: "imap",
+      sourceSlug: "primary-inbox",
       health: "healthy",
       lastSync: "synced",
+      summaryStatId: "synced",
       stats: [],
       imap: {
         host: "imap.example.com",
@@ -210,18 +233,22 @@ describe("source detail view", () => {
     expect(view.connection.auth).toBe("apikey")
   })
 
-  it("does not expose global header or danger actions for plural Google Forms", () => {
+  it("exposes actions for a specific Google Forms data source", () => {
     const source: DataSource = {
       ...findSourceById("forms")!,
+      kind: "data_source",
       connected: true,
-      sourceRowIds: ["forms_source_1", "forms_source_2"],
+      sourceId: "forms_source_1",
+      sourceType: "forms",
+      sourceSlug: "practice-intake",
       health: "healthy",
       lastSync: "synced",
+      summaryStatId: "submissions",
       stats: [],
       forms: {
         connections: [
           {
-            sourceRowId: "forms_source_1",
+            sourceId: "forms_source_1",
             externalFormId: "1Practice",
             displayName: "Practice intake",
             connectionMode: "manual_csv",
@@ -247,38 +274,18 @@ describe("source detail view", () => {
               },
             ],
           },
-          {
-            sourceRowId: "forms_source_2",
-            externalFormId: "1Monthly",
-            displayName: "Monthly check-in",
-            connectionMode: "manual_csv",
-            mapping: {
-              identityColumn: "Email Address",
-              timestampColumn: "Timestamp",
-            },
-            latestUpload: null,
-            syncRuns: [
-              {
-                trigger: "cron",
-                status: "failed",
-                startedAt: "2026-05-10T09:00:00.000Z",
-                finishedAt: "2026-05-10T09:00:01.000Z",
-                errorCode: "sync_failed",
-                errorMessage: "Sync failed",
-                causeMessage: null,
-                persistedCounts: null,
-              },
-            ],
-          },
         ],
       },
     }
 
     const view = createSourceDetailView(source, getSourceUi("forms"))
 
-    expect(view.actions).toEqual({ canDisconnect: false, canSync: false })
+    expect(view.actions).toEqual({
+      canDisconnect: true,
+      canSync: true,
+      sourceId: "forms_source_1",
+    })
     expect(view.syncAttempts.map((attempt) => attempt.trigger)).toEqual([
-      "cron",
       "immediate",
     ])
   })

@@ -48,8 +48,11 @@ export function AppTopbar({
     deriveAppCrumbs(pathname, {
       resolveClientName: (slug) =>
         clientNavItems.find((client) => client.slug === slug)?.name,
-      resolveSourceTitle: (slug) =>
-        sourceNavItems.find((source) => source.id === slug)?.title,
+      resolveSourceTitle: ({ sourceType, sourceSlug }) =>
+        sourceNavItems.find(
+          (source) =>
+            source.sourceType === sourceType && source.sourceSlug === sourceSlug
+        )?.title,
     })
 
   return (

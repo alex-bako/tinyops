@@ -13,6 +13,7 @@ function imapSource(): ImapDataSource {
     id: "source_1",
     workspaceId: "workspace_1",
     type: "imap",
+    sourceSlug: "imap-mailbox",
     displayName: "IMAP mailbox",
     status: "connected",
     configVersion: 1,
@@ -66,12 +67,12 @@ describe("data source connector platform", () => {
     expect(definitions[0]).not.toHaveProperty("imap")
     expect(getConnectorMetadata("forms")).toMatchObject({
       id: "forms",
-      cardinality: "plural",
     })
+    expect(getConnectorMetadata("forms")).not.toHaveProperty("cardinality")
     expect(getConnectorMetadata("imap")).toMatchObject({
       id: "imap",
-      cardinality: "singleton",
     })
+    expect(getConnectorMetadata("imap")).not.toHaveProperty("cardinality")
   })
 
   it("composes runtime workspace state only for connected IMAP", () => {
@@ -81,8 +82,11 @@ describe("data source connector platform", () => {
 
     expect(imap).toMatchObject({
       id: "imap",
+      kind: "data_source",
       connected: true,
-      sourceRowIds: ["source_1"],
+      sourceId: "source_1",
+      sourceType: "imap",
+      sourceSlug: "imap-mailbox",
       imap: {
         username: "hello@example.com",
         watchedFolders: ["INBOX"],
@@ -91,10 +95,17 @@ describe("data source connector platform", () => {
     })
     expect(csv).toMatchObject({
       id: "csv",
+      kind: "connector_type",
       connected: false,
       stats: [],
     })
+    expect(imap?.kind).toBe("data_source")
+    if (imap?.kind !== "data_source") {
+      throw new Error("expected connected IMAP data source")
+    }
     expect(imap?.imap).not.toHaveProperty("syncUpdatedAt")
     expect(csv).not.toHaveProperty("imap")
+    expect(imap).not.toHaveProperty("sourceRowId")
+    expect(imap).not.toHaveProperty("sourceRowIds")
   })
 })

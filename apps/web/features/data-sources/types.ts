@@ -92,6 +92,7 @@ export type ImapDataSource = {
   id: string
   workspaceId: string
   type: Extract<SourceId, "imap">
+  sourceSlug: string
   displayName: string
   status: DataSourceStatus
   configVersion: 1
@@ -116,6 +117,7 @@ export type GoogleFormsDataSource = {
   id: string
   workspaceId: string
   type: Extract<SourceId, "forms">
+  sourceSlug: string
   displayName: string
   status: DataSourceStatus
   configVersion: 1
@@ -133,6 +135,7 @@ export type WorkspaceDataSource = ImapDataSource | GoogleFormsDataSource
 
 export type ConnectImapInput = {
   workspaceId: string
+  displayName: string
   connection: ImapConnectionConfig
   intake: ImapIntakeSettings
   folderSnapshot: ImapFolderSnapshot
@@ -148,9 +151,15 @@ export type ConnectGoogleFormsManualCsvInput = {
   }
 }
 
+export type UpdateGoogleFormsManualCsvInput =
+  ConnectGoogleFormsManualCsvInput & {
+    sourceId: string
+  }
+
 export type UpdateImapConnectionInput = {
   sourceId: string
   workspaceId: string
+  displayName: string
   connection: ImapConnectionConfig
   folderSnapshot: ImapFolderSnapshot
   password?: string
@@ -168,11 +177,12 @@ export type UpdateImapFolderSnapshotInput = {
   folderSnapshot: ImapFolderSnapshot
 }
 
-export type DataSourceReader = {
+export type DataSourceQueryPort = {
   listForWorkspace(workspaceId: string): Promise<WorkspaceDataSource[]>
-  findForWorkspace(input: {
+  findBySlugForWorkspace(input: {
     workspaceId: string
-    sourceType: Extract<SourceId, "imap">
+    sourceType: SourceId
+    sourceSlug: string
   }): Promise<WorkspaceDataSource | null>
   findByIdForWorkspace(input: {
     workspaceId: string
@@ -180,22 +190,36 @@ export type DataSourceReader = {
   }): Promise<WorkspaceDataSource | null>
 }
 
-export type DataSourceCommandStore = DataSourceReader & {
+export type ImapSourceCommandPort = {
   connectImap(input: ConnectImapInput): Promise<ImapDataSource>
-  connectGoogleFormsManualCsv(
-    input: ConnectGoogleFormsManualCsvInput
-  ): Promise<GoogleFormsDataSource>
-  updateImapConnection(input: UpdateImapConnectionInput): Promise<ImapDataSource>
+  updateImapConnection(
+    input: UpdateImapConnectionInput
+  ): Promise<ImapDataSource>
   updateImapIntake(input: UpdateImapIntakeInput): Promise<ImapDataSource>
   updateImapFolderSnapshot(
     input: UpdateImapFolderSnapshotInput
   ): Promise<ImapDataSource>
+}
+
+export type GoogleFormsSourceCommandPort = {
+  connectGoogleFormsManualCsv(
+    input: ConnectGoogleFormsManualCsvInput
+  ): Promise<GoogleFormsDataSource>
+  updateGoogleFormsManualCsv(
+    input: UpdateGoogleFormsManualCsvInput
+  ): Promise<GoogleFormsDataSource>
+}
+
+export type SourceLifecycleCommandPort = {
   disconnect(input: { workspaceId: string; sourceId: string }): Promise<void>
   requestSync(input: { workspaceId: string; sourceId: string }): Promise<void>
   requestAllSyncs(input: { workspaceId: string }): Promise<{ queued: number }>
 }
 
-export type DataSourceStore = DataSourceCommandStore
+export type DataSourceStore = DataSourceQueryPort &
+  ImapSourceCommandPort &
+  GoogleFormsSourceCommandPort &
+  SourceLifecycleCommandPort
 
 export type ImapConnectionTestInput = ImapConnectionConfig & {
   password: string

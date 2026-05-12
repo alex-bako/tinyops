@@ -8,7 +8,7 @@ import { Button } from "@workspace/ui/components/button"
 
 import { requestDataSourceSyncAction } from "@/features/data-sources/actions"
 
-function SourceSyncButton({ sourceRowId }: { sourceRowId: string }) {
+function SourceSyncButton({ sourceId }: { sourceId: string }) {
   const { refresh } = useRouter()
   const [pending, startTransition] = React.useTransition()
   const [message, setMessage] = React.useState<string | null>(null)
@@ -23,7 +23,7 @@ function SourceSyncButton({ sourceRowId }: { sourceRowId: string }) {
         onClick={() => {
           setMessage(null)
           startTransition(async () => {
-            const result = await requestDataSourceSyncAction(sourceRowId)
+            const result = await requestDataSourceSyncAction(sourceId)
             if (result.error) {
               setMessage("Could not queue sync")
               return

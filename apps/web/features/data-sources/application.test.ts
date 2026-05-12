@@ -5,9 +5,12 @@ import {
   createDataSourceQueryApplication,
 } from "@/features/data-sources/application"
 import type {
-  DataSourceCommandStore,
+  DataSourceQueryPort,
+  GoogleFormsSourceCommandPort,
   GoogleFormsDataSource,
-  DataSourceReader,
+  ImapSourceCommandPort,
+  SourceLifecycleCommandPort,
+  DataSourceStore,
   ImapConnectionTester,
   ImapDataSource,
   ImapIntakeSettings,
@@ -25,6 +28,7 @@ function connectedImapSource(
     id: "source_1",
     workspaceId: workspace.id,
     type: "imap",
+    sourceSlug: "primary-inbox",
     displayName: "IMAP mailbox",
     status: "connected",
     configVersion: 1,
@@ -67,6 +71,7 @@ function connectedGoogleFormsSource(): GoogleFormsDataSource {
     id: "forms_source_1",
     workspaceId: workspace.id,
     type: "forms",
+    sourceSlug: "practice-intake",
     displayName: "Practice intake",
     status: "connected",
     configVersion: 1,
@@ -94,14 +99,12 @@ function connectedGoogleFormsSource(): GoogleFormsDataSource {
   }
 }
 
-function dataSourceStore(
-  overrides: Partial<DataSourceCommandStore> = {}
-): DataSourceCommandStore {
+function dataSourceStore(overrides: Partial<DataSourceStore> = {}): DataSourceStore {
   return {
     async listForWorkspace() {
       return []
     },
-    async findForWorkspace() {
+    async findBySlugForWorkspace() {
       return null
     },
     async findByIdForWorkspace() {
@@ -122,6 +125,9 @@ function dataSourceStore(
     async connectGoogleFormsManualCsv() {
       throw new Error("unexpected Google Forms connect")
     },
+    async updateGoogleFormsManualCsv() {
+      throw new Error("unexpected Google Forms update")
+    },
     async disconnect() {
       throw new Error("unexpected disconnect")
     },
@@ -135,6 +141,21 @@ function dataSourceStore(
   }
 }
 
+function queryPort(overrides: Partial<DataSourceQueryPort> = {}): DataSourceQueryPort {
+  return {
+    async listForWorkspace() {
+      return []
+    },
+    async findBySlugForWorkspace() {
+      return null
+    },
+    async findByIdForWorkspace() {
+      return null
+    },
+    ...overrides,
+  }
+}
+
 const successfulTester: ImapConnectionTester = {
   async test() {
     return { folders: [] }
@@ -143,13 +164,13 @@ const successfulTester: ImapConnectionTester = {
 
 describe("data source application", () => {
   it("lists data sources through a read-only application without command adapters", async () => {
-    const reader: DataSourceReader = {
+    const reader: DataSourceQueryPort = {
       async listForWorkspace(workspaceId) {
         expect(workspaceId).toBe(workspace.id)
         return [connectedImapSource()]
       },
-      async findForWorkspace() {
-        throw new Error("unexpected find")
+      async findBySlugForWorkspace() {
+        throw new Error("unexpected find by slug")
       },
       async findByIdForWorkspace() {
         throw new Error("unexpected find by id")
@@ -164,57 +185,48 @@ describe("data source application", () => {
     await expect(application.listDataSources()).resolves.toHaveLength(1)
   })
 
-  it("does not run singleton workspace lookup for plural Google Forms", async () => {
-    const reader: DataSourceReader = {
-      async listForWorkspace() {
-        return []
-      },
-      async findForWorkspace() {
-        throw new Error("forms must not use singleton lookup")
-      },
-      async findByIdForWorkspace() {
-        throw new Error("unexpected find by id")
-      },
-    }
-
+  it("does not expose stale type-level workspace lookup", async () => {
     const application = createDataSourceQueryApplication({
       workspace,
-      reader,
+      reader: queryPort(),
     })
 
-    await expect(application.findDataSource("forms")).resolves.toBeNull()
+    expect(application).not.toHaveProperty("findDataSource")
   })
 
-  it("dispatches source commands through the command registry", async () => {
-    const registry = {
-      imap: {
-        connect: vi.fn(async () => connectedImapSource()),
-        updateConnectionSettings: vi.fn(),
-        updateIntakeSettings: vi.fn(),
-        refreshFolders: vi.fn(),
-      },
-      forms: {
-        connectManualCsv: vi.fn(async () => connectedGoogleFormsSource()),
-      },
-      lifecycle: {
-        disconnect: vi.fn(),
-        requestSync: vi.fn(),
-        requestAllConfiguredSyncs: vi.fn(),
-      },
+  it("dispatches source commands through narrow command ports", async () => {
+    const query = queryPort()
+    const imapCommands: ImapSourceCommandPort = {
+      connectImap: vi.fn(async () => connectedImapSource()),
+      updateImapConnection: vi.fn(),
+      updateImapIntake: vi.fn(),
+      updateImapFolderSnapshot: vi.fn(),
+    }
+    const formsCommands: GoogleFormsSourceCommandPort = {
+      connectGoogleFormsManualCsv: vi.fn(async () => connectedGoogleFormsSource()),
+      updateGoogleFormsManualCsv: vi.fn(async () => connectedGoogleFormsSource()),
+    }
+    const lifecycleCommands: SourceLifecycleCommandPort = {
+      disconnect: vi.fn(),
+      requestSync: vi.fn(),
+      requestAllSyncs: vi.fn(),
     }
     const application = createDataSourceCommandApplication({
       workspace,
-      store: dataSourceStore(),
+      queryPort: query,
+      imapCommands,
+      formsCommands,
+      lifecycleCommands,
       imapConnectionTester: successfulTester,
       imapCredentialReader: {
         async readImapPassword() {
           throw new Error("unexpected secret read")
         },
       },
-      commandRegistry: registry,
     })
 
     await application.connectImap({
+      displayName: "Primary inbox",
       host: "imap.example.com",
       port: 993,
       encryption: "ssl",
@@ -228,11 +240,12 @@ describe("data source application", () => {
       fileName: "practice-intake.csv",
       identityColumn: "Email Address",
       timestampColumn: "Timestamp",
-      csvText: "Timestamp,Email Address\n2026-05-10T09:15:00.000Z,anna@example.com",
+      csvText:
+        "Timestamp,Email Address\n2026-05-10T09:15:00.000Z,anna@example.com",
     })
 
-    expect(registry.imap.connect).toHaveBeenCalledOnce()
-    expect(registry.forms.connectManualCsv).toHaveBeenCalledOnce()
+    expect(imapCommands.connectImap).toHaveBeenCalledOnce()
+    expect(formsCommands.connectGoogleFormsManualCsv).toHaveBeenCalledOnce()
   })
 
   it("connects IMAP and persists verified folder snapshot without returning the password", async () => {
@@ -271,6 +284,7 @@ describe("data source application", () => {
     })
 
     const result = await application.connectImap({
+      displayName: "Primary inbox",
       host: " imap.example.com ",
       port: 993,
       encryption: "ssl",
@@ -289,6 +303,7 @@ describe("data source application", () => {
     expect(persistedConnections).toMatchObject([
       {
         workspaceId: workspace.id,
+        displayName: "Primary inbox",
         password: "top-secret",
         connection: {
           host: "imap.example.com",
@@ -355,6 +370,7 @@ describe("data source application", () => {
     })
 
     const result = await application.updateImapConnectionSettings("source_1", {
+      displayName: "Primary inbox",
       host: " IMAP.NEW.COM ",
       port: "993",
       encryption: "starttls",
@@ -362,13 +378,16 @@ describe("data source application", () => {
       password: "",
     })
 
-    expect(result).toMatchObject({ data: { connection: { host: "imap.new.com" } } })
+    expect(result).toMatchObject({
+      data: { connection: { host: "imap.new.com" } },
+    })
     expect(reads).toEqual([{ workspaceId: workspace.id, sourceId: "source_1" }])
     expect(testedConnections).toMatchObject([
       { host: "imap.new.com", password: "stored-secret" },
     ])
     expect(updatedConnections).toMatchObject([
       {
+        displayName: "Primary inbox",
         connection: {
           host: "imap.new.com",
           port: 993,
@@ -432,6 +451,7 @@ describe("data source application", () => {
 
     await expect(
       application.updateImapConnectionSettings("source_1", {
+        displayName: "Primary inbox",
         host: "imap.new.com",
         port: 993,
         encryption: "ssl",
@@ -619,7 +639,9 @@ describe("data source application", () => {
       },
     })
 
-    await expect(application.refreshImapFolders("source_1")).resolves.toMatchObject({
+    await expect(
+      application.refreshImapFolders("source_1")
+    ).resolves.toMatchObject({
       data: {
         folderSnapshot: {
           availableFolders: [{ path: "INBOX", messages: 2000 }],
@@ -676,24 +698,6 @@ describe("data source application", () => {
       imapCredentialReader: {
         async readImapPassword() {
           throw new Error("policy should run before secret read")
-        },
-      },
-      commandRegistry: {
-        imap: {
-          connect: vi.fn(async () => {
-            throw new Error("policy should run before registry")
-          }),
-          updateConnectionSettings: vi.fn(),
-          updateIntakeSettings: vi.fn(),
-          refreshFolders: vi.fn(),
-        },
-        forms: {
-          connectManualCsv: vi.fn(),
-        },
-        lifecycle: {
-          disconnect: vi.fn(),
-          requestSync: vi.fn(),
-          requestAllConfiguredSyncs: vi.fn(),
         },
       },
     })

@@ -12,5 +12,15 @@ export async function loadSourceNavItems(
   repository: SourceCatalogRepository = getSourceCatalogRepository()
 ): Promise<SourceNavItem[]> {
   const sources = await repository.listDataSources()
-  return sources.map(({ id, title }) => ({ id, title }))
+  return sources.flatMap((source) =>
+    source.kind === "data_source"
+      ? [
+          {
+            sourceType: source.sourceType,
+            sourceSlug: source.sourceSlug,
+            title: source.title,
+          },
+        ]
+      : []
+  )
 }

@@ -11,6 +11,7 @@ import type {
 } from "@/features/data-sources/types"
 
 export type ImapConnectionSettingsCommand = {
+  displayName?: string
   host: string
   port: number | string
   encryption: string
@@ -39,8 +40,15 @@ export type ImapIntakeSettingsCommand = {
 
 export type ImapConnectCommandDraft = ImapConnectionSettingsCommand &
   ImapIntakeSettingsCommand & {
+    displayName: string
     password: string
   }
+
+export function normalizeDataSourceDisplayName(value: string): string {
+  const displayName = value.trim()
+  if (!displayName) throw new Error("invalid_data_source_name")
+  return displayName
+}
 
 export function buildImapConnectionConfig(
   input: ImapConnectionSettingsCommand
@@ -49,7 +57,13 @@ export function buildImapConnectionConfig(
   const username = input.username.trim()
   const port = Number(input.port)
 
-  if (!host || !username || !Number.isInteger(port) || port < 1 || port > 65535) {
+  if (
+    !host ||
+    !username ||
+    !Number.isInteger(port) ||
+    port < 1 ||
+    port > 65535
+  ) {
     throw new Error("invalid_imap_config")
   }
 
@@ -103,51 +117,50 @@ function coerceImapFolders(value: unknown): ImapFolder[] {
   if (!Array.isArray(value)) return []
 
   const folders = value.flatMap((entry) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return []
-      }
-      const path = "path" in entry ? String(entry.path).trim() : ""
-      if (!path) return []
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return []
+    }
+    const path = "path" in entry ? String(entry.path).trim() : ""
+    if (!path) return []
 
-      const messages =
-        "messages" in entry &&
-        typeof entry.messages === "number" &&
-        Number.isInteger(entry.messages) &&
-        entry.messages >= 0
-          ? entry.messages
-          : null
+    const messages =
+      "messages" in entry &&
+      typeof entry.messages === "number" &&
+      Number.isInteger(entry.messages) &&
+      entry.messages >= 0
+        ? entry.messages
+        : null
 
-      const specialUse =
-        "specialUse" in entry && typeof entry.specialUse === "string"
-          ? entry.specialUse.trim() || null
-          : null
-      const flags =
-        "flags" in entry && isIterable(entry.flags)
-          ? Array.from(entry.flags)
-              .flatMap((flag) => {
-                if (typeof flag !== "string") return []
-                const trimmed = flag.trim()
-                return trimmed ? [trimmed] : []
-              })
-          : []
+    const specialUse =
+      "specialUse" in entry && typeof entry.specialUse === "string"
+        ? entry.specialUse.trim() || null
+        : null
+    const flags =
+      "flags" in entry && isIterable(entry.flags)
+        ? Array.from(entry.flags).flatMap((flag) => {
+            if (typeof flag !== "string") return []
+            const trimmed = flag.trim()
+            return trimmed ? [trimmed] : []
+          })
+        : []
 
-      return [{
+    return [
+      {
         path,
         messages,
         ...(specialUse ? { specialUse } : {}),
         ...(flags.length > 0 ? { flags } : {}),
-      }]
-    })
+      },
+    ]
+  })
 
-  return Array.from(new Map(folders.map((folder) => [folder.path, folder])).values())
+  return Array.from(
+    new Map(folders.map((folder) => [folder.path, folder])).values()
+  )
 }
 
 function isIterable(value: unknown): value is Iterable<unknown> {
-  return (
-    value !== null &&
-    typeof value === "object" &&
-    Symbol.iterator in value
-  )
+  return value !== null && typeof value === "object" && Symbol.iterator in value
 }
 
 export function normalizeImapMessageFilters(

@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest"
 
 import { createImapSourceSyncAdapter } from "@/features/data-sources/adapters/imap-source-sync-adapter"
 import type { ConnectorIngestionPort } from "@/features/clients/application/connector-ingestion"
-import type { DataSourceReader, ImapDataSource } from "@/features/data-sources/types"
+import type {
+  DataSourceQueryPort,
+  ImapDataSource,
+} from "@/features/data-sources/types"
 
 function imapSource(): ImapDataSource {
   return {
@@ -10,6 +13,7 @@ function imapSource(): ImapDataSource {
     workspaceId: "workspace_1",
     type: "imap",
     displayName: "IMAP mailbox",
+    sourceSlug: "imap-mailbox",
     status: "connected",
     configVersion: 1,
     connection: {
@@ -37,13 +41,13 @@ function imapSource(): ImapDataSource {
   }
 }
 
-function reader(source: ImapDataSource | null): DataSourceReader {
+function reader(source: ImapDataSource | null): DataSourceQueryPort {
   return {
     async listForWorkspace() {
       throw new Error("unexpected list")
     },
-    async findForWorkspace() {
-      throw new Error("unexpected find")
+    async findBySlugForWorkspace() {
+      throw new Error("unexpected find by slug")
     },
     async findByIdForWorkspace() {
       return source

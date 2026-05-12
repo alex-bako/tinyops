@@ -19,7 +19,6 @@ import {
 
 export { CONNECTOR_IDS, getConnectorMetadata }
 export type {
-  ConnectorCardinality,
   ConnectorId,
   ConnectorMetadata,
   DataSourceAuth,
@@ -45,7 +44,7 @@ export type DataSourceStat = {
 }
 
 export type DataSourceGoogleFormsConnection = {
-  sourceRowId: string
+  sourceId: string
   externalFormId: string
   displayName: string
   connectionMode: GoogleFormsDataSource["connectionMode"]
@@ -78,17 +77,27 @@ export type DataSourceImapSettings = {
 
 export type ConnectorDefinition = ConnectorMetadata
 
-export type DataSource = ConnectorDefinition & {
-  sourceRowId?: string
-  sourceRowIds: string[]
-  connected: boolean
-  health?: DataSourceHealth
-  lastSync?: string
-  summaryStatId?: DataSourceStatId
+export type ConnectorTypeCatalogItem = ConnectorDefinition & {
+  kind: "connector_type"
+  connected: false
+  stats: []
+}
+
+export type WorkspaceDataSourceCatalogItem = ConnectorDefinition & {
+  kind: "data_source"
+  sourceId: string
+  sourceType: ConnectorId
+  sourceSlug: string
+  connected: true
+  health: DataSourceHealth
+  lastSync: string
+  summaryStatId: DataSourceStatId
   stats: DataSourceStat[]
   imap?: DataSourceImapSettings
   forms?: DataSourceGoogleFormsSettings
 }
+
+export type DataSource = ConnectorTypeCatalogItem | WorkspaceDataSourceCatalogItem
 
 export type HomeSourceRow = {
   id: ConnectorId
@@ -111,32 +120,36 @@ export function composeWorkspaceConnectorCatalog(
   workspaceSources: WorkspaceDataSource[],
   definitions: ConnectorDefinition[] = CONNECTOR_DEFINITIONS
 ): DataSource[] {
-  const googleFormsSources = workspaceSources.filter(isGoogleFormsSource)
-
-  return definitions.map((definition) => {
-    if (definition.id === "forms" && googleFormsSources.length > 0) {
-      return connectedGoogleFormsSource(definition, googleFormsSources)
-    }
-
-    const workspaceSource = workspaceSources.find(
-      (source) => source.type === definition.id
+  const connected = workspaceSources.flatMap((source) => {
+    const definition = definitions.find(
+      (candidate) => candidate.id === source.type
     )
-    if (!workspaceSource) return disconnectedSource(definition)
-
-    if (workspaceSource.type === "imap") {
-      return connectedImapSource(definition, workspaceSource)
-    }
-
-    return disconnectedSource(definition)
+    if (!definition) return []
+    if (source.type === "imap") return [connectedImapSource(definition, source)]
+    if (source.type === "forms")
+      return [connectedGoogleFormsSource(definition, source)]
+    return []
   })
+
+  return [...connected, ...definitions.map(disconnectedSource)]
 }
 
-export function connectedSources(sources: DataSource[]): DataSource[] {
-  return sources.filter((source) => source.connected)
+export function connectedSources(
+  sources: DataSource[]
+): WorkspaceDataSourceCatalogItem[] {
+  return sources.filter(
+    (source): source is WorkspaceDataSourceCatalogItem =>
+      source.kind === "data_source"
+  )
 }
 
-export function availableSources(sources: DataSource[]): DataSource[] {
-  return sources.filter((source) => !source.connected)
+export function availableSources(
+  sources: DataSource[]
+): ConnectorTypeCatalogItem[] {
+  return sources.filter(
+    (source): source is ConnectorTypeCatalogItem =>
+      source.kind === "connector_type"
+  )
 }
 
 export function sourceStatusLabel(source: DataSource): string {
@@ -152,7 +165,13 @@ export function findSourceById(
   id: string,
   sources: DataSource[] = composeWorkspaceConnectorCatalog([])
 ): DataSource | null {
-  return sources.find((source) => source.id === id) ?? null
+  return (
+    sources.find(
+      (source) => source.kind === "connector_type" && source.id === id
+    ) ??
+    sources.find((source) => source.id === id) ??
+    null
+  )
 }
 
 export function homeSourceRows(sources: DataSource[]): HomeSourceRow[] {
@@ -166,11 +185,11 @@ export function homeSourceRows(sources: DataSource[]): HomeSourceRow[] {
   }))
 }
 
-function disconnectedSource(source: ConnectorDefinition): DataSource {
+function disconnectedSource(source: ConnectorDefinition): ConnectorTypeCatalogItem {
   return {
     ...source,
+    kind: "connector_type",
     connected: false,
-    sourceRowIds: [],
     stats: [],
   }
 }
@@ -178,13 +197,16 @@ function disconnectedSource(source: ConnectorDefinition): DataSource {
 function connectedImapSource(
   catalogSource: ConnectorDefinition,
   source: ImapDataSource
-): DataSource {
+): WorkspaceDataSourceCatalogItem {
   const syncLabel = syncStatusLabel(source)
 
   return {
     ...catalogSource,
-    sourceRowId: source.id,
-    sourceRowIds: [source.id],
+    kind: "data_source",
+    title: source.displayName,
+    sourceId: source.id,
+    sourceType: source.type,
+    sourceSlug: source.sourceSlug,
     sub: source.connection.username,
     connected: true,
     health: imapHealth(source),
@@ -217,49 +239,43 @@ function connectedImapSource(
 
 function connectedGoogleFormsSource(
   catalogSource: ConnectorDefinition,
-  sources: GoogleFormsDataSource[]
-): DataSource {
-  const orderedSources = [...sources].sort(compareGoogleFormsSources)
-  const syncLabel = googleFormsSyncStatusLabel(orderedSources)
-  const rowCount = orderedSources.reduce(
-    (total, source) => total + (source.latestUpload?.rowCount ?? 0),
-    0
-  )
+  source: GoogleFormsDataSource
+): WorkspaceDataSourceCatalogItem {
+  const syncLabel = syncStatusLabel(source)
+  const rowCount = source.latestUpload?.rowCount ?? 0
 
   return {
     ...catalogSource,
+    kind: "data_source",
+    title: source.displayName,
     auth: "multi",
-    sourceRowIds: orderedSources.map((source) => source.id),
-    ...(orderedSources.length === 1
-      ? { sourceRowId: orderedSources[0]?.id }
-      : {}),
-    sub:
-      orderedSources.length === 1
-        ? orderedSources[0]?.displayName ?? catalogSource.sub
-        : `${orderedSources.length} forms connected`,
+    sourceId: source.id,
+    sourceType: source.type,
+    sourceSlug: source.sourceSlug,
+    sub: catalogSource.title,
     connected: true,
-    health: orderedSources.some((source) => googleFormsHealth(source) === "error")
-      ? "error"
-      : "healthy",
+    health: googleFormsHealth(source),
     lastSync: syncLabel.toLowerCase(),
     summaryStatId: "submissions",
     stats: [
       { id: "submissions", label: "Responses", value: String(rowCount) },
-      { id: "events", label: "Forms", value: String(orderedSources.length) },
+      { id: "events", label: "Files", value: source.latestUpload ? "1" : "0" },
       { id: "synced", label: "Sync", value: syncLabel },
     ],
     forms: {
-      connections: orderedSources.map((source) => ({
-        sourceRowId: source.id,
-        externalFormId: source.externalFormId,
-        displayName: source.displayName,
-        connectionMode: source.connectionMode,
-        mapping: source.mapping,
-        latestUpload: source.latestUpload,
-        syncStatus: source.sync.status,
-        lastError: source.sync.lastError,
-        syncRuns: source.syncRuns ?? [],
-      })),
+      connections: [
+        {
+          sourceId: source.id,
+          externalFormId: source.externalFormId,
+          displayName: source.displayName,
+          connectionMode: source.connectionMode,
+          mapping: source.mapping,
+          latestUpload: source.latestUpload,
+          syncStatus: source.sync.status,
+          lastError: source.sync.lastError,
+          syncRuns: source.syncRuns ?? [],
+        },
+      ],
     },
   }
 }
@@ -272,23 +288,16 @@ function imapHealth(source: ImapDataSource): DataSourceHealth {
 }
 
 function googleFormsHealth(source: GoogleFormsDataSource): DataSourceHealth {
-  if (source.status === "error" || source.sync.status === "error") return "error"
+  if (source.status === "error" || source.sync.status === "error")
+    return "error"
   return "healthy"
 }
 
-function syncStatusLabel(source: ImapDataSource) {
+function syncStatusLabel(source: ImapDataSource | GoogleFormsDataSource) {
   if (source.sync.status === "error") return "Error"
   if (source.sync.status === "running") return "Syncing"
   if (source.sync.status === "queued") return "Queued"
   if (source.sync.lastSyncedAt) return "Synced"
-  return "Ready"
-}
-
-function googleFormsSyncStatusLabel(sources: GoogleFormsDataSource[]) {
-  if (sources.some((source) => source.sync.status === "error")) return "Error"
-  if (sources.some((source) => source.sync.status === "running")) return "Syncing"
-  if (sources.some((source) => source.sync.status === "queued")) return "Queued"
-  if (sources.some((source) => source.sync.lastSyncedAt)) return "Synced"
   return "Ready"
 }
 
@@ -297,19 +306,4 @@ function historyWindowLabel(value: ImapDataSource["intake"]["historyWindow"]) {
   if (value === "90d") return "90 days"
   if (value === "all") return "All"
   return "12 months"
-}
-
-function isGoogleFormsSource(
-  source: WorkspaceDataSource
-): source is GoogleFormsDataSource {
-  return source.type === "forms"
-}
-
-function compareGoogleFormsSources(
-  left: GoogleFormsDataSource,
-  right: GoogleFormsDataSource
-) {
-  const rightUploaded = right.latestUpload?.uploadedAt ?? right.updatedAt
-  const leftUploaded = left.latestUpload?.uploadedAt ?? left.updatedAt
-  return rightUploaded.localeCompare(leftUploaded)
 }

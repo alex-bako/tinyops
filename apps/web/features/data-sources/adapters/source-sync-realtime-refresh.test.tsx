@@ -43,7 +43,7 @@ describe("SourceSyncRealtimeRefresh", () => {
   it("creates a deduped Source Sync refresh spec", () => {
     expect(
       createSourceSyncRealtimeRefreshSpec({
-        sourceRowIds: ["source_2", "source_1", "source_1", ""],
+        sourceIds: ["source_2", "source_1", "source_1", ""],
       })
     ).toEqual({
       channelName: "source-sync:source_1,source_2",
@@ -103,7 +103,7 @@ describe("SourceSyncRealtimeRefresh", () => {
   it("marks the spec for refresh after subscribe when active sync exists", () => {
     expect(
       createSourceSyncRealtimeRefreshSpec({
-        sourceRowIds: ["source_1"],
+        sourceIds: ["source_1"],
         refreshOnSubscribe: true,
       })
     ).toMatchObject({
@@ -112,28 +112,28 @@ describe("SourceSyncRealtimeRefresh", () => {
     })
   })
 
-  it("does not create a refresh spec without source row ids", () => {
+  it("does not create a refresh spec without source ids", () => {
     expect(
-      createSourceSyncRealtimeRefreshSpec({ sourceRowIds: ["", " "] })
+      createSourceSyncRealtimeRefreshSpec({ sourceIds: ["", " "] })
     ).toBeNull()
   })
 
   it("passes the Source Sync refresh spec to realtime infrastructure", () => {
     render(
       <SourceSyncRealtimeRefresh
-        sourceRowIds={["source_2", "source_1", "source_1"]}
+        sourceIds={["source_2", "source_1", "source_1"]}
       />
     )
 
     expect(mocks.specs).toEqual([
       createSourceSyncRealtimeRefreshSpec({
-        sourceRowIds: ["source_2", "source_1", "source_1"],
+        sourceIds: ["source_2", "source_1", "source_1"],
       }),
     ])
   })
 
-  it("renders no realtime infrastructure without source row ids", () => {
-    render(<SourceSyncRealtimeRefresh sourceRowIds={[]} />)
+  it("renders no realtime infrastructure without source ids", () => {
+    render(<SourceSyncRealtimeRefresh sourceIds={[]} />)
 
     expect(mocks.specs).toEqual([])
   })
@@ -141,8 +141,8 @@ describe("SourceSyncRealtimeRefresh", () => {
   it("polls while Source Sync jobs are active as a fallback", async () => {
     render(
       <SourceSyncRealtimeRefresh
-        sourceRowIds={["source_1"]}
-        activeSourceRowIds={["source_1"]}
+        sourceIds={["source_1"]}
+        activeSourceIds={["source_1"]}
       />
     )
 

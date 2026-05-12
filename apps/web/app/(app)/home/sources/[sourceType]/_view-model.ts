@@ -4,6 +4,7 @@ import {
   type DataSourceIcon,
   type SourceId,
 } from "@/lib/sources"
+import type { DataSourceSyncRun } from "@/features/data-sources/types"
 import type {
   SourceActivityRow,
   SourceUiRegistryEntry,
@@ -27,18 +28,18 @@ type SourceDetailHeader = {
 }
 
 type SourceDetailConnection = {
-  sourceId: SourceId
+  sourceType: SourceId
   auth: DataSourceAuth
 }
 
 type SourceDetailConfig = {
-  sourceId: SourceId
+  sourceType: SourceId
 }
 
 type SourceDetailActions = {
   canDisconnect: boolean
   canSync: boolean
-  sourceRowId?: string
+  sourceId?: string
 }
 
 type SourceSyncAttempt = {
@@ -101,22 +102,21 @@ function createSourceDetailView(
   source: DataSource,
   sourceUi: Pick<SourceUiRegistryEntry, "activity" | "logoClassName">
 ): SourceDetailView {
-  const connected = source.connected
-  const sourceRowId = singleSourceRowId(source.sourceRowIds)
+  const connected = source.kind === "data_source"
   return {
     id: source.id,
     connected,
     connection: {
-      sourceId: source.id,
+      sourceType: source.id,
       auth: source.auth,
     },
     config: {
-      sourceId: source.id,
+      sourceType: source.id,
     },
     actions: {
-      canDisconnect: connected && Boolean(sourceRowId),
-      canSync: connected && Boolean(sourceRowId),
-      ...(sourceRowId ? { sourceRowId } : {}),
+      canDisconnect: connected,
+      canSync: connected,
+      ...(connected ? { sourceId: source.sourceId } : {}),
     },
     header: {
       id: source.id,
@@ -134,6 +134,7 @@ function createSourceDetailView(
 }
 
 function syncAttempts(source: DataSource): SourceSyncAttempt[] {
+  if (source.kind !== "data_source") return []
   return [
     ...(source.imap?.syncRuns ?? []),
     ...(source.forms?.connections.flatMap((connection) => connection.syncRuns ?? []) ??
@@ -157,9 +158,7 @@ function syncAttemptLabel(status: SourceSyncAttempt["status"]) {
   return "Running"
 }
 
-function syncAttemptDetail(
-  run: NonNullable<NonNullable<DataSource["imap"]>["syncRuns"]>[number]
-) {
+function syncAttemptDetail(run: DataSourceSyncRun) {
   if (run.status === "failed") {
     return [run.errorCode, run.errorMessage].filter(Boolean).join(": ")
   }
@@ -218,10 +217,6 @@ function plural(label: string, count: number) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value)
-}
-
-function singleSourceRowId(sourceRowIds: string[]) {
-  return sourceRowIds.length === 1 ? sourceRowIds[0] : undefined
 }
 
 export { createSourceDetailView }

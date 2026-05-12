@@ -524,6 +524,7 @@ export type Database = {
           display_name: string
           id: string
           last_verified_at: string | null
+          slug: string
           source_type: string
           status: string
           updated_at: string
@@ -538,6 +539,7 @@ export type Database = {
           display_name: string
           id?: string
           last_verified_at?: string | null
+          slug: string
           source_type: string
           status?: string
           updated_at?: string
@@ -552,6 +554,7 @@ export type Database = {
           display_name?: string
           id?: string
           last_verified_at?: string | null
+          slug?: string
           source_type?: string
           status?: string
           updated_at?: string
@@ -1108,6 +1111,7 @@ export type Database = {
       connect_imap_data_source: {
         Args: {
           imap_available_folders: Json
+          imap_display_name: string
           imap_encryption: string
           imap_history_window: string
           imap_host: string
@@ -1137,6 +1141,7 @@ export type Database = {
         }
         Returns: Json
       }
+      data_source_slug_from_name: { Args: { value: string }; Returns: string }
       disconnect_data_source: {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: undefined
@@ -1200,9 +1205,21 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      update_google_forms_manual_csv_data_source: {
+        Args: {
+          form_display_name: string
+          form_mapping: Json
+          target_source_id: string
+          target_workspace_id: string
+          upload_file_name: string
+          upload_rows: Json
+        }
+        Returns: undefined
+      }
       update_imap_connection_settings: {
         Args: {
           imap_available_folders: Json
+          imap_display_name: string
           imap_encryption: string
           imap_host: string
           imap_password: string

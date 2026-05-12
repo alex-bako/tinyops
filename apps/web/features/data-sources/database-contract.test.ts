@@ -25,7 +25,9 @@ describe("data sources database contract", () => {
     expect(migration).toMatch(/create table public\.data_sources \(/)
     expect(migration).toMatch(/create table public\.data_source_secrets \(/)
     expect(migration).toMatch(/create table public\.data_source_sync_states \(/)
-    expect(migration).toMatch(/create table public\.data_source_intake_configs \(/)
+    expect(migration).toMatch(
+      /create table public\.data_source_intake_configs \(/
+    )
     expect(migration).toMatch(
       /alter table public\.data_sources enable row level security;/
     )
@@ -40,11 +42,16 @@ describe("data sources database contract", () => {
     )
   })
 
-  it("keeps one active connector per workspace and type except Google Forms modes", () => {
+  it("stores plural connector instances with stable slugs and duplicate guards", () => {
     const migration = migrationSource()
 
-    expect(migration).toMatch(/data_sources_one_active_per_workspace_singleton_type/)
-    expect(migration).toMatch(/where disconnected_at is null\s+and source_type <> 'forms'/)
+    expect(migration).toMatch(/slug text/)
+    expect(migration).toMatch(/data_sources_active_slug_unique/)
+    expect(migration).toMatch(/data_sources_active_display_name_unique/)
+    expect(migration).toMatch(
+      /drop index if exists public\.data_sources_one_active_per_workspace_singleton_type/
+    )
+    expect(migration).toMatch(/data_sources_one_active_imap_account/)
     expect(migration).toMatch(/data_sources_one_active_google_form_per_mode/)
     expect(migration).toMatch(/config->>'externalFormId'/)
     expect(migration).toMatch(/config->>'connectionMode'/)
@@ -54,7 +61,9 @@ describe("data sources database contract", () => {
     const migration = migrationSource()
 
     expect(migration).toMatch(/function public\.connect_imap_data_source/)
-    expect(migration).toMatch(/function public\.update_imap_connection_settings/)
+    expect(migration).toMatch(
+      /function public\.update_imap_connection_settings/
+    )
     expect(migration).toMatch(/function public\.update_imap_intake_config/)
     expect(migration).toMatch(/function public\.update_imap_folder_snapshot/)
     expect(migration).toMatch(/function public\.is_valid_imap_message_filters/)
@@ -62,13 +71,17 @@ describe("data sources database contract", () => {
     expect(migration).toMatch(/vault\.create_secret/)
     expect(migration).toMatch(/insert into public\.data_source_secrets/)
     expect(migration).toMatch(/imap_password/)
-    expect(migration).toMatch(/grant execute on function public\.connect_imap_data_source/)
+    expect(migration).toMatch(
+      /grant execute on function public\.connect_imap_data_source/
+    )
   })
 
   it("limits source management to owner and admin roles", () => {
     const migration = migrationSource()
 
-    expect(migration).toMatch(/public\.workspace_actor_role\(workspace_id\) is not null/)
+    expect(migration).toMatch(
+      /public\.workspace_actor_role\(workspace_id\) is not null/
+    )
     expect(migration).toMatch(
       /public\.workspace_actor_role\(workspace_id\) in \('owner', 'admin'\)/
     )
@@ -153,7 +166,9 @@ describe("data sources database contract", () => {
   it("stores Google Forms manual CSV uploads for sync worker ingestion", () => {
     const migration = migrationSource()
 
-    expect(migration).toMatch(/create table public\.google_forms_csv_uploads \(/)
+    expect(migration).toMatch(
+      /create table public\.google_forms_csv_uploads \(/
+    )
     expect(migration).toMatch(/create table public\.google_forms_csv_rows \(/)
     expect(migration).toMatch(/response_key text not null/)
     expect(migration).toMatch(/unique \(source_id, response_key\)/)
@@ -162,7 +177,9 @@ describe("data sources database contract", () => {
     )
     expect(migration).toMatch(/form_connection_mode = 'manual_csv'/)
     expect(migration).toMatch(/invalid_google_forms_csv_mapping/)
-    expect(migration).toMatch(/grant execute on function public\.connect_google_forms_manual_csv_data_source/)
+    expect(migration).toMatch(
+      /grant execute on function public\.connect_google_forms_manual_csv_data_source/
+    )
   })
 
   it("exposes IMAP password decrypt through a service-role-only RPC", () => {
@@ -193,8 +210,12 @@ describe("data sources database contract", () => {
     )
     expect(migration).toMatch(/returns text\[\]/)
     expect(migration).toMatch(/security definer/)
-    expect(migration).toMatch(/raw_payload\s*->\s*'metadata'\s*->\s*'imapThread'\s*->\s*'relatedMessageIds'/)
-    expect(migration).toMatch(/raw_payload\s*->\s*'metadata'\s*->>\s*'messageId'/)
+    expect(migration).toMatch(
+      /raw_payload\s*->\s*'metadata'\s*->\s*'imapThread'\s*->\s*'relatedMessageIds'/
+    )
+    expect(migration).toMatch(
+      /raw_payload\s*->\s*'metadata'\s*->>\s*'messageId'/
+    )
     expect(migration).toMatch(
       /grant execute on function public\.read_imap_thread_message_ids\(uuid, uuid\)\s+to service_role;/
     )
