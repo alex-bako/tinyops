@@ -9,6 +9,11 @@ import {
   type ClientStatus,
   type ClientTimelineEvent,
 } from "@/features/clients/domain/client-profile"
+import {
+  CONNECTOR_METADATA,
+  isConnectorId,
+  type DataSourceIcon,
+} from "@/features/data-sources/connector-metadata"
 
 export { type ClientFlag, type ClientSearchResult, type ClientStatus }
 
@@ -47,6 +52,7 @@ export type PropertyIcon =
 export type ClientPropertyValue =
   | { kind: "text"; value: string }
   | { kind: "tags"; values: string[] }
+  | { kind: "source-tags"; sources: { icon: DataSourceIcon; label: string }[] }
   | {
       kind: "badge"
       variant: "active" | "neutral" | "warn" | "sensitive" | "dnc"
@@ -125,6 +131,16 @@ export function createClientDetail(profile: ClientProfile): ClientDetail {
       event.sourceId ? [event.sourceId] : []
     )
   )
+  const sourceTypes = new Set(
+    profile.timeline.flatMap((event) =>
+      event.sourceType && isConnectorId(event.sourceType)
+        ? [event.sourceType]
+        : []
+    )
+  )
+  const sourceTags = CONNECTOR_METADATA.filter((connector) =>
+    sourceTypes.has(connector.id)
+  ).map((connector) => ({ icon: connector.icon, label: connector.title }))
   const status = coerceClientStatus(profile.status, profile.doNotContact)
   const flags = clientFlagsFor({
     status,
@@ -182,7 +198,10 @@ export function createClientDetail(profile: ClientProfile): ClientDetail {
       {
         key: "Sources",
         icon: "plug",
-        value: { kind: "tags", values: [`${sourceIds.size}`] },
+        value:
+          sourceTags.length > 0
+            ? { kind: "source-tags", sources: sourceTags }
+            : { kind: "text", value: "None" },
       },
     ],
     timeline,

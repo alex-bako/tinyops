@@ -46,6 +46,7 @@ describe("client detail view model", () => {
       {
         id: "event_email",
         sourceId: "source_1",
+        sourceType: "imap",
         type: "email",
         occurredAt: "2026-03-08T00:00:00.000Z",
         display: {
@@ -58,6 +59,7 @@ describe("client detail view model", () => {
       {
         id: "event_form",
         sourceId: "source_2",
+        sourceType: "forms",
         type: "form",
         occurredAt: "2026-03-03T00:00:00.000Z",
         display: {

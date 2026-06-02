@@ -31,6 +31,7 @@ const baseRow: ClientRow = {
       workspace_id: "workspace_1",
       client_id: "client_1",
       source_id: "source_1",
+      source: { display_name: "Support inbox", source_type: "imap" },
       raw_record_id: "raw_1",
       event_type: "email_received",
       event_date: "2026-03-08T10:00:00.000Z",
@@ -50,6 +51,7 @@ const baseRow: ClientRow = {
       workspace_id: "workspace_1",
       client_id: "client_1",
       source_id: "source_2",
+      source: { display_name: "Monthly feedback", source_type: "forms" },
       raw_record_id: "raw_2",
       event_type: "form_submission",
       event_date: "2026-05-07T08:00:00.000Z",
@@ -97,6 +99,15 @@ describe("client mappers", () => {
       lastContact: "May 7",
       status: "active",
       flags: ["sensitive"],
+    })
+    expect(
+      detail.properties.find((property) => property.key === "Sources")?.value
+    ).toEqual({
+      kind: "source-tags",
+      sources: [
+        { icon: "mail", label: "IMAP mailbox" },
+        { icon: "clipboard-list", label: "Google Forms" },
+      ],
     })
     expect(detail.timeline.map((event) => event.body.text)).toEqual([
       "Progress update",

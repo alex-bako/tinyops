@@ -15,6 +15,7 @@ export type ClientTimelineEventRow = {
   source_id: string | null
   source?: {
     display_name: string | null
+    source_type: string | null
   } | null
   raw_record_id: string | null
   event_type: string
@@ -85,7 +86,8 @@ const CLIENT_COLUMNS = `
     client_id,
     source_id,
     source:data_sources (
-      display_name
+      display_name,
+      source_type
     ),
     raw_record_id,
     event_type,
@@ -195,6 +197,7 @@ function mapTimelineEventRow(row: ClientTimelineEventRow): ClientTimelineEntry {
     workspaceId: row.workspace_id,
     clientId: row.client_id,
     sourceId: row.source_id,
+    sourceType: row.source?.source_type ?? null,
     rawRecordId: row.raw_record_id,
     eventType: row.event_type,
     occurredAt: row.event_date,
