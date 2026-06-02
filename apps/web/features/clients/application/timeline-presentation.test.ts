@@ -5,7 +5,10 @@ import {
   createTimelineEventViews,
 } from "@/features/clients/application/timeline-presentation"
 import type { ClientTimelineEvent } from "@/features/clients/domain/client-profile"
-import { createQaTimelineEventBody } from "@/features/clients/domain/timeline-event-body"
+import {
+  createQaTimelineEventBody,
+  createTextTimelineEventBody,
+} from "@/features/clients/domain/timeline-event-body"
 
 const event = (
   overrides: Partial<ClientTimelineEvent> = {}
@@ -31,14 +34,12 @@ describe("timeline event presentation", () => {
     expect(createTimelineEventView(event()).eventKey).toBe("event_1")
   })
 
-  it("centralizes detail fallback and sensitive reveal labels", () => {
+  it("maps body blocks and sensitivity for inline rendering", () => {
     expect(createTimelineEventView(event())).toMatchObject({
       title: "Monthly feedback",
       summary: "Goal: More confidence",
       bodyItems: [{ kind: "qa", question: "Goal", answer: "More confidence" }],
       sensitive: true,
-      collapsedLabel: "Show sensitive body",
-      expandedLabel: "Hide sensitive body",
       sourceLabel: "form · sensitive",
     })
 
@@ -59,10 +60,26 @@ describe("timeline event presentation", () => {
       title: "Replay access",
       summary: "No body text",
       sensitive: false,
-      collapsedLabel: "Show body",
-      expandedLabel: "Hide body",
       sourceLabel: "email",
     })
+  })
+
+  it("strips quoted reply history from email bodies", () => {
+    const view = createTimelineEventView(
+      event({
+        id: "event_email",
+        type: "email",
+        body: createTextTimelineEventBody(
+          "Thanks, that works.\nAlex <alex@example.com> wrote:\n> Can we move the meeting?"
+        ),
+        display: { title: "Re: Schedule", summary: "Thanks, that works." },
+        sensitivityLevel: 0,
+      })
+    )
+
+    expect(view.bodyItems).toEqual([
+      { kind: "text", text: "Thanks, that works." },
+    ])
   })
 
   it("formats domain event dates only at the presentation seam", () => {

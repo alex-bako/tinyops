@@ -5,6 +5,7 @@ import {
   type ClientTimelineEvent,
   type TimelineEventType,
 } from "@/features/clients/domain/client-profile"
+import { stripQuotedReplyChain } from "@/features/clients/domain/timeline-event-body-quotes"
 
 export type ClientTimelineBodyItem =
   | { kind: "text"; text: string }
@@ -19,8 +20,6 @@ export type ClientTimelineEventView = {
   sensitive: boolean
   tone: TimelineTone
   sourceLabel: string
-  collapsedLabel: string
-  expandedLabel: string
 }
 
 const TONE_OF: Record<TimelineEventType, TimelineTone> = {
@@ -58,13 +57,20 @@ export function createTimelineEventView(
     date: formatTimelineDate(event.occurredAt),
     title: event.display.title,
     summary: event.display.summary,
-    bodyItems: event.body.blocks.map((block) => ({ ...block })),
+    bodyItems: event.body.blocks.map(toBodyItem),
     sensitive,
     tone: TONE_OF[event.type],
     sourceLabel: `${LABEL_OF[event.type]}${sensitive ? " · sensitive" : ""}`,
-    collapsedLabel: sensitive ? "Show sensitive body" : "Show body",
-    expandedLabel: sensitive ? "Hide sensitive body" : "Hide body",
   }
+}
+
+function toBodyItem(
+  block: ClientTimelineEvent["body"]["blocks"][number]
+): ClientTimelineBodyItem {
+  if (block.kind === "text") {
+    return { kind: "text", text: stripQuotedReplyChain(block.text) }
+  }
+  return { ...block }
 }
 
 function formatTimelineDate(value: string): string {
