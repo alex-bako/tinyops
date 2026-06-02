@@ -266,6 +266,16 @@ function FormPane({
               autoComplete="email"
               required
               readOnly={pending || submitted}
+              onKeyDown={(event) => {
+                // Explicitly submit on Enter. Some password managers / autofill
+                // overlays swallow the browser's implicit form submission on
+                // email login fields, leaving the form stuck until the button
+                // is clicked manually.
+                if (event.key === "Enter" && !pending && !submitted) {
+                  event.preventDefault()
+                  event.currentTarget.form?.requestSubmit()
+                }
+              }}
               className={cn(
                 "h-11 rounded-md border-input bg-card px-3.5 font-mono text-[14px] text-foreground",
                 "placeholder:text-muted-foreground/45",
