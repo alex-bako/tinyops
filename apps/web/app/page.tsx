@@ -1,12 +1,14 @@
-import type { Metadata } from "next"
+import { redirect } from "next/navigation"
 
-import DesignSystemPageClient from "./design-system-page-client"
+import { DEFAULT_SIGNED_IN_PATH, LOGIN_PATH } from "@/lib/auth/route-policy"
+import { readSupabaseAppProfileSession } from "@/lib/auth/profile"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 
-export const metadata: Metadata = {
-  title: "TinyOps Design System",
-  description: "TinyOps interface foundations and workspace UI patterns.",
-}
+export const dynamic = "force-dynamic"
 
-export default function Page() {
-  return <DesignSystemPageClient />
+export default async function RootPage() {
+  const supabase = await createServerSupabaseClient()
+  const session = await readSupabaseAppProfileSession(supabase)
+
+  redirect(session ? DEFAULT_SIGNED_IN_PATH : LOGIN_PATH)
 }
