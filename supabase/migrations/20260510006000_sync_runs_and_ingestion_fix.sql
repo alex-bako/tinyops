@@ -182,13 +182,10 @@ begin
         continue;
       end if;
 
-      v_slug_base := lower(coalesce(
+      v_slug_base := public.slugify_client_name(coalesce(
         v_external_name,
         split_part(v_external_email, '@', 1)
       ));
-      v_slug_base := trim(
-        both '-' from regexp_replace(v_slug_base, '[^a-z0-9]+', '-', 'g')
-      );
       if v_slug_base = '' then
         v_slug_base := 'client';
       end if;
