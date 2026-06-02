@@ -1,10 +1,11 @@
-import { CopyIcon, EyeOffIcon, PlusIcon, SendIcon } from "lucide-react"
+import { EyeOffIcon, PlusIcon, SendIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { ClientIdentityHeader } from "@/components/client-identity"
 import type { ClientDetailHeaderView } from "../_view-model"
+import { CopyEmailButton } from "./copy-email-button"
 
 export function ClientHeader({
   header,
@@ -34,10 +35,7 @@ export function ClientHeader({
           <EyeOffIcon />
           Do not contact
         </Button>
-        <Button variant="secondary" size="sm">
-          <CopyIcon />
-          Copy email
-        </Button>
+        <CopyEmailButton email={header.email} />
         <Button variant="primary" size="sm">
           <SendIcon />
           Draft email
