@@ -14,6 +14,7 @@ export type TimelineEventType = "email" | "form" | "sent" | "csvimport"
 export type ClientTimelineEvent = {
   id: string
   sourceId: string | null
+  sourceType: string | null
   type: TimelineEventType
   occurredAt: string
   display: TimelineEventDisplayFacts
@@ -31,6 +32,7 @@ export type ClientTimelineEntry = {
   workspaceId: string
   clientId: string
   sourceId: string | null
+  sourceType: string | null
   rawRecordId: string | null
   eventType: string
   occurredAt: string
@@ -147,6 +149,7 @@ export function mapTimelineEntryToEvent(
   return {
     id: event.id,
     sourceId: event.sourceId,
+    sourceType: event.sourceType,
     type: TIMELINE_EVENT_TYPE[event.eventType] ?? "csvimport",
     occurredAt: event.occurredAt,
     display: deriveTimelineEventDisplayFacts({

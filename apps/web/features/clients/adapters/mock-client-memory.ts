@@ -113,6 +113,7 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
     {
       id: "anna-email-replay-access",
       sourceId: "mock-imap",
+      sourceType: "imap",
       type: "email",
       occurredAt: "2026-03-08T00:00:00.000Z",
       display: {
@@ -128,6 +129,7 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
     {
       id: "anna-form-intake",
       sourceId: "mock-forms",
+      sourceType: "forms",
       type: "form",
       occurredAt: "2026-03-03T00:00:00.000Z",
       display: {
@@ -143,6 +145,7 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
     {
       id: "anna-sent-monthly-check-in",
       sourceId: "mock-tinyops",
+      sourceType: null,
       type: "sent",
       occurredAt: "2026-02-28T00:00:00.000Z",
       display: {
@@ -155,6 +158,7 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
     {
       id: "anna-email-welcome",
       sourceId: "mock-imap",
+      sourceType: "imap",
       type: "email",
       occurredAt: "2026-02-12T00:00:00.000Z",
       display: {
@@ -169,6 +173,7 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
     {
       id: "anna-csv-import",
       sourceId: "mock-csv",
+      sourceType: "csv",
       type: "csvimport",
       occurredAt: "2026-02-10T00:00:00.000Z",
       display: {
@@ -301,6 +306,7 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
       {
         id: `${slugify(c.name)}-sent-check-in`,
         sourceId: "mock-tinyops",
+        sourceType: null,
         type: "sent",
         occurredAt: mockOccurredAt(c.lastContact),
         display: {
@@ -315,6 +321,7 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
       {
         id: `${slugify(c.name)}-csv-import`,
         sourceId: "mock-csv",
+        sourceType: "csv",
         type: "csvimport",
         occurredAt: mockOccurredAt(joinedFor(c.cohort)),
         display: {

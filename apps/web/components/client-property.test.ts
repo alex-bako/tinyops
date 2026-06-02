@@ -23,6 +23,23 @@ describe("client property renderer", () => {
     expect(screen.getByText("Send a light monthly check-in.")).toBeInTheDocument()
   })
 
+  it("renders source-tags values with connector labels", () => {
+    render(
+      React.createElement(ClientPropertyValueView, {
+        value: {
+          kind: "source-tags",
+          sources: [
+            { icon: "mail", label: "IMAP mailbox" },
+            { icon: "clipboard-list", label: "Google Forms" },
+          ],
+        },
+      })
+    )
+
+    expect(screen.getByText("IMAP mailbox")).toBeInTheDocument()
+    expect(screen.getByText("Google Forms")).toBeInTheDocument()
+  })
+
   it("renders avoid properties with the care styling", () => {
     render(
       React.createElement(ClientPropertyList, {

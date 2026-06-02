@@ -12,6 +12,7 @@ const event = (
 ): ClientTimelineEvent => ({
   id: "event_1",
   sourceId: "source_1",
+  sourceType: "forms",
   type: "form",
   occurredAt: "2026-05-07T08:00:00.000Z",
   body: createQaTimelineEventBody([

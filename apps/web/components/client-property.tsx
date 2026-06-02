@@ -20,6 +20,8 @@ import { RecordRow } from "@workspace/ui/components/record-row"
 import { EditorialItalic } from "@workspace/ui/components/typography"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { SourceIcon } from "@/components/source-icon"
+
 import type {
   ClientProperty,
   ClientPropertyValue,
@@ -72,6 +74,21 @@ function ClientPropertyValueView({ value }: { value: ClientPropertyValue }) {
       <span className="flex flex-wrap items-center gap-1">
         {value.values.map((tag) => (
           <ClientPropertyTag key={tag}>{tag}</ClientPropertyTag>
+        ))}
+      </span>
+    )
+  }
+
+  if (value.kind === "source-tags") {
+    return (
+      <span className="flex flex-wrap items-center gap-1">
+        {value.sources.map((source) => (
+          <ClientPropertyTag key={source.label}>
+            <span className="inline-flex items-center gap-1">
+              <SourceIcon icon={source.icon} className="size-[12px] opacity-70" />
+              {source.label}
+            </span>
+          </ClientPropertyTag>
         ))}
       </span>
     )
