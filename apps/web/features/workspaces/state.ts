@@ -1,6 +1,7 @@
 import type {
   JoinableWorkspace,
   Workspace,
+  WorkspaceFeatureData,
   WorkspaceUsageSnapshot,
 } from "@/features/workspaces/types"
 import { EMPTY_WORKSPACE_USAGE } from "@/features/workspaces/types"
@@ -40,6 +41,30 @@ export function createWorkspaceFeatureState({
     joinableWorkspaces,
     usageByWorkspaceId: usageByWorkspaceId ?? {},
     activeId,
+  })
+}
+
+/**
+ * Re-derive feature state from fresh server `data` (e.g. after
+ * `router.refresh()`), while preserving the user's currently selected workspace
+ * when it still exists. This lets background server refreshes update derived
+ * values such as the sidebar client count without resetting the active tab.
+ */
+export function reconcileWorkspaceFeatureState(
+  prev: WorkspaceFeatureState,
+  data: WorkspaceFeatureData
+): WorkspaceFeatureState {
+  const activeWorkspaceId = data.workspaces.some(
+    (workspace) => workspace.id === prev.activeId
+  )
+    ? prev.activeId
+    : data.activeWorkspaceId
+
+  return createWorkspaceFeatureState({
+    workspaces: data.workspaces,
+    joinableWorkspaces: data.joinableWorkspaces,
+    usageByWorkspaceId: data.usageByWorkspaceId,
+    activeWorkspaceId,
   })
 }
 

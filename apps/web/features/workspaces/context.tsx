@@ -15,6 +15,7 @@ import {
 } from "@/features/workspaces/actions"
 import {
   createWorkspaceFeatureState,
+  reconcileWorkspaceFeatureState,
   type WorkspaceFeatureState,
 } from "@/features/workspaces/state"
 import type { WorkspaceProfilePatch } from "@/features/workspaces/use-cases"
@@ -55,6 +56,13 @@ export function WorkspaceFeatureProvider({
     createWorkspaceFeatureState(data)
   )
   const [, startTransition] = React.useTransition()
+
+  // Adopt fresh server data whenever the layout re-renders (navigation or a
+  // realtime-driven `router.refresh()`). `data` only gets a new reference from
+  // the server, so this never clobbers optimistic updates from local commands.
+  React.useEffect(() => {
+    setState((prev) => reconcileWorkspaceFeatureState(prev, data))
+  }, [data])
 
   const applyResult = React.useCallback(
     async (

@@ -24,6 +24,7 @@ import {
 import { SidebarSearchTrigger } from "@/components/sidebar-search-trigger"
 import { SidebarUser } from "@/components/sidebar-user"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
+import { WorkspaceClientsRealtimeRefresh } from "@/features/clients/adapters/workspace-clients-realtime-refresh"
 import { useWorkspaceFeature } from "@/features/workspaces/context"
 import { WORKSPACE_NAV_GROUPS } from "@/features/workspaces/navigation"
 import { buildSidebarNavGroups } from "@/features/workspaces/view-models"
@@ -93,6 +94,7 @@ export function AppSidebar({
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" {...props}>
+      <WorkspaceClientsRealtimeRefresh workspaceId={state.active.id} />
       <SidebarHeader>
         <WorkspaceSwitcher userEmail={userEmail} />
         <SidebarSearchTrigger />

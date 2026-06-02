@@ -55,20 +55,24 @@ function workspace(patch: Partial<Workspace> = {}): Workspace {
 function store({
   workspaces = [],
   invitations = [],
+  clientCounts = {},
 }: {
   workspaces?: Workspace[]
   invitations?: WorkspaceInviteRecord[]
+  clientCounts?: Record<string, number>
 } = {}): WorkspaceStore & {
   created: Workspace[]
   archived: string[]
   updates: unknown[]
   workspaceInvites: WorkspaceInviteRecord[]
+  countedWorkspaceIds: string[]
 } {
   const calls = {
     created: [] as Workspace[],
     archived: [] as string[],
     updates: [] as unknown[],
     workspaceInvites: [...invitations],
+    countedWorkspaceIds: [] as string[],
   }
 
   return {
@@ -118,6 +122,10 @@ function store({
     },
     async revokeWorkspaceInvite(invitationId) {
       calls.updates.push(["revoke", invitationId])
+    },
+    async countWorkspaceClients(workspaceId) {
+      calls.countedWorkspaceIds.push(workspaceId)
+      return clientCounts[workspaceId] ?? 0
     },
     async acceptWorkspaceInvitation(input) {
       const invite = calls.workspaceInvites.find(
@@ -185,6 +193,49 @@ describe("workspace use cases", () => {
     )
 
     expect(data.activeWorkspaceId).toBe("workspace_1")
+  })
+
+  it("populates the active workspace client count from the store", async () => {
+    const fakeStore = store({
+      workspaces: [
+        workspace({ id: "workspace_1", name: "One" }),
+        workspace({ id: "workspace_2", name: "Two" }),
+      ],
+      clientCounts: { workspace_1: 142, workspace_2: 7 },
+    })
+
+    const data = await ensureWorkspaceFeatureData(
+      {
+        userId: "user_1",
+        email: "jamie@example.co",
+        name: "Jamie",
+        activeWorkspaceId: "workspace_1",
+      },
+      fakeStore
+    )
+
+    expect(data.usageByWorkspaceId.workspace_1?.counts.clients).toBe(142)
+    expect(data.usageByWorkspaceId.workspace_1?.sidebarCounts.clients).toBe(142)
+    // Only the active workspace is counted.
+    expect(fakeStore.countedWorkspaceIds).toEqual(["workspace_1"])
+    expect(data.usageByWorkspaceId.workspace_2?.sidebarCounts.clients).toBe(0)
+  })
+
+  it("skips counting clients when there is no active workspace", async () => {
+    const fakeStore = store()
+
+    const data = await ensureWorkspaceFeatureData(
+      {
+        userId: "user_1",
+        email: "jamie@example.co",
+        name: "Jamie",
+        activeWorkspaceId: null,
+      },
+      fakeStore
+    )
+
+    expect(fakeStore.countedWorkspaceIds).toEqual([])
+    expect(data.usageByWorkspaceId).toEqual({})
   })
 
   it("creates workspace invite through workspace store", async () => {

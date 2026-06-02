@@ -223,4 +223,70 @@ describe("supabase workspace store", () => {
       })
     ).rejects.toThrow("duplicate_invite")
   })
+
+  it("counts workspace clients with an exact head query", async () => {
+    const calls: unknown[] = []
+    const client = {
+      from(table: string) {
+        const api = {
+          select(columns: string, options?: unknown) {
+            calls.push({ table, method: "select", columns, options })
+            return api
+          },
+          eq(column: string, value: unknown) {
+            calls.push({ table, method: "eq", column, value })
+            return Promise.resolve({ count: 142, error: null })
+          },
+        }
+        return api
+      },
+    }
+    const store = createSupabaseWorkspaceStore({
+      client: client as never,
+      actorUserId: "user_1",
+    })
+
+    await expect(store.countWorkspaceClients("workspace_1")).resolves.toBe(142)
+    expect(calls).toEqual([
+      {
+        table: "clients",
+        method: "select",
+        columns: "id",
+        options: { count: "exact", head: true },
+      },
+      {
+        table: "clients",
+        method: "eq",
+        column: "workspace_id",
+        value: "workspace_1",
+      },
+    ])
+  })
+
+  it("throws when the client count query fails", async () => {
+    const client = {
+      from() {
+        const api = {
+          select() {
+            return api
+          },
+          eq() {
+            return Promise.resolve({
+              count: null,
+              error: { message: "boom" },
+            })
+          },
+        }
+        return api
+      },
+    }
+    const store = createSupabaseWorkspaceStore({
+      client: client as never,
+      actorUserId: "user_1",
+    })
+
+    await expect(store.countWorkspaceClients("workspace_1")).rejects.toThrow(
+      "Could not count clients"
+    )
+  })
 })

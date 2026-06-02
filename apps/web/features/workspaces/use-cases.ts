@@ -60,6 +60,7 @@ export type WorkspaceStore = {
   }): Promise<void>
   removeMember(membershipId: string): Promise<void>
   revokeWorkspaceInvite(invitationId: string): Promise<void>
+  countWorkspaceClients(workspaceId: string): Promise<number>
 }
 
 export type WorkspaceSession = {
@@ -100,7 +101,11 @@ export async function ensureWorkspaceFeatureData(
   return {
     workspaces,
     joinableWorkspaces: await store.listJoinableWorkspaces(email),
-    usageByWorkspaceId: emptyUsageByWorkspaceId(workspaces),
+    usageByWorkspaceId: await buildUsageByWorkspaceId(
+      workspaces,
+      activeWorkspaceId,
+      store
+    ),
     activeWorkspaceId,
   }
 }
@@ -332,10 +337,25 @@ function sanitizeSensitivityPatch(
   }
 }
 
-function emptyUsageByWorkspaceId(
-  workspaces: Workspace[]
-): Record<string, WorkspaceUsageSnapshot> {
-  return Object.fromEntries(
+async function buildUsageByWorkspaceId(
+  workspaces: Workspace[],
+  activeWorkspaceId: string | null,
+  store: WorkspaceStore
+): Promise<Record<string, WorkspaceUsageSnapshot>> {
+  const usage = Object.fromEntries(
     workspaces.map((workspace) => [workspace.id, EMPTY_WORKSPACE_USAGE])
   )
+
+  // Only the active workspace's usage is surfaced in the UI (`activeUsage`), so
+  // we count just that one. Command paths re-resolve data for the new active
+  // workspace, keeping the displayed count correct after a workspace switch.
+  if (activeWorkspaceId && activeWorkspaceId in usage) {
+    const clients = await store.countWorkspaceClients(activeWorkspaceId)
+    usage[activeWorkspaceId] = {
+      counts: { ...EMPTY_WORKSPACE_USAGE.counts, clients },
+      sidebarCounts: { ...EMPTY_WORKSPACE_USAGE.sidebarCounts, clients },
+    }
+  }
+
+  return usage
 }

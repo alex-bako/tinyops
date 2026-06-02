@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest"
 
-import { createWorkspaceFeatureState } from "@/features/workspaces/state"
-import type { Workspace } from "@/features/workspaces/types"
+import {
+  createWorkspaceFeatureState,
+  reconcileWorkspaceFeatureState,
+} from "@/features/workspaces/state"
+import type {
+  Workspace,
+  WorkspaceUsageSnapshot,
+} from "@/features/workspaces/types"
+
+function usage(clients: number): WorkspaceUsageSnapshot {
+  return {
+    counts: { clients, sources: 0, drafts: 0 },
+    sidebarCounts: { clients, tasks: 0, march: 0, feedback: 0, dnc: 0 },
+  }
+}
 
 function workspace(patch: Partial<Workspace> = {}): Workspace {
   return {
@@ -87,5 +100,45 @@ describe("workspace state", () => {
       sources: 0,
       drafts: 0,
     })
+  })
+
+  it("reconcile adopts fresh usage while preserving the active workspace", () => {
+    const prev = createWorkspaceFeatureState({
+      workspaces: [workspace(), workspace({ id: "other", name: "Other" })],
+      joinableWorkspaces: [],
+      usageByWorkspaceId: { other: usage(3) },
+      activeWorkspaceId: "other",
+    })
+
+    const next = reconcileWorkspaceFeatureState(prev, {
+      workspaces: [workspace(), workspace({ id: "other", name: "Other" })],
+      joinableWorkspaces: [],
+      // Server populated the active workspace with a fresh, higher count.
+      usageByWorkspaceId: { other: usage(9) },
+      activeWorkspaceId: "team",
+    })
+
+    // Selected workspace is preserved even though the server's active id differs.
+    expect(next.activeId).toBe("other")
+    expect(next.activeUsage.sidebarCounts.clients).toBe(9)
+  })
+
+  it("reconcile falls back to server active id when the previous one is gone", () => {
+    const prev = createWorkspaceFeatureState({
+      workspaces: [workspace({ id: "gone", name: "Gone" })],
+      joinableWorkspaces: [],
+      usageByWorkspaceId: {},
+      activeWorkspaceId: "gone",
+    })
+
+    const next = reconcileWorkspaceFeatureState(prev, {
+      workspaces: [workspace()],
+      joinableWorkspaces: [],
+      usageByWorkspaceId: { team: usage(5) },
+      activeWorkspaceId: "team",
+    })
+
+    expect(next.activeId).toBe("team")
+    expect(next.activeUsage.sidebarCounts.clients).toBe(5)
   })
 })
