@@ -71,7 +71,7 @@ const INITIAL_FORMS_CONNECT_STATE: FormsConnectState = {
 }
 
 function FormsConnect({ source }: { source: DataSource }) {
-  const { refresh } = useRouter()
+  const { refresh, replace } = useRouter()
   const [pending, startTransition] = React.useTransition()
   const [state, dispatch] = React.useReducer(
     formsConnectReducer,
@@ -141,7 +141,11 @@ function FormsConnect({ source }: { source: DataSource }) {
         dispatch({ type: "set_error", value: formsErrorLabel(result.error) })
         return
       }
-      refresh()
+      if (connectedSourceId) {
+        refresh()
+      } else {
+        replace(`/home/sources/${result.data.type}/${result.data.sourceSlug}`)
+      }
     })
   }
 

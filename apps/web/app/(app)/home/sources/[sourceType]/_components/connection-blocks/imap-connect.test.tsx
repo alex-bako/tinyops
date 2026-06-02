@@ -11,13 +11,16 @@ import type { DataSource } from "@/lib/sources"
 import { ImapConnect } from "./imap-connect"
 
 const refresh = vi.fn()
+const replace = vi.fn()
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh }),
+  useRouter: () => ({ refresh, replace }),
 }))
 
 vi.mock("@/features/data-sources/actions", () => ({
-  connectImapDataSourceAction: vi.fn(async () => ({ data: {} })),
+  connectImapDataSourceAction: vi.fn(async () => ({
+    data: { type: "imap", sourceSlug: "primary-inbox" },
+  })),
   updateImapConnectionSettingsAction: vi.fn(async () => ({ data: {} })),
 }))
 
@@ -66,6 +69,7 @@ function source(patch: Partial<DataSource> = {}): DataSource {
 describe("ImapConnect", () => {
   beforeEach(() => {
     refresh.mockReset()
+    replace.mockReset()
     vi.mocked(connectImapDataSourceAction).mockClear()
     vi.mocked(updateImapConnectionSettingsAction).mockClear()
   })
@@ -92,5 +96,41 @@ describe("ImapConnect", () => {
       )
     )
     expect(connectImapDataSourceAction).not.toHaveBeenCalled()
+    expect(refresh).toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it("redirects to the new connector page after connecting", async () => {
+    render(
+      <ImapConnect
+        source={{
+          id: "imap",
+          kind: "connector_type",
+          icon: "mail",
+          title: "IMAP mailbox",
+          sub: "Connect a mailbox",
+          category: "Mail",
+          auth: "imap",
+          connected: false,
+          stats: [],
+        }}
+      />
+    )
+
+    fireEvent.change(screen.getByPlaceholderText("Primary inbox"), {
+      target: { value: "Primary inbox" },
+    })
+    fireEvent.change(screen.getByPlaceholderText("imap.example.com"), {
+      target: { value: "imap.example.com" },
+    })
+    fireEvent.change(screen.getByPlaceholderText("hello@example.com"), {
+      target: { value: "hello@example.com" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /Verify & connect/i }))
+
+    await waitFor(() => expect(connectImapDataSourceAction).toHaveBeenCalled())
+    expect(replace).toHaveBeenCalledWith("/home/sources/imap/primary-inbox")
+    expect(refresh).not.toHaveBeenCalled()
+    expect(updateImapConnectionSettingsAction).not.toHaveBeenCalled()
   })
 })
