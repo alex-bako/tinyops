@@ -132,8 +132,7 @@ begin
         continue;
       end if;
 
-      slug_base := lower(coalesce(external_name, split_part(external_email, '@', 1)));
-      slug_base := trim(both '-' from regexp_replace(slug_base, '[^a-z0-9]+', '-', 'g'));
+      slug_base := public.slugify_client_name(coalesce(external_name, split_part(external_email, '@', 1)));
       if slug_base = '' then
         slug_base := 'client';
       end if;

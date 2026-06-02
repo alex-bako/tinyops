@@ -1,5 +1,26 @@
 create extension if not exists pg_trgm;
 
+-- Transliterating slugifier. Folds accented Latin letters to their ASCII base
+-- before collapsing the rest to dashes, so "István Kóródi" -> "istvan-korodi"
+-- instead of "istv-n-k-r-di". Uses only pg_catalog builtins so it is safe to
+-- call from functions running with `search_path = ''`.
+create or replace function public.slugify_client_name(value text)
+returns text
+language sql
+immutable
+as $$
+  select trim(both '-' from regexp_replace(
+    translate(
+      -- multi-character expansions first (translate can only map 1:1)
+      replace(replace(replace(replace(
+        lower(coalesce(value, '')),
+        'ß', 'ss'), 'æ', 'ae'), 'œ', 'oe'), 'ø', 'o'),
+      -- 1:1 accented -> ascii; from/to are aligned and equal length (59 chars)
+      'àáâãäåāăąçćčďđèéêëēėęěìíîïįīıłńñňòóôõöōőŕřśšťțùúûüūůűųýÿžźż',
+      'aaaaaaaaacccddeeeeeeeeiiiiiiilnnnooooooorrssttuuuuuuuuyyzzz'),
+    '[^a-z0-9]+', '-', 'g'));
+$$;
+
 create table public.clients (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
