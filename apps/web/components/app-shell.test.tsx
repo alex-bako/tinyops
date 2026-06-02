@@ -24,6 +24,12 @@ vi.mock("next/navigation", () => ({
   }),
 }))
 
+// The sidebar mounts a realtime refresh that would otherwise instantiate a
+// browser Supabase client (and read env vars) during render.
+vi.mock("@/lib/supabase/realtime-route-refresh", () => ({
+  RealtimeRouteRefresh: () => null,
+}))
+
 function installMatchMedia() {
   Object.defineProperty(window, "matchMedia", {
     writable: true,

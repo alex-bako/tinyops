@@ -323,6 +323,16 @@ export function createSupabaseWorkspaceStore({
       if (error)
         throw new Error("Could not revoke workspace invite", { cause: error })
     },
+
+    async countWorkspaceClients(workspaceId) {
+      const { count, error } = await client
+        .from("clients")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceId)
+
+      if (error) throw new Error("Could not count clients", { cause: error })
+      return count ?? 0
+    },
   }
 }
 

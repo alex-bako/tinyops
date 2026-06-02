@@ -102,6 +102,9 @@ function harness(initialWorkspaces: Workspace[]) {
     async revokeWorkspaceInvite(invitationId) {
       updates.push(["revoke", invitationId])
     },
+    async countWorkspaceClients() {
+      return 0
+    },
   }
 
   return {
