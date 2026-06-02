@@ -11,14 +11,15 @@ import type { DataSource } from "@/lib/sources"
 import { FormsConnect } from "./forms-connect"
 
 const refresh = vi.fn()
+const replace = vi.fn()
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh }),
+  useRouter: () => ({ refresh, replace }),
 }))
 
 vi.mock("@/features/data-sources/actions", () => ({
   connectGoogleFormsManualCsvDataSourceAction: vi.fn(async () => ({
-    data: {},
+    data: { type: "forms", sourceSlug: "practice-intake" },
   })),
   updateGoogleFormsManualCsvDataSourceAction: vi.fn(async () => ({ data: {} })),
 }))
@@ -40,6 +41,7 @@ function source(): DataSource {
 describe("FormsConnect", () => {
   beforeEach(() => {
     refresh.mockReset()
+    replace.mockReset()
     vi.mocked(connectGoogleFormsManualCsvDataSourceAction).mockClear()
     vi.mocked(updateGoogleFormsManualCsvDataSourceAction).mockClear()
   })
@@ -91,7 +93,8 @@ describe("FormsConnect", () => {
         ].join("\n"),
       })
     )
-    expect(refresh).toHaveBeenCalled()
+    expect(replace).toHaveBeenCalledWith("/home/sources/forms/practice-intake")
+    expect(refresh).not.toHaveBeenCalled()
   })
 
   it("updates a connected Google Forms source instead of creating another", async () => {
@@ -163,6 +166,8 @@ describe("FormsConnect", () => {
       )
     )
     expect(connectGoogleFormsManualCsvDataSourceAction).not.toHaveBeenCalled()
+    expect(refresh).toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
   })
 
   it("keeps the mock OAuth connection mode available", () => {

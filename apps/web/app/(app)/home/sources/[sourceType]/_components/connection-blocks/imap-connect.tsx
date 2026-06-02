@@ -27,7 +27,7 @@ type ImapConnectionFormState = {
 }
 
 function ImapConnect({ source }: { source: DataSource }) {
-  const { refresh } = useRouter()
+  const { refresh, replace } = useRouter()
   const [pending, startTransition] = React.useTransition()
   const [error, setError] = React.useState<string | null>(null)
   const [form, setForm] = React.useState(() => imapConnectionFormState(source))
@@ -66,7 +66,11 @@ function ImapConnect({ source }: { source: DataSource }) {
         setError(imapErrorLabel(result.error))
         return
       }
-      refresh()
+      if (source.kind === "data_source") {
+        refresh()
+      } else {
+        replace(`/home/sources/${result.data.type}/${result.data.sourceSlug}`)
+      }
     })
   }
 
