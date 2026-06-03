@@ -55,6 +55,8 @@ describe("client detail view model", () => {
         },
         body: createTextTimelineEventBody("Full imported email body."),
         sensitivityLevel: 0,
+        parentEventId: null,
+        author: null,
       },
       {
         id: "event_form",
@@ -68,6 +70,8 @@ describe("client detail view model", () => {
         },
         body: { text: "", blocks: [] },
         sensitivityLevel: 2,
+        parentEventId: null,
+        author: null,
       },
     ]
     const client = {
@@ -91,7 +95,95 @@ describe("client detail view model", () => {
     })
   })
 
-  it("computes detail section counts", () => {
+  it("routes standalone notes to the Notes section, out of the timeline", () => {
+    const timeline: ClientTimelineEvent[] = [
+      {
+        id: "event_email",
+        sourceId: "source_1",
+        sourceType: "imap",
+        type: "email",
+        occurredAt: "2026-06-02T00:00:00.000Z",
+        display: { title: "Replay access", summary: "Body." },
+        body: createTextTimelineEventBody("Body."),
+        sensitivityLevel: 0,
+        parentEventId: null,
+        author: null,
+      },
+      {
+        id: "event_note",
+        sourceId: null,
+        sourceType: null,
+        type: "note",
+        occurredAt: "2026-06-03T00:00:00.000Z",
+        display: { title: "Manual note", summary: "Called to confirm." },
+        body: createTextTimelineEventBody("Called to confirm."),
+        sensitivityLevel: 0,
+        parentEventId: null,
+        author: { id: "user_jamie", name: "Jamie Park" },
+      },
+    ]
+    const client = { ...clientBySlug("anna-smith")!, id: "client_123", timeline }
+
+    const view = createClientDetailView(client)
+
+    expect(view.clientId).toBe("client_123")
+    expect(view.notes).toEqual([
+      {
+        id: "event_note",
+        text: "Called to confirm.",
+        dateLabel: "Jun 3",
+        occurredAt: "2026-06-03T00:00:00.000Z",
+        parentEventId: null,
+        author: { name: "Jamie Park" },
+      },
+    ])
+    // The note is NOT a timeline event — it lives only in the Notes section.
+    expect(view.timeline.map((event) => event.eventKey)).not.toContain(
+      "event_note"
+    )
+    expect(view.timelineCount).toBe("1 events")
+  })
+
+  it("groups notes pinned to an event under that event only", () => {
+    const timeline: ClientTimelineEvent[] = [
+      {
+        id: "event_email",
+        sourceId: "source_1",
+        sourceType: "imap",
+        type: "email",
+        occurredAt: "2026-06-02T00:00:00.000Z",
+        display: { title: "Replay access", summary: "Body." },
+        body: createTextTimelineEventBody("Body."),
+        sensitivityLevel: 0,
+        parentEventId: null,
+        author: null,
+      },
+      {
+        id: "event_pinned_note",
+        sourceId: null,
+        sourceType: null,
+        type: "note",
+        occurredAt: "2026-06-03T00:00:00.000Z",
+        display: { title: "Manual note", summary: "Check she logged in." },
+        body: createTextTimelineEventBody("Check she logged in."),
+        sensitivityLevel: 0,
+        parentEventId: "event_email",
+        author: { id: "user_jamie", name: "Jamie Park" },
+      },
+    ]
+    const client = { ...clientBySlug("anna-smith")!, id: "client_9", timeline }
+
+    const view = createClientDetailView(client)
+
+    // Pinned note: only under its parent, never in the Notes section or timeline.
+    expect(view.notes).toEqual([])
+    expect(view.timeline.map((event) => event.eventKey)).toEqual(["event_email"])
+    expect(view.eventNotes.event_email).toMatchObject([
+      { id: "event_pinned_note", text: "Check she logged in." },
+    ])
+  })
+
+  it("computes detail section counts from source events only", () => {
     const client = clientBySlug("anna-smith")!
     const view = createClientDetailView(client)
 

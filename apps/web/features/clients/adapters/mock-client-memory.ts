@@ -24,7 +24,7 @@ export function slugify(name: string): string {
  * Anna Smith — full design-bundle content.
  * ────────────────────────────────────────────────────────────────────── */
 
-const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
+const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug" | "id"> = {
   joined: "Feb 12, 2026",
   location: "Berlin, DE",
   memory: {
@@ -125,6 +125,8 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
         "Anna asked for clearer instructions on accessing the replay materials. Replied with a step-by-step the same day.",
       ),
       sensitivityLevel: 0,
+      parentEventId: null,
+      author: null,
     },
     {
       id: "anna-form-intake",
@@ -141,6 +143,8 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
         "Highly personal answers stored — excluded from outbound personalization by default.",
       ),
       sensitivityLevel: 2,
+      parentEventId: null,
+      author: null,
     },
     {
       id: "anna-sent-monthly-check-in",
@@ -154,6 +158,8 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
       },
       body: createTextTimelineEventBody("Sent via TinyOps · opened twice · no reply."),
       sensitivityLevel: 0,
+      parentEventId: null,
+      author: null,
     },
     {
       id: "anna-email-welcome",
@@ -169,6 +175,8 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
         "Onboarding email confirming course access and replay library.",
       ),
       sensitivityLevel: 0,
+      parentEventId: null,
+      author: null,
     },
     {
       id: "anna-csv-import",
@@ -184,6 +192,8 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug"> = {
         "Row 23 matched on email. Tagged: march-cohort, online.",
       ),
       sensitivityLevel: 0,
+      parentEventId: null,
+      author: null,
     },
   ],
 }
@@ -222,7 +232,7 @@ function mockOccurredAt(value: string): string {
   return date.toISOString()
 }
 
-function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
+function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug" | "id"> {
   const sourcesList = ["IMAP", c.sources >= 3 ? "Forms" : null, c.sources >= 4 ? "CSV" : null]
     .filter((s): s is string => Boolean(s))
   const summary = (() => {
@@ -317,6 +327,8 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
           `Sent via TinyOps · ${c.flags.includes("overdue") ? "no reply" : "opened once"}.`
         ),
         sensitivityLevel: 0,
+        parentEventId: null,
+        author: null,
       },
       {
         id: `${slugify(c.name)}-csv-import`,
@@ -332,6 +344,8 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug"> {
           `Matched on email. Tagged: ${c.cohort.toLowerCase().replace(" ", "-")}.`
         ),
         sensitivityLevel: 0,
+        parentEventId: null,
+        author: null,
       },
     ],
   }
@@ -562,7 +576,7 @@ function buildDetails(rows: Client[]): ClientDetail[] {
       c.name === "Anna Smith"
         ? { ...ANNA_DETAIL }
         : defaultDetail(c)
-    return { ...c, slug, ...detail }
+    return { ...c, id: slug, slug, ...detail }
   })
 }
 

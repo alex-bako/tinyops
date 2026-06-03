@@ -7,6 +7,7 @@ import type { ClientTimelineEventView } from "../_view-model"
 const events: ClientTimelineEventView[] = [
   {
     eventKey: "event_email",
+    type: "email",
     date: "Mar 8",
     title: "Replay access",
     summary: "Latest reply.",
@@ -17,6 +18,7 @@ const events: ClientTimelineEventView[] = [
   },
   {
     eventKey: "event_form",
+    type: "form",
     date: "Mar 3",
     title: "Intake form",
     summary: "Goal: More confidence",
@@ -64,6 +66,7 @@ describe("TimelineSection", () => {
         events={[
           {
             eventKey: "event_empty",
+            type: "email",
             date: "Mar 1",
             title: "Replay access",
             summary: "No body text",

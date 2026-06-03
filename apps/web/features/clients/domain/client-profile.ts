@@ -9,7 +9,17 @@ export type ClientStatus = "active" | "inactive" | "sensitive" | "dnc"
 
 export type ClientFlag = "overdue" | "sensitive" | "idle" | "dnc"
 
-export type TimelineEventType = "email" | "form" | "sent" | "csvimport"
+export type TimelineEventType =
+  | "email"
+  | "form"
+  | "sent"
+  | "csvimport"
+  | "note"
+
+export type TimelineEventAuthor = {
+  id: string
+  name: string | null
+}
 
 export type ClientTimelineEvent = {
   id: string
@@ -20,11 +30,21 @@ export type ClientTimelineEvent = {
   display: TimelineEventDisplayFacts
   body: TimelineEventBody
   sensitivityLevel: number
+  /** Set when this is a note pinned to another event; null otherwise. */
+  parentEventId: string | null
+  /** Who created the event (notes carry this; source events usually don't). */
+  author: TimelineEventAuthor | null
 }
 
 export type TimelineEventDisplayFacts = {
   title: string
   summary: string
+}
+
+export type TimelineEntryAuthorProfile = {
+  firstName: string | null
+  lastName: string | null
+  email: string | null
 }
 
 export type ClientTimelineEntry = {
@@ -41,6 +61,9 @@ export type ClientTimelineEntry = {
   metadata: Json
   sensitivityLevel: number
   aiExtractedFields: Json
+  parentEventId: string | null
+  createdBy: string | null
+  createdByProfile: TimelineEntryAuthorProfile | null
   createdAt: string
   updatedAt: string
 }
@@ -93,7 +116,7 @@ const TIMELINE_EVENT_TYPE: Record<string, TimelineEventType> = {
   email_sent: "sent",
   form_submission: "form",
   csv_import_row: "csvimport",
-  manual_note: "csvimport",
+  manual_note: "note",
   tinyops_email: "sent",
   system_event: "csvimport",
 }
@@ -159,6 +182,37 @@ export function mapTimelineEntryToEvent(
     }),
     body,
     sensitivityLevel: event.sensitivityLevel,
+    parentEventId: event.parentEventId,
+    author: deriveTimelineEventAuthor(event),
+  }
+}
+
+/**
+ * Best-effort display name for a person: "First Last", falling back to email,
+ * then null. Shared by note authorship and the acting-user identity.
+ */
+export function composePersonName(input: {
+  firstName: string | null
+  lastName: string | null
+  email: string | null
+}): string | null {
+  const full = [input.firstName, input.lastName]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(" ")
+  if (full) return full
+  const email = input.email?.trim()
+  return email || null
+}
+
+export function deriveTimelineEventAuthor(
+  entry: ClientTimelineEntry
+): TimelineEventAuthor | null {
+  if (!entry.createdBy) return null
+  const profile = entry.createdByProfile
+  return {
+    id: entry.createdBy,
+    name: profile ? composePersonName(profile) : null,
   }
 }
 

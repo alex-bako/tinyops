@@ -25,6 +25,14 @@ export type ClientTimelineEventRow = {
   metadata: Json
   sensitivity_level: number
   ai_extracted_fields: Json
+  parent_event_id: string | null
+  created_by: string | null
+  author?: {
+    id: string
+    first_name: string | null
+    last_name: string | null
+    email: string | null
+  } | null
   created_at: string
   updated_at: string
 }
@@ -97,6 +105,14 @@ const CLIENT_COLUMNS = `
     metadata,
     sensitivity_level,
     ai_extracted_fields,
+    parent_event_id,
+    created_by,
+    author:profiles!timeline_events_created_by_fkey (
+      id,
+      first_name,
+      last_name,
+      email
+    ),
     created_at,
     updated_at
   )
@@ -206,6 +222,15 @@ function mapTimelineEventRow(row: ClientTimelineEventRow): ClientTimelineEntry {
     metadata: timelineEventMetadata(row),
     sensitivityLevel: row.sensitivity_level,
     aiExtractedFields: row.ai_extracted_fields,
+    parentEventId: row.parent_event_id,
+    createdBy: row.created_by,
+    createdByProfile: row.author
+      ? {
+          firstName: row.author.first_name,
+          lastName: row.author.last_name,
+          email: row.author.email,
+        }
+      : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

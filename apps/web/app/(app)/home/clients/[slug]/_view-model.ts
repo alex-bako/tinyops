@@ -4,16 +4,21 @@ import {
   clientStatusBadge,
   type ClientStateBadge,
 } from "@/lib/client-state"
-import type { ClientTimelineEvent } from "@/features/clients/domain/client-profile"
+import { partitionTimeline } from "@/features/clients/domain/timeline-grouping"
 import type {
   ClientDetail,
   ClientMemory,
   ClientProperty,
 } from "@/features/clients/application/client-memory"
 import {
+  createNoteView,
   createTimelineEventViews,
+  type ClientNoteView,
   type ClientTimelineEventView,
 } from "@/features/clients/application/timeline-presentation"
+
+/** Per-event notes, keyed by the timeline event they're pinned to. */
+export type TimelineEventNotesMap = Record<string, ClientNoteView[]>
 
 type ClientDetailHeaderView = {
   name: string
@@ -30,12 +35,15 @@ type ClientMemoryView = {
 }
 
 type ClientDetailView = {
+  clientId: string
   header: ClientDetailHeaderView
   memory: ClientMemoryView
   properties: ClientProperty[]
   propertiesCount: string
   timeline: ClientTimelineEventView[]
   timelineCount: string
+  notes: ClientNoteView[]
+  eventNotes: TimelineEventNotesMap
 }
 
 function createMemoryView(memory: ClientMemory): ClientMemoryView {
@@ -48,14 +56,20 @@ function createMemoryView(memory: ClientMemory): ClientMemoryView {
   }
 }
 
-function createTimelineView(
-  events: ClientTimelineEvent[]
-): ClientTimelineEventView[] {
-  return createTimelineEventViews(events)
-}
-
 function createClientDetailView(client: ClientDetail): ClientDetailView {
+  // Notes attached to an event render only under that event; standalone notes
+  // render in the Notes section; the timeline shows source events only.
+  const { sourceEvents, standaloneNotes, notesByParent } = partitionTimeline(
+    client.timeline
+  )
+
+  const eventNotes: TimelineEventNotesMap = {}
+  for (const [eventId, notes] of notesByParent) {
+    eventNotes[eventId] = notes.map(createNoteView)
+  }
+
   return {
+    clientId: client.id,
     header: {
       name: client.name,
       email: client.email,
@@ -69,8 +83,10 @@ function createClientDetailView(client: ClientDetail): ClientDetailView {
     memory: createMemoryView(client.memory),
     properties: client.properties,
     propertiesCount: `${client.properties.length} fields`,
-    timeline: createTimelineView(client.timeline),
-    timelineCount: `${client.timeline.length} events`,
+    timeline: createTimelineEventViews(sourceEvents),
+    timelineCount: `${sourceEvents.length} events`,
+    notes: standaloneNotes.map(createNoteView),
+    eventNotes,
   }
 }
 
@@ -81,3 +97,7 @@ export type {
   ClientMemoryView,
   ClientTimelineEventView,
 }
+export type {
+  ClientNoteView,
+  ClientNoteAuthorView,
+} from "@/features/clients/application/timeline-presentation"

@@ -7,14 +7,18 @@ import { Button } from "@workspace/ui/components/button"
 import { Section, SectionHead } from "@workspace/ui/components/section"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
-import { loadClientMemoryRepository } from "@/features/clients/adapters/client-memory-loader"
+import {
+  loadClientDetailPageAccess,
+  loadClientMemoryRepository,
+} from "@/features/clients/adapters/client-memory-loader"
 import { clientProfileViewTransitionName } from "../_profile-routing"
 
 import { ClientHeader } from "./_components/client-header"
 import { MemoryCallout } from "./_components/memory-callout"
-import { NotesEmpty } from "./_components/notes-empty"
+import { NotesComposerProvider } from "./_components/notes-focus-context"
+import { NotesSurface } from "./_components/notes-section"
 import { Properties } from "./_components/properties"
-import { TimelineSection } from "./_components/timeline-section"
+import { TimelineView } from "./_components/timeline-view"
 import { createClientDetailView } from "./_view-model"
 
 export async function generateMetadata({
@@ -39,10 +43,8 @@ export default async function ClientDetailPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
-  const [{ slug }, repository] = await Promise.all([
-    params,
-    loadClientMemoryRepository(),
-  ])
+  const [{ slug }, { repository, canManageNotes, currentUserName }] =
+    await Promise.all([params, loadClientDetailPageAccess()])
   const client = await repository.findClientBySlug(slug)
   if (!client) notFound()
 
@@ -59,36 +61,46 @@ export default async function ClientDetailPage({
         </Button>
       </div>
 
-      <ClientHeader
-        header={view.header}
-        viewTransitionName={clientProfileViewTransitionName(slug)}
-      />
-
-      <MemoryCallout memory={view.memory} />
-
-      <Section divider>
-        <SectionHead
-          title="Properties"
-          count={view.propertiesCount}
-          actions={
-            <Button variant="tertiary" size="sm">
-              <PlusIcon />
-              Add property
-            </Button>
-          }
+      <NotesComposerProvider>
+        <ClientHeader
+          header={view.header}
+          viewTransitionName={clientProfileViewTransitionName(slug)}
+          canManageNotes={canManageNotes}
         />
-        <Properties properties={view.properties} />
-      </Section>
 
-      <Section divider>
-        <SectionHead title="Timeline" count={view.timelineCount} />
-        <TimelineSection events={view.timeline} />
-      </Section>
+        <MemoryCallout memory={view.memory} />
 
-      <Section divider>
-        <SectionHead title="Notes" />
-        <NotesEmpty />
-      </Section>
+        <Section divider>
+          <SectionHead
+            title="Properties"
+            count={view.propertiesCount}
+            actions={
+              <Button variant="tertiary" size="sm">
+                <PlusIcon />
+                Add property
+              </Button>
+            }
+          />
+          <Properties properties={view.properties} />
+        </Section>
+
+        <Section divider>
+          <TimelineView
+            events={view.timeline}
+            eventNotes={view.eventNotes}
+            clientId={view.clientId}
+            canManageNotes={canManageNotes}
+            currentUserName={currentUserName}
+          />
+        </Section>
+
+        <NotesSurface
+          clientId={view.clientId}
+          initialNotes={view.notes}
+          canManage={canManageNotes}
+          currentUserName={currentUserName}
+        />
+      </NotesComposerProvider>
     </WorkspacePageSurface>
   )
 }
