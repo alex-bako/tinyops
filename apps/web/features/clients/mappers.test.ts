@@ -43,6 +43,8 @@ const baseRow: ClientRow = {
       metadata: { subject: "Replay access" },
       sensitivity_level: 0,
       ai_extracted_fields: {},
+      parent_event_id: null,
+      created_by: null,
       created_at: "2026-03-08T10:00:00.000Z",
       updated_at: "2026-03-08T10:00:00.000Z",
     },
@@ -63,6 +65,14 @@ const baseRow: ClientRow = {
       metadata: { formTitle: "Monthly feedback" },
       sensitivity_level: 2,
       ai_extracted_fields: {},
+      parent_event_id: null,
+      created_by: "user_jamie",
+      author: {
+        id: "user_jamie",
+        first_name: "Jamie",
+        last_name: "Park",
+        email: "jamie@example.com",
+      },
       created_at: "2026-05-07T08:00:00.000Z",
       updated_at: "2026-05-07T08:00:00.000Z",
     },
@@ -117,6 +127,8 @@ describe("client mappers", () => {
       id: "event_newer",
       type: "form",
       sensitivityLevel: 2,
+      parentEventId: null,
+      author: { id: "user_jamie", name: "Jamie Park" },
       display: {
         title: "Monthly feedback",
         summary: "Progress update",
@@ -126,6 +138,10 @@ describe("client mappers", () => {
         blocks: [{ kind: "text", text: "Progress update" }],
       },
     })
+    // The author-less event resolves to a null author (neutral fallback in UI).
+    expect(
+      detail.timeline.find((event) => event.id === "event_older")?.author
+    ).toBeNull()
   })
 
   it("uses primary email as the display name fallback", () => {

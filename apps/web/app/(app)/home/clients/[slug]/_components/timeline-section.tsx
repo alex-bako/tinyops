@@ -1,3 +1,7 @@
+"use client"
+
+import { StickyNoteIcon } from "lucide-react"
+
 import {
   Timeline,
   TimelineDate,
@@ -8,29 +12,62 @@ import {
   TimelineTitle,
 } from "@workspace/ui/components/timeline"
 
-import type { ClientTimelineEventView } from "../_view-model"
+import type { ClientTimelineEventView, TimelineEventNotesMap } from "../_view-model"
+import { EventNotes } from "./event-notes"
 
 export function TimelineSection({
   events,
+  notesOnEvents = false,
+  eventNotes = {},
+  clientId = "",
+  canManageNotes = false,
+  currentUserName = null,
+  onTurnOnNotes,
 }: {
   events: ClientTimelineEventView[]
+  notesOnEvents?: boolean
+  eventNotes?: TimelineEventNotesMap
+  clientId?: string
+  canManageNotes?: boolean
+  currentUserName?: string | null
+  onTurnOnNotes?: () => void
 }) {
   return (
     <Timeline>
       {events.map((e) => {
         const hasBody = e.bodyItems.length > 0
+        const notes = eventNotes[e.eventKey] ?? []
         return (
           <TimelineEvent key={e.eventKey} tone={e.tone} sensitive={e.sensitive}>
             <TimelineHead>
               <TimelineSrc>{e.sourceLabel}</TimelineSrc>
+              {!notesOnEvents && notes.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={onTurnOnNotes}
+                  title="Show notes on events"
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-px font-mono text-[10.5px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <StickyNoteIcon className="size-2.5" /> {notes.length}
+                </button>
+              ) : null}
               <TimelineDate>{e.date}</TimelineDate>
             </TimelineHead>
-            <TimelineTitle>{e.title}</TimelineTitle>
+            {e.title ? <TimelineTitle>{e.title}</TimelineTitle> : null}
             {hasBody ? (
               <TimelineBody event={e} />
             ) : (
               <TimelineSummary>{e.summary}</TimelineSummary>
             )}
+            {notesOnEvents ? (
+              <EventNotes
+                clientId={clientId}
+                eventId={e.eventKey}
+                notes={notes}
+                canManage={canManageNotes}
+                currentUserName={currentUserName}
+              />
+            ) : null}
           </TimelineEvent>
         )
       })}

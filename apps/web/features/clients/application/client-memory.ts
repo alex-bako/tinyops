@@ -70,6 +70,7 @@ export type ClientProperty = {
 }
 
 export type ClientDetail = Client & {
+  id: string
   slug: string
   joined: string
   location: string
@@ -158,6 +159,7 @@ export function createClientDetail(profile: ClientProfile): ClientDetail {
     profile.lastContactedAt ?? profile.lastSeenAt ?? profile.updatedAt
 
   return {
+    id: profile.id,
     name,
     email: profile.primaryEmail,
     cohort,

@@ -1,18 +1,21 @@
-import { EyeOffIcon, PlusIcon, SendIcon } from "lucide-react"
+import { EyeOffIcon, SendIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { ClientIdentityHeader } from "@/components/client-identity"
 import type { ClientDetailHeaderView } from "../_view-model"
+import { AddNoteButton } from "./add-note-button"
 import { CopyEmailButton } from "./copy-email-button"
 
 export function ClientHeader({
   header,
   viewTransitionName,
+  canManageNotes = false,
 }: {
   header: ClientDetailHeaderView
   viewTransitionName?: string
+  canManageNotes?: boolean
 }) {
   return (
     <div
@@ -27,10 +30,7 @@ export function ClientHeader({
         <ClientIdentityHeader {...header} />
       </div>
       <div className="flex flex-shrink-0 items-center gap-1">
-        <Button variant="ghost" size="sm">
-          <PlusIcon />
-          Add note
-        </Button>
+        {canManageNotes ? <AddNoteButton /> : null}
         <Button variant="ghost" size="sm">
           <EyeOffIcon />
           Do not contact

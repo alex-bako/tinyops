@@ -779,10 +779,12 @@ export type Database = {
           body: Json
           client_id: string
           created_at: string
+          created_by: string | null
           event_date: string
           event_type: string
           id: string
           metadata: Json
+          parent_event_id: string | null
           participants: Json
           raw_record_id: string | null
           sensitivity_level: number
@@ -795,10 +797,12 @@ export type Database = {
           body?: Json
           client_id: string
           created_at?: string
+          created_by?: string | null
           event_date: string
           event_type: string
           id?: string
           metadata?: Json
+          parent_event_id?: string | null
           participants?: Json
           raw_record_id?: string | null
           sensitivity_level?: number
@@ -811,10 +815,12 @@ export type Database = {
           body?: Json
           client_id?: string
           created_at?: string
+          created_by?: string | null
           event_date?: string
           event_type?: string
           id?: string
           metadata?: Json
+          parent_event_id?: string | null
           participants?: Json
           raw_record_id?: string | null
           sensitivity_level?: number
@@ -828,6 +834,20 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_parent_event_id_fkey"
+            columns: ["parent_event_id"]
+            isOneToOne: false
+            referencedRelation: "timeline_events"
             referencedColumns: ["id"]
           },
           {
