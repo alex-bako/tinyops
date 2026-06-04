@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeftIcon, PlusIcon } from "lucide-react"
+import { ArrowLeftIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
-import { Section, SectionHead } from "@workspace/ui/components/section"
+import { Section } from "@workspace/ui/components/section"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
 import {
@@ -17,7 +17,7 @@ import { ClientHeader } from "./_components/client-header"
 import { MemoryCallout } from "./_components/memory-callout"
 import { NotesComposerProvider } from "./_components/notes-focus-context"
 import { NotesSurface } from "./_components/notes-section"
-import { Properties } from "./_components/properties"
+import { PropertiesSection } from "./_components/properties-section"
 import { TimelineView } from "./_components/timeline-view"
 import { createClientDetailView } from "./_view-model"
 
@@ -43,8 +43,10 @@ export default async function ClientDetailPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
-  const [{ slug }, { repository, canManageNotes, currentUserName }] =
-    await Promise.all([params, loadClientDetailPageAccess()])
+  const [
+    { slug },
+    { repository, canManageNotes, canManageProperties, currentUserName },
+  ] = await Promise.all([params, loadClientDetailPageAccess()])
   const client = await repository.findClientBySlug(slug)
   if (!client) notFound()
 
@@ -70,19 +72,11 @@ export default async function ClientDetailPage({
 
         <MemoryCallout memory={view.memory} />
 
-        <Section divider>
-          <SectionHead
-            title="Properties"
-            count={view.propertiesCount}
-            actions={
-              <Button variant="tertiary" size="sm">
-                <PlusIcon />
-                Add property
-              </Button>
-            }
-          />
-          <Properties properties={view.properties} />
-        </Section>
+        <PropertiesSection
+          clientId={view.clientId}
+          initialProperties={view.properties}
+          canManage={canManageProperties}
+        />
 
         <Section divider>
           <TimelineView

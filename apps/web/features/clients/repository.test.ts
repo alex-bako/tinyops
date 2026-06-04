@@ -21,6 +21,7 @@ const profile: ClientProfile = {
   createdAt: "2026-02-10T00:00:00.000Z",
   updatedAt: "2026-05-07T08:00:00.000Z",
   timeline: [],
+  properties: [],
 }
 
 describe("workspace client memory repository", () => {

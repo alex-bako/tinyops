@@ -183,11 +183,10 @@ describe("client detail view model", () => {
     ])
   })
 
-  it("computes detail section counts from source events only", () => {
+  it("computes the timeline count from source events only", () => {
     const client = clientBySlug("anna-smith")!
     const view = createClientDetailView(client)
 
-    expect(view.propertiesCount).toBe("10 fields")
     expect(view.timelineCount).toBe("5 events")
   })
 })

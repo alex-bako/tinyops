@@ -39,7 +39,6 @@ type ClientDetailView = {
   header: ClientDetailHeaderView
   memory: ClientMemoryView
   properties: ClientProperty[]
-  propertiesCount: string
   timeline: ClientTimelineEventView[]
   timelineCount: string
   notes: ClientNoteView[]
@@ -82,7 +81,6 @@ function createClientDetailView(client: ClientDetail): ClientDetailView {
     },
     memory: createMemoryView(client.memory),
     properties: client.properties,
-    propertiesCount: `${client.properties.length} fields`,
     timeline: createTimelineEventViews(sourceEvents),
     timelineCount: `${sourceEvents.length} events`,
     notes: standaloneNotes.map(createNoteView),

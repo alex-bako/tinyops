@@ -41,6 +41,83 @@ export type TimelineEventDisplayFacts = {
   summary: string
 }
 
+/**
+ * Icons a user can attach to a property. The picker offers all of these except
+ * `align-left`, which is the implicit default glyph for an untouched text
+ * property (mirroring the design kit's PROPERTY_TYPES default).
+ */
+export type PropertyIcon =
+  | "align-left"
+  | "circle-dot"
+  | "hash"
+  | "calendar"
+  | "send"
+  | "plug"
+  | "target"
+  | "activity"
+  | "wand"
+  | "shield-check"
+  | "shield-alert"
+  | "mail"
+  | "map-pin"
+  | "tag"
+  | "star"
+  | "flag"
+  | "clock"
+  | "link"
+  | "file-text"
+
+export type PropertyType = "text" | "tags" | "date" | "status"
+
+/** Status swatch colors; map 1:1 onto the shared Badge variants. */
+export type PropertyStatusKind = "active" | "warn" | "brand" | "neutral"
+
+/**
+ * A property's value, discriminated to match its `type`. `text` and `date`
+ * both carry a plain string (date is just rendered as-is); the discriminant
+ * lets the renderer stay exhaustive.
+ */
+export type ClientPropertyValue =
+  | { kind: "text"; text: string }
+  | { kind: "date"; text: string }
+  | { kind: "tags"; values: string[] }
+  | { kind: "status"; statusKind: PropertyStatusKind; label: string }
+
+/** A user-defined, persisted client property. */
+export type ClientProperty = {
+  id: string
+  name: string
+  icon: PropertyIcon
+  type: PropertyType
+  value: ClientPropertyValue
+  /** Float ordering key; lower sorts first. */
+  position: number
+}
+
+const PROPERTY_ICONS: ReadonlySet<PropertyIcon> = new Set<PropertyIcon>([
+  "align-left", "circle-dot", "hash", "calendar", "send", "plug", "target",
+  "activity", "wand", "shield-check", "shield-alert", "mail", "map-pin", "tag",
+  "star", "flag", "clock", "link", "file-text",
+])
+
+/** Coerces an arbitrary stored icon string to a known icon, defaulting safely. */
+export function coercePropertyIcon(value: string): PropertyIcon {
+  return PROPERTY_ICONS.has(value as PropertyIcon)
+    ? (value as PropertyIcon)
+    : "circle-dot"
+}
+
+const PROPERTY_TYPES: ReadonlySet<PropertyType> = new Set<PropertyType>([
+  "text", "tags", "date", "status",
+])
+
+/** Coerces an arbitrary stored type string to a known type, defaulting safely. */
+export function coercePropertyType(value: string): PropertyType {
+  return PROPERTY_TYPES.has(value as PropertyType)
+    ? (value as PropertyType)
+    : "text"
+}
+
 export type TimelineEntryAuthorProfile = {
   firstName: string | null
   lastName: string | null
@@ -86,6 +163,7 @@ export type ClientProfile = {
   createdAt: string
   updatedAt: string
   timeline: ClientTimelineEvent[]
+  properties: ClientProperty[]
 }
 
 export type ClientSearchResult = {
@@ -163,6 +241,60 @@ export function clientFlagsFor({
 
 export function isSensitiveLevel(level: number) {
   return level >= 2
+}
+
+const PROPERTY_STATUS_KINDS: ReadonlySet<PropertyStatusKind> =
+  new Set<PropertyStatusKind>(["active", "warn", "brand", "neutral"])
+
+function coerceStatusKind(value: unknown): PropertyStatusKind {
+  return typeof value === "string" &&
+    PROPERTY_STATUS_KINDS.has(value as PropertyStatusKind)
+    ? (value as PropertyStatusKind)
+    : "neutral"
+}
+
+/**
+ * Reconstructs a typed property value from its `type` column and stored jsonb.
+ * Tolerates missing/malformed payloads so a bad row never breaks the page.
+ */
+export function clientPropertyValueFromStored(
+  type: PropertyType,
+  value: Json
+): ClientPropertyValue {
+  const record =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {}
+
+  if (type === "tags") {
+    const values = Array.isArray(record.values)
+      ? record.values.filter((entry): entry is string => typeof entry === "string")
+      : []
+    return { kind: "tags", values }
+  }
+  if (type === "status") {
+    return {
+      kind: "status",
+      statusKind: coerceStatusKind(record.statusKind),
+      label: typeof record.label === "string" ? record.label : "",
+    }
+  }
+  // text | date — both a plain string
+  const text = typeof record.text === "string" ? record.text : ""
+  return { kind: type === "date" ? "date" : "text", text }
+}
+
+/** Serializes a typed property value to the jsonb stored in client_properties. */
+export function clientPropertyValueToStored(value: ClientPropertyValue): Json {
+  switch (value.kind) {
+    case "tags":
+      return { values: value.values }
+    case "status":
+      return { statusKind: value.statusKind, label: value.label }
+    case "text":
+    case "date":
+      return { text: value.text }
+  }
 }
 
 export function mapTimelineEntryToEvent(
