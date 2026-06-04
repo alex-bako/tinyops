@@ -3,7 +3,6 @@ import Link from "next/link"
 import {
   ArchiveIcon,
   ChevronRightIcon,
-  SearchIcon,
   SparklesIcon,
   SunIcon,
   UploadIcon,
@@ -15,12 +14,6 @@ export const metadata: Metadata = {
   description: "Search a client. See what needs attention.",
 }
 
-import {
-  SearchField,
-  SearchFieldIcon,
-  SearchFieldInput,
-  SearchFieldShortcut,
-} from "@workspace/ui/components/search-field"
 import { Button } from "@workspace/ui/components/button"
 import { Kbd } from "@workspace/ui/components/kbd"
 import { Section, SectionHead } from "@workspace/ui/components/section"
@@ -33,6 +26,7 @@ import {
 import { loadWorkspaceSourceCatalog } from "@/features/data-sources/loaders"
 import { ATTENTION, WEEK_TASKS, loadHomePageData } from "./_data"
 import { ClientRow } from "./_components/client-row"
+import { HomeSearch } from "./_components/home-search"
 import { SourceRow } from "./_components/source-row"
 import { StatRow } from "./_components/stat-row"
 import { WeekTaskRow } from "./_components/week-task-row"
@@ -58,13 +52,16 @@ export default async function HomePage() {
         description="Open a client by typing their email, or work down the queue below. Drafts wait for your approval before sending."
       />
 
-      <SearchField className="mt-7 mb-8">
-        <SearchFieldIcon>
-          <SearchIcon />
-        </SearchFieldIcon>
-        <SearchFieldInput placeholder="anna@example.com" />
-        <SearchFieldShortcut className="ml-auto">↵</SearchFieldShortcut>
-      </SearchField>
+      <HomeSearch
+        recentClients={recentClients.map((c) => ({
+          slug: c.slug,
+          name: c.name,
+          email: c.email,
+          status: c.status,
+          sources: c.sources,
+        }))}
+        sources={homeSources}
+      />
 
       <div className="grid gap-x-14 gap-y-10 md:grid-cols-[1.5fr_1fr]">
         <div>
