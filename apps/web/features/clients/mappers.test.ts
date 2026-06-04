@@ -77,6 +77,25 @@ const baseRow: ClientRow = {
       updated_at: "2026-05-07T08:00:00.000Z",
     },
   ],
+  // Intentionally out of order — the reader sorts by position.
+  client_properties: [
+    {
+      id: "prop_goal",
+      name: "Goal",
+      icon: "target",
+      type: "text",
+      value: { text: "Improve communication" },
+      position: 1,
+    },
+    {
+      id: "prop_status",
+      name: "Status",
+      icon: "circle-dot",
+      type: "status",
+      value: { statusKind: "active", label: "Active" },
+      position: 0,
+    },
+  ],
 }
 
 describe("client mappers", () => {
@@ -110,15 +129,26 @@ describe("client mappers", () => {
       status: "active",
       flags: ["sensitive"],
     })
-    expect(
-      detail.properties.find((property) => property.key === "Sources")?.value
-    ).toEqual({
-      kind: "source-tags",
-      sources: [
-        { icon: "mail", label: "IMAP mailbox" },
-        { icon: "clipboard-list", label: "Google Forms" },
-      ],
-    })
+    // Properties come from client_properties, sorted by position, with their
+    // jsonb payloads rebuilt into the typed value union.
+    expect(detail.properties).toEqual([
+      {
+        id: "prop_status",
+        name: "Status",
+        icon: "circle-dot",
+        type: "status",
+        value: { kind: "status", statusKind: "active", label: "Active" },
+        position: 0,
+      },
+      {
+        id: "prop_goal",
+        name: "Goal",
+        icon: "target",
+        type: "text",
+        value: { kind: "text", text: "Improve communication" },
+        position: 1,
+      },
+    ])
     expect(detail.timeline.map((event) => event.body.text)).toEqual([
       "Progress update",
       "Could you send the replay link again?",

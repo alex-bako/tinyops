@@ -4,8 +4,31 @@ import type {
   ClientDetail,
   ClientMemoryRepositoryPort,
   ClientProperty,
+  ClientPropertyValue,
+  PropertyIcon,
+  PropertyStatusKind,
 } from "@/features/clients/application/client-memory"
 import { createTextTimelineEventBody } from "@/features/clients/domain/timeline-event-body"
+
+/** Attaches a deterministic id + position to demo property entries. */
+function mockProps(
+  entries: { name: string; icon: PropertyIcon; value: ClientPropertyValue }[]
+): ClientProperty[] {
+  return entries.map((entry, index) => ({
+    id: `${slugify(entry.name)}-${index}`,
+    name: entry.name,
+    icon: entry.icon,
+    type: entry.value.kind,
+    value: entry.value,
+    position: index,
+  }))
+}
+
+/** Maps a status badge variant onto the property status palette. */
+function mockStatusKind(kind: string): PropertyStatusKind {
+  if (kind === "active" || kind === "warn" || kind === "brand") return kind
+  return "neutral"
+}
 
 /* ──────────────────────────────────────────────────────────────────────
  * Slug helpers.
@@ -33,82 +56,57 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug" | "id"> = {
     confidence: 0.78,
     lastGenerated: "Generated 2h ago, from 9 events",
   },
-  properties: [
+  properties: mockProps([
     {
-      key: "Status",
+      name: "Status",
       icon: "circle-dot",
-      value: { kind: "badge", variant: "active", label: "Active", dot: true },
+      value: { kind: "status", statusKind: "active", label: "Active" },
     },
     {
-      key: "Cohort",
+      name: "Cohort",
       icon: "hash",
       value: { kind: "tags", values: ["March cohort"] },
     },
     {
-      key: "Joined",
+      name: "Joined",
       icon: "calendar",
-      value: { kind: "text", value: "Feb 12, 2026" },
+      value: { kind: "date", text: "Feb 12, 2026" },
     },
     {
-      key: "Last contact",
+      name: "Last contact",
       icon: "send",
-      value: {
-        kind: "tag-and-text",
-        tag: "Feb 28, 2026",
-        text: "monthly check-in (generic)",
-      },
+      value: { kind: "text", text: "Feb 28, 2026 · monthly check-in (generic)" },
     },
     {
-      key: "Sources",
+      name: "Sources",
       icon: "plug",
       value: { kind: "tags", values: ["IMAP", "Forms", "CSV"] },
     },
     {
-      key: "Original goal",
+      name: "Original goal",
       icon: "target",
       value: {
         kind: "text",
-        value:
-          "Wanted structured guidance and practical exercises to improve communication in her relationship.",
+        text: "Wanted structured guidance and practical exercises to improve communication in her relationship.",
       },
     },
     {
-      key: "Current progress",
+      name: "Current progress",
       icon: "activity",
       value: {
         kind: "text",
-        value:
-          "Engaging with course materials but no submitted feedback in 6 weeks.",
+        text: "Engaging with course materials but no submitted feedback in 6 weeks.",
       },
     },
     {
-      key: "Recommended action",
+      name: "Recommended action",
       icon: "wand",
       value: {
-        kind: "tag-and-text",
-        tag: "Overdue",
-        text: "Send a light monthly check-in asking how the exercises have been going.",
-      },
-    },
-    {
-      key: "Safe personalization",
-      icon: "shield-check",
-      value: {
-        kind: "italic",
-        value: "Hope the replay materials have been helpful so far.",
-      },
-    },
-    {
-      key: "Avoid",
-      icon: "shield-alert",
-      value: {
         kind: "text",
-        value:
-          "Do not mention intimate relationship details from the intake form.",
+        text: "Overdue — send a light monthly check-in asking how the exercises have been going.",
       },
-      avoid: true,
     },
-  ],
+  ]),
   timeline: [
     {
       id: "anna-email-replay-access",
@@ -252,56 +250,50 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug" | "i
   })()
 
   const sb = clientStatusBadge(c.status)
-  const props: ClientProperty[] = [
+  const entries: { name: string; icon: PropertyIcon; value: ClientPropertyValue }[] = [
     {
-      key: "Status",
+      name: "Status",
       icon: "circle-dot",
-      value: {
-        kind: "badge",
-        variant: sb.kind,
-        label: sb.label,
-        dot: sb.dot,
-      },
+      value: { kind: "status", statusKind: mockStatusKind(sb.kind), label: sb.label },
     },
-    { key: "Cohort", icon: "hash", value: { kind: "tags", values: [c.cohort] } },
-    { key: "Joined", icon: "calendar", value: { kind: "text", value: joinedFor(c.cohort) } },
+    { name: "Cohort", icon: "hash", value: { kind: "tags", values: [c.cohort] } },
+    { name: "Joined", icon: "calendar", value: { kind: "date", text: joinedFor(c.cohort) } },
     {
-      key: "Last contact",
+      name: "Last contact",
       icon: "send",
       value: {
-        kind: "tag-and-text",
-        tag: c.lastContact,
-        text: c.flags.includes("overdue") ? "monthly check-in (overdue)" : "monthly check-in",
+        kind: "text",
+        text: `${c.lastContact} · ${c.flags.includes("overdue") ? "monthly check-in (overdue)" : "monthly check-in"}`,
       },
     },
     {
-      key: "Sources",
+      name: "Sources",
       icon: "plug",
       value: { kind: "tags", values: sourcesList },
     },
   ]
 
   if (c.status === "dnc") {
-    props.push({
-      key: "Avoid",
+    entries.push({
+      name: "Avoid",
       icon: "shield-alert",
       value: {
         kind: "text",
-        value: "Client requested no outbound. Do not include in cohort blasts or check-ins.",
+        text: "Client requested no outbound. Do not include in cohort blasts or check-ins.",
       },
-      avoid: true,
     })
   } else if (c.flags.includes("sensitive")) {
-    props.push({
-      key: "Avoid",
+    entries.push({
+      name: "Avoid",
       icon: "shield-alert",
       value: {
         kind: "text",
-        value: "Do not surface intake-form details in outbound personalization.",
+        text: "Do not surface intake-form details in outbound personalization.",
       },
-      avoid: true,
     })
   }
+
+  const props = mockProps(entries)
 
   return {
     joined: joinedFor(c.cohort),

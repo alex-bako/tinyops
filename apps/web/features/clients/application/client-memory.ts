@@ -4,18 +4,28 @@ import {
   sortTimelineEventsNewestFirst,
   type ClientFlag,
   type ClientProfile,
+  type ClientProperty,
+  type ClientPropertyValue,
   type ClientReaderPort,
   type ClientSearchResult,
   type ClientStatus,
   type ClientTimelineEvent,
+  type PropertyIcon,
+  type PropertyStatusKind,
+  type PropertyType,
 } from "@/features/clients/domain/client-profile"
-import {
-  CONNECTOR_METADATA,
-  isConnectorId,
-  type DataSourceIcon,
-} from "@/features/data-sources/connector-metadata"
 
 export { type ClientFlag, type ClientSearchResult, type ClientStatus }
+
+// Property types live in the domain; re-exported here so existing UI imports
+// from `@/features/clients/application/client-memory` keep resolving.
+export type {
+  ClientProperty,
+  ClientPropertyValue,
+  PropertyIcon,
+  PropertyStatusKind,
+  PropertyType,
+}
 
 export type Client = {
   name: string
@@ -32,41 +42,6 @@ export type ClientMemory = {
   summary: string
   confidence: number
   lastGenerated: string
-}
-
-export type PropertyIcon =
-  | "circle-dot"
-  | "hash"
-  | "calendar"
-  | "send"
-  | "plug"
-  | "target"
-  | "activity"
-  | "wand"
-  | "shield-check"
-  | "shield-alert"
-  | "mail"
-  | "user"
-  | "map-pin"
-
-export type ClientPropertyValue =
-  | { kind: "text"; value: string }
-  | { kind: "tags"; values: string[] }
-  | { kind: "source-tags"; sources: { icon: DataSourceIcon; label: string }[] }
-  | {
-      kind: "badge"
-      variant: "active" | "neutral" | "warn" | "sensitive" | "dnc"
-      label: string
-      dot?: boolean
-    }
-  | { kind: "tag-and-text"; tag: string; text: string }
-  | { kind: "italic"; value: string }
-
-export type ClientProperty = {
-  key: string
-  icon: PropertyIcon
-  value: ClientPropertyValue
-  avoid?: boolean
 }
 
 export type ClientDetail = Client & {
@@ -132,16 +107,6 @@ export function createClientDetail(profile: ClientProfile): ClientDetail {
       event.sourceId ? [event.sourceId] : []
     )
   )
-  const sourceTypes = new Set(
-    profile.timeline.flatMap((event) =>
-      event.sourceType && isConnectorId(event.sourceType)
-        ? [event.sourceType]
-        : []
-    )
-  )
-  const sourceTags = CONNECTOR_METADATA.filter((connector) =>
-    sourceTypes.has(connector.id)
-  ).map((connector) => ({ icon: connector.icon, label: connector.title }))
   const status = coerceClientStatus(profile.status, profile.doNotContact)
   const flags = clientFlagsFor({
     status,
@@ -182,30 +147,7 @@ export function createClientDetail(profile: ClientProfile): ClientDetail {
           ? `Generated from ${timeline.length} events`
           : "Not generated yet",
     },
-    properties: [
-      {
-        key: "Status",
-        icon: "circle-dot",
-        value: {
-          kind: "badge",
-          variant: statusBadgeVariant(status),
-          label: statusLabel(status),
-        },
-      },
-      {
-        key: "Cohort",
-        icon: "hash",
-        value: { kind: "tags", values: [cohort] },
-      },
-      {
-        key: "Sources",
-        icon: "plug",
-        value:
-          sourceTags.length > 0
-            ? { kind: "source-tags", sources: sourceTags }
-            : { kind: "text", value: "None" },
-      },
-    ],
+    properties: profile.properties,
     timeline,
   }
 }
@@ -226,17 +168,6 @@ export function createClientSearchResult(
     lastInteractionAt: profile.lastContactedAt ?? profile.lastSeenAt,
     sourceCount: sourceIds.size,
   }
-}
-
-function statusLabel(status: ClientStatus) {
-  if (status === "dnc") return "Do not contact"
-  if (status === "sensitive") return "Sensitive"
-  return status[0]!.toUpperCase() + status.slice(1)
-}
-
-function statusBadgeVariant(status: ClientStatus) {
-  if (status === "inactive") return "neutral"
-  return status
 }
 
 function formatDate(value: string | null): string {

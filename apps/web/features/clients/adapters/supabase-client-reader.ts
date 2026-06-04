@@ -1,11 +1,17 @@
 import { createClientSearchResult } from "@/features/clients/application/client-memory"
 import type {
   ClientProfile,
+  ClientProperty,
   ClientReaderPort,
   ClientSearchResult,
   ClientTimelineEntry,
 } from "@/features/clients/domain/client-profile"
-import { mapTimelineEntryToEvent } from "@/features/clients/domain/client-profile"
+import {
+  clientPropertyValueFromStored,
+  coercePropertyIcon,
+  coercePropertyType,
+  mapTimelineEntryToEvent,
+} from "@/features/clients/domain/client-profile"
 import type { Json } from "@/lib/database.types"
 
 export type ClientTimelineEventRow = {
@@ -37,6 +43,15 @@ export type ClientTimelineEventRow = {
   updated_at: string
 }
 
+export type ClientPropertyRow = {
+  id: string
+  name: string
+  icon: string
+  type: string
+  value: Json
+  position: number
+}
+
 export type ClientRow = {
   id: string
   workspace_id: string
@@ -55,6 +70,7 @@ export type ClientRow = {
   created_at: string
   updated_at: string
   timeline_events?: ClientTimelineEventRow[] | null
+  client_properties?: ClientPropertyRow[] | null
 }
 
 type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
@@ -115,6 +131,14 @@ const CLIENT_COLUMNS = `
     ),
     created_at,
     updated_at
+  ),
+  client_properties (
+    id,
+    name,
+    icon,
+    type,
+    value,
+    position
   )
 `
 
@@ -204,6 +228,21 @@ export function mapClientRowToProfile(row: ClientRow): ClientProfile {
     timeline: (row.timeline_events ?? []).map((event) =>
       mapTimelineEntryToEvent(mapTimelineEventRow(event))
     ),
+    properties: (row.client_properties ?? [])
+      .map(mapClientPropertyRow)
+      .sort((a, b) => a.position - b.position),
+  }
+}
+
+function mapClientPropertyRow(row: ClientPropertyRow): ClientProperty {
+  const type = coercePropertyType(row.type)
+  return {
+    id: row.id,
+    name: row.name,
+    icon: coercePropertyIcon(row.icon),
+    type,
+    value: clientPropertyValueFromStored(type, row.value),
+    position: row.position,
   }
 }
 

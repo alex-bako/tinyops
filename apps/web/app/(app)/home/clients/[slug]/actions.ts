@@ -6,7 +6,15 @@ import type {
   ClientNoteActionResult,
   CreatedClientNote,
 } from "@/features/clients/application/client-notes"
-import { createClientNotesServerContext } from "@/features/clients/loaders"
+import type {
+  ClientPropertyActionResult,
+  ClientPropertyInput,
+  CreatedClientProperty,
+} from "@/features/clients/application/client-properties"
+import {
+  createClientNotesServerContext,
+  createClientPropertiesServerContext,
+} from "@/features/clients/loaders"
 
 const CLIENT_DETAIL_PATH = "/home/clients/[slug]"
 
@@ -42,6 +50,51 @@ export async function deleteNoteAction(input: {
   if (!context) return { error: "not_authenticated" }
 
   const result = await context.application.deleteNote(input)
+  if (!result.error) revalidatePath(CLIENT_DETAIL_PATH, "page")
+  return result
+}
+
+export async function createPropertyAction(
+  input: { clientId: string } & ClientPropertyInput
+): Promise<ClientPropertyActionResult<CreatedClientProperty>> {
+  const context = await createClientPropertiesServerContext()
+  if (!context) return { error: "not_authenticated" }
+
+  const result = await context.application.createProperty(input)
+  if (result.data) revalidatePath(CLIENT_DETAIL_PATH, "page")
+  return result
+}
+
+export async function updatePropertyAction(
+  input: { id: string } & ClientPropertyInput
+): Promise<ClientPropertyActionResult<undefined>> {
+  const context = await createClientPropertiesServerContext()
+  if (!context) return { error: "not_authenticated" }
+
+  const result = await context.application.updateProperty(input)
+  if (!result.error) revalidatePath(CLIENT_DETAIL_PATH, "page")
+  return result
+}
+
+export async function deletePropertyAction(input: {
+  id: string
+}): Promise<ClientPropertyActionResult<undefined>> {
+  const context = await createClientPropertiesServerContext()
+  if (!context) return { error: "not_authenticated" }
+
+  const result = await context.application.deleteProperty(input)
+  if (!result.error) revalidatePath(CLIENT_DETAIL_PATH, "page")
+  return result
+}
+
+export async function reorderPropertiesAction(input: {
+  clientId: string
+  orderedIds: string[]
+}): Promise<ClientPropertyActionResult<undefined>> {
+  const context = await createClientPropertiesServerContext()
+  if (!context) return { error: "not_authenticated" }
+
+  const result = await context.application.reorderProperties(input)
   if (!result.error) revalidatePath(CLIENT_DETAIL_PATH, "page")
   return result
 }

@@ -4,6 +4,7 @@ import {
   type ClientNavItem,
 } from "@/features/clients/application/client-memory"
 import { canManageNotes } from "@/features/clients/application/notes-policy"
+import { canManageProperties } from "@/features/clients/application/properties-policy"
 import { composePersonName } from "@/features/clients/domain/client-profile"
 import { createWorkspaceRequestContext } from "@/features/data-sources/request-context"
 import type { WorkspaceRequestContext } from "@/features/data-sources/request-context"
@@ -35,6 +36,7 @@ export async function loadClientMemoryRepository(): Promise<ClientMemoryReposito
 export type ClientDetailPageAccess = {
   repository: ClientMemoryRepositoryPort
   canManageNotes: boolean
+  canManageProperties: boolean
   /** Display name of the acting user, for optimistic note authorship. */
   currentUserName: string | null
 }
@@ -51,6 +53,7 @@ export async function loadClientDetailPageAccess(): Promise<ClientDetailPageAcce
     return {
       repository: getClientMemoryRepository(),
       canManageNotes: false,
+      canManageProperties: false,
       currentUserName: null,
     }
   }
@@ -58,6 +61,7 @@ export async function loadClientDetailPageAccess(): Promise<ClientDetailPageAcce
   return {
     repository: createClientMemoryRepositoryFromContext(context),
     canManageNotes: canManageNotes(context.activeWorkspace.role),
+    canManageProperties: canManageProperties(context.activeWorkspace.role),
     currentUserName: composePersonName({
       firstName: context.session.profile?.firstName ?? null,
       lastName: context.session.profile?.lastName ?? null,
