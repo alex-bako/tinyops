@@ -3,6 +3,7 @@
 import { RefreshCwIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
+import { ThreadSpinner } from "@workspace/ui/components/loaders"
 
 import { requestAllDataSourceSyncsAction } from "@/features/data-sources/actions"
 import { useSourceSyncRequest } from "./source-sync-request"
@@ -27,7 +28,7 @@ function SourcesSyncAllButton({
         disabled={disabled || syncRequest.pending}
         onClick={syncRequest.run}
       >
-        <RefreshCwIcon />
+        {syncRequest.pending ? <ThreadSpinner /> : <RefreshCwIcon />}
         {syncRequest.pending ? "Syncing" : "Sync all"}
       </Button>
       {syncRequest.message ? (

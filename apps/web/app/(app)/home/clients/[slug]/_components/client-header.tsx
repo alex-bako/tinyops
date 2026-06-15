@@ -25,7 +25,11 @@ export function ClientHeader({
     >
       <div
         className="flex min-w-0 flex-1 items-start gap-[18px]"
-        style={viewTransitionName ? { viewTransitionName } : undefined}
+        style={
+          viewTransitionName
+            ? { viewTransitionName, viewTransitionClass: "client-identity" }
+            : undefined
+        }
       >
         <ClientIdentityHeader {...header} />
       </div>

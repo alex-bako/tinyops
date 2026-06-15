@@ -19,6 +19,7 @@ import { SidebarTrigger } from "@workspace/ui/components/sidebar"
 
 import type { ClientNavItem } from "@/features/clients/application/client-memory"
 import { deriveAppCrumbs, type Crumb } from "@/lib/navigation"
+import { LinkPendingReporter } from "@/lib/navigation-progress/link-pending-reporter"
 import type { SourceNavItem } from "@/lib/source-catalog/repository"
 
 const EMPTY_CLIENT_NAV_ITEMS: ClientNavItem[] = []
@@ -78,6 +79,7 @@ export function AppTopbar({
                     <BreadcrumbLink asChild>
                       <Link href={crumb.href}>
                         <CrumbContent {...crumb} />
+                        <LinkPendingReporter />
                       </Link>
                     </BreadcrumbLink>
                   )}

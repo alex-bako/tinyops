@@ -1,7 +1,7 @@
 "use client"
 
 import { SearchIcon } from "lucide-react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 
 import { cn } from "@workspace/ui/lib/utils"
 import { Kbd } from "@workspace/ui/components/kbd"
@@ -11,17 +11,19 @@ import {
   SidebarMenuItem,
 } from "@workspace/ui/components/sidebar"
 
+import { useNavigationProgress } from "@/lib/navigation-progress/context"
+
 const FOCUS_EVENT = "tinyops:focus-home-search"
 
 export function SidebarSearchTrigger() {
-  const router = useRouter()
+  const { navigate } = useNavigationProgress()
   const pathname = usePathname()
 
   const onActivate = () => {
     if (pathname === "/home") {
       window.dispatchEvent(new Event(FOCUS_EVENT))
     } else {
-      router.push("/home")
+      navigate("/home")
     }
   }
 

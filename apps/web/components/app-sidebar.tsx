@@ -24,6 +24,7 @@ import {
 import { SidebarSearchTrigger } from "@/components/sidebar-search-trigger"
 import { SidebarUser } from "@/components/sidebar-user"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
+import { LinkPendingReporter } from "@/lib/navigation-progress/link-pending-reporter"
 import { WorkspaceClientsRealtimeRefresh } from "@/features/clients/adapters/workspace-clients-realtime-refresh"
 import { useWorkspaceFeature } from "@/features/workspaces/context"
 import { WORKSPACE_NAV_GROUPS } from "@/features/workspaces/navigation"
@@ -67,7 +68,10 @@ function NavRow({
     <SidebarMenuItem>
       {item.href ? (
         <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-          <Link href={item.href}>{content}</Link>
+          <Link href={item.href}>
+            {content}
+            <LinkPendingReporter />
+          </Link>
         </SidebarMenuButton>
       ) : (
         <SidebarMenuButton isActive={active} tooltip={item.label}>

@@ -7,14 +7,19 @@ import { HomeSearch } from "./home-search"
 import type { RecentClientItem } from "./home-search-model"
 
 const searchClientsAction = vi.fn()
-const push = vi.fn()
+const navigate = vi.fn()
 
 vi.mock("../actions", () => ({
   searchClientsAction: (q: string) => searchClientsAction(q),
 }))
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
+vi.mock("@/lib/navigation-progress/context", () => ({
+  useNavigationProgress: () => ({
+    navigate,
+    start: vi.fn(),
+    done: vi.fn(),
+    isNavigating: false,
+  }),
 }))
 
 beforeEach(() => {
@@ -86,7 +91,7 @@ describe("HomeSearch", () => {
     fireEvent.click(row)
 
     await waitFor(() =>
-      expect(push).toHaveBeenCalledWith("/home/clients/mariko-tan")
+      expect(navigate).toHaveBeenCalledWith("/home/clients/mariko-tan")
     )
   })
 

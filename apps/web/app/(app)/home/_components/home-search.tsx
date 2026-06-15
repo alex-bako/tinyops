@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
 import {
   PlusIcon,
   SettingsIcon,
@@ -29,7 +28,7 @@ import { ClientStatusBadge } from "@/components/client-state-badge"
 import { SourceIcon } from "@/components/source-icon"
 import type { HomeSourceRow } from "@/lib/sources"
 import { clientProfileHref } from "@/app/(app)/home/clients/_profile-routing"
-import { navigateWithOptionalViewTransition } from "@/lib/view-transition-navigation"
+import { useNavigationProgress } from "@/lib/navigation-progress/context"
 
 import { searchClientsAction } from "../actions"
 import {
@@ -60,7 +59,7 @@ function HomeSearch({
   recentClients: RecentClientItem[]
   sources: HomeSourceRow[]
 }) {
-  const router = useRouter()
+  const { navigate } = useNavigationProgress()
   const [query, setQuery] = React.useState("")
   const [open, setOpen] = React.useState(false)
   const [clientResults, setClientResults] = React.useState<ClientSearchResult[]>([])
@@ -140,19 +139,15 @@ function HomeSearch({
   }, [focusInput])
 
   const go = React.useCallback(
-    (href: string, withTransition = false) => {
+    (href: string) => {
       setOpen(false)
-      if (withTransition) {
-        navigateWithOptionalViewTransition((to) => router.push(to), href)
-      } else {
-        router.push(href)
-      }
+      navigate(href)
     },
-    [router]
+    [navigate]
   )
 
   const onSelect = (item: SearchItem) => {
-    if (item.kind === "client") go(clientProfileHref(item.slug), true)
+    if (item.kind === "client") go(clientProfileHref(item.slug))
     else if (item.kind === "source") go("/home/sources")
     else if (item.kind === "action" && item.href) go(item.href)
   }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { CheckIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
+import { ThreadSpinner } from "@workspace/ui/components/loaders"
 import { Form, FormRow } from "@workspace/ui/components/form-row"
 import { Input } from "@workspace/ui/components/input"
 
@@ -79,8 +80,8 @@ export function CreateWorkspaceForm() {
           disabled={pending || !name.trim()}
           onClick={submit}
         >
-          <CheckIcon />
-          Create workspace
+          {pending ? <ThreadSpinner /> : <CheckIcon />}
+          {pending ? "Creating workspace" : "Create workspace"}
         </Button>
       </div>
     </div>
