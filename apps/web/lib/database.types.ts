@@ -233,6 +233,70 @@ export type Database = {
           },
         ]
       }
+      client_properties: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          icon: string
+          id: string
+          name: string
+          position: number
+          type: string
+          updated_at: string
+          value: Json
+          workspace_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          icon: string
+          id?: string
+          name: string
+          position?: number
+          type: string
+          updated_at?: string
+          value?: Json
+          workspace_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          icon?: string
+          id?: string
+          name?: string
+          position?: number
+          type?: string
+          updated_at?: string
+          value?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_properties_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_properties_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_properties_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           consent_status: string
@@ -1264,6 +1328,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      slugify_client_name: { Args: { value: string }; Returns: string }
       update_google_forms_manual_csv_data_source: {
         Args: {
           form_display_name: string
@@ -1451,3 +1516,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
