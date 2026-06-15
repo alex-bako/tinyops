@@ -90,6 +90,59 @@ The seed file will insert at least one local allowed email into
 `public.auth_invites` so local development can complete the login flow after
 `pnpm supabase:reset`.
 
+## Database Privileges
+
+The admin (`service_role`) client reads/writes some tables directly via
+`.from(...)` — the invite lookup and `accepted_at` update on `auth_invites`, the
+profile upsert on `profiles`, and the sync worker's read of `data_sources`.
+
+Supabase auto-grants DML to the API roles (`anon`/`authenticated`/`service_role`)
+only for objects created by the `supabase_admin` role. Our migrations run as the
+`postgres` role, whose default ACL grants those roles **no** SELECT/INSERT/
+UPDATE/DELETE. So a migration-created table is, by default, inaccessible to the
+admin client and direct reads fail with `42501 permission denied` — the original
+cause of "Could not send a sign-in link" and "Could not upsert profile".
+
+The fix is the foundation migration
+`supabase/migrations/20260101000000_role_privilege_defaults.sql`. It is
+timestamped to run before any `create table` and uses `ALTER DEFAULT PRIVILEGES
+FOR ROLE postgres` to grant `service_role` full DML (plus sequence/function
+access) on every table created by later migrations. `service_role` is the
+trusted, server-only role (`rolbypassrls = true`, never shipped to the browser),
+so this is safe and mirrors Supabase's intended posture.
+
+`authenticated` is **not** widened by that migration. It is an untrusted,
+browser-facing role, so it gets the **least privilege** its RLS policies declare,
+not a blanket grant — a fail-closed posture (forget a grant and a feature breaks
+visibly, rather than a blanket grant silently exposing data). A policy without a
+matching table/column grant is **dead** (grants nothing); the missing backing
+grants were the cause of the post-login `42501` on `public.profiles`. The grants
+live in one place for a single audit surface:
+`supabase/migrations/20260604000000_authenticated_table_grants.sql`, one
+`grant <privs> ... to authenticated` per table mirroring that table's policy
+commands (an `ALL` policy ⇒ select/insert/update/delete). Row access stays gated
+by RLS.
+
+`public.data_source_secrets` is the deliberate exception: it keeps a
+**column-level** SELECT grant exposing masked metadata while hiding the
+`vault_secret_id` Vault pointer. It must never receive a table-level grant.
+
+`anon` gets nothing — it has no RLS policies. `auth_invites` has RLS enabled with
+no client policy, so it stays fully closed to `anon`/`authenticated` (the
+service_role admin client reads it instead).
+
+Two CI contract tests guard this:
+- `supabase/tests/service_role_privileges_contract.sql` — asserts the auth/worker
+  tables are reachable by `service_role` and that a freshly created table
+  auto-inherits `service_role` DML (the default-privilege foundation works).
+- `supabase/tests/rls_grant_invariants_contract.sql` — the durable invariant:
+  **every** RLS policy on `anon`/`authenticated` has a backing grant (no dead
+  policies), plus negative checks that `vault_secret_id` and `auth_invites` stay
+  closed. A future table that adds a policy but forgets the grant fails CI.
+
+Rule of thumb for new tables: `service_role` needs nothing (it inherits DML);
+`authenticated` needs an explicit grant matching every policy you add for it.
+
 ## Invite Enforcement
 
 Invite-only access is enforced in two layers.

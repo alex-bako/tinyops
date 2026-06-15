@@ -83,6 +83,8 @@ jobs:
           pnpm supabase:test:client-ingestion-rpc
           pnpm supabase:test:imap-thread-index-rpc
           pnpm supabase:test:onboarding-rpc
+          pnpm supabase:test:service-role-privileges
+          pnpm supabase:test:rls-grant-invariants
 
       - name: Check generated database types
         run: |
