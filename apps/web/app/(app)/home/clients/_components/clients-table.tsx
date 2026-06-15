@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
 import { ChevronRightIcon, SearchXIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -22,7 +21,7 @@ import {
   ClientStatusBadge,
 } from "@/components/client-state-badge"
 import type { ClientDetail } from "@/features/clients/application/client-memory"
-import { navigateWithOptionalViewTransition } from "@/lib/view-transition-navigation"
+import { useNavigationProgress } from "@/lib/navigation-progress/context"
 import {
   clientProfileHref,
   clientProfileViewTransitionName,
@@ -39,7 +38,7 @@ export function ClientsTable({
   onClear: () => void
   newlyInsertedSlugs?: ReadonlySet<string>
 }) {
-  const { push } = useRouter()
+  const { navigate } = useNavigationProgress()
   return (
     <Table className="mt-0">
       <TableHeader>
@@ -76,9 +75,6 @@ export function ClientsTable({
           rows.map((c) => {
             const href = clientProfileHref(c.slug)
             const justInserted = newlyInsertedSlugs?.has(c.slug)
-            const navigate = () => {
-              navigateWithOptionalViewTransition(push, href)
-            }
             return (
             <TableRow
               key={c.slug}
@@ -87,13 +83,14 @@ export function ClientsTable({
               className="cursor-pointer"
               onClick={(e) => {
                 if ((e.target as HTMLElement).closest("a")) return
-                navigate()
+                navigate(href)
               }}
             >
               <TableCell>
                 <span
                   style={{
                     viewTransitionName: clientProfileViewTransitionName(c.slug),
+                    viewTransitionClass: "client-identity",
                   }}
                   className="inline-flex"
                 >

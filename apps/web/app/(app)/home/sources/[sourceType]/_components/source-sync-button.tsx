@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { RefreshCwIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
+import { ThreadSpinner } from "@workspace/ui/components/loaders"
 
 import { requestDataSourceSyncAction } from "@/features/data-sources/actions"
 
@@ -33,7 +34,7 @@ function SourceSyncButton({ sourceId }: { sourceId: string }) {
           })
         }}
       >
-        <RefreshCwIcon />
+        {pending ? <ThreadSpinner /> : <RefreshCwIcon />}
         {pending ? "Syncing" : "Sync now"}
       </Button>
       {message ? (

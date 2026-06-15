@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -31,6 +30,7 @@ import {
 } from "@workspace/ui/components/sidebar"
 
 import { SETTINGS_PATH } from "@/lib/auth/route-policy"
+import { useNavigationProgress } from "@/lib/navigation-progress/context"
 import { useWorkspaceFeature } from "@/features/workspaces/context"
 import {
   buildWorkspaceSwitcherView,
@@ -44,7 +44,7 @@ export function WorkspaceSwitcher({
   userEmail?: string | null
   userName?: string
 }) {
-  const { push } = useRouter()
+  const { navigate } = useNavigationProgress()
   const { state, commands } = useWorkspaceFeature()
   const [open, setOpen] = React.useState(false)
   const [filter, setFilter] = React.useState("")
@@ -61,7 +61,7 @@ export function WorkspaceSwitcher({
 
   const goSettings = () => {
     setOpen(false)
-    push(SETTINGS_PATH)
+    navigate(SETTINGS_PATH)
   }
   const goSwitch = (id: string) => {
     commands.switchWorkspace(id)
@@ -208,7 +208,7 @@ export function WorkspaceSwitcher({
               kbd="⌘⇧N"
               onClick={() => {
                 setOpen(false)
-                push("/home/workspaces/new")
+                navigate("/home/workspaces/new")
               }}
             />
             <ActionRow

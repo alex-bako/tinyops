@@ -30,6 +30,20 @@ vi.mock("@/lib/supabase/realtime-route-refresh", () => ({
   RealtimeRouteRefresh: () => null,
 }))
 
+// Several shell components (search trigger, workspace switcher, link reporters)
+// read the navigation-progress context; stub it so they render without the
+// provider in this focused shell test.
+vi.mock("@/lib/navigation-progress/context", () => ({
+  NavigationProgressProvider: ({ children }: { children: React.ReactNode }) =>
+    children,
+  useNavigationProgress: () => ({
+    navigate: vi.fn(),
+    start: vi.fn(),
+    done: vi.fn(),
+    isNavigating: false,
+  }),
+}))
+
 function installMatchMedia() {
   Object.defineProperty(window, "matchMedia", {
     writable: true,

@@ -24,17 +24,88 @@
   }
 }
 
-@view-transition {
-  navigation: auto;
+/* Top navigation progress thread — shown on every navigation start.
+ * Indeterminate cobalt segment sliding across the very top of the viewport. */
+.nav-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 2px;
+  z-index: 100;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.nav-progress[data-visible="true"] {
+  opacity: 1;
+}
+.nav-progress__bar {
+  position: absolute;
+  inset: 0;
+  width: 28%;
+  border-radius: 999px;
+  background: var(--color-cobalt-500);
+  animation: nav-progress-slide 1s var(--ease-inout) infinite;
+}
+@keyframes nav-progress-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(460%);
+  }
 }
 
+/* Page-content crossfade — driven by React's <ViewTransition> in
+ * components/page-transition.tsx (class "page-transition").
+ * Only the named content area animates; the shell (sidebar/topbar) lives
+ * outside the boundary, so we neutralise the implicit root transition to
+ * keep it perfectly still during navigation. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: var(--dur-slow);
-  animation-timing-function: var(--ease-out);
+  animation: none;
+}
+
+::view-transition-old(.page-transition) {
+  animation: var(--dur-base) var(--ease-out) both page-fade-out;
+}
+::view-transition-new(.page-transition) {
+  animation: var(--dur-slow) var(--ease-out) both page-fade-in;
+}
+
+/* Client identity morph (row ⇄ detail header). Each named element is lifted
+ * into its own view-transition group; suppress the per-element fade so the
+ * many client rows don't flicker in independently when the list mounts —
+ * the matched pair still glides position/size via its group animation. */
+::view-transition-old(.client-identity),
+::view-transition-new(.client-identity) {
+  animation: none;
+}
+
+@keyframes page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  ::view-transition-old(.page-transition),
+  ::view-transition-new(.page-transition) {
+    animation: none !important;
+  }
   [data-motion-safe-fade] {
     transition-duration: var(--dur-fast) !important;
   }

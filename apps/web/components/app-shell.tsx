@@ -7,6 +7,7 @@ import {
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppTopbar } from "@/components/app-topbar"
+import { PageTransition } from "@/components/page-transition"
 import type { ClientNavItem } from "@/features/clients/application/client-memory"
 import type { Crumb } from "@/lib/navigation"
 import type { SourceNavItem } from "@/lib/source-catalog/repository"
@@ -33,7 +34,9 @@ export function AppShell({
           clientNavItems={clientNavItems}
           sourceNavItems={sourceNavItems}
         />
-        <div className="flex flex-1 flex-col">{children}</div>
+        <div className="flex flex-1 flex-col">
+          <PageTransition>{children}</PageTransition>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )

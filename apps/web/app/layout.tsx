@@ -5,6 +5,8 @@ import "@workspace/ui/globals.css"
 import "./motion.css"
 import { SystemToaster } from "@/components/system-toaster"
 import { ThemeProvider } from "@/components/theme-provider"
+import { NavigationProgressProvider } from "@/lib/navigation-progress/context"
+import { NavigationProgressBar } from "@/lib/navigation-progress/progress-bar"
 import { cn } from "@workspace/ui/lib/utils"
 
 export const metadata: Metadata = {
@@ -51,7 +53,12 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <NavigationProgressProvider>
+            <NavigationProgressBar />
+            {children}
+          </NavigationProgressProvider>
+        </ThemeProvider>
         <SystemToaster />
       </body>
     </html>

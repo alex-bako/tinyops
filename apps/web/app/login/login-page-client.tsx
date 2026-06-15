@@ -5,6 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 
 import { Button } from "@workspace/ui/components/button"
+import { ThreadSpinner } from "@workspace/ui/components/loaders"
 import { Input } from "@workspace/ui/components/input"
 import {
   Body,
@@ -295,7 +296,10 @@ function FormPane({
             )}
           >
             {pending ? (
-              "Sending link..."
+              <>
+                <ThreadSpinner />
+                Sending link...
+              </>
             ) : submitted ? (
               "Check your inbox →"
             ) : (
