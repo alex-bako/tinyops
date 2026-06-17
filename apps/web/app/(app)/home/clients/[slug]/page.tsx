@@ -7,12 +7,14 @@ import { Button } from "@workspace/ui/components/button"
 import { Section } from "@workspace/ui/components/section"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
+import { askExampleQuestions } from "@/features/clients/adapters/client-ask-fixtures"
 import {
   loadClientDetailPageAccess,
   loadClientMemoryRepository,
 } from "@/features/clients/adapters/client-memory-loader"
 import { clientProfileViewTransitionName } from "../_profile-routing"
 
+import { ClientAsk } from "./_components/client-ask"
 import { ClientHeader } from "./_components/client-header"
 import { MemoryCallout } from "./_components/memory-callout"
 import { NotesComposerProvider } from "./_components/notes-focus-context"
@@ -71,6 +73,13 @@ export default async function ClientDetailPage({
         />
 
         <MemoryCallout memory={view.memory} />
+
+        <ClientAsk
+          clientId={view.clientId}
+          clientName={view.header.name}
+          clientEmail={view.header.email}
+          exampleQuestions={askExampleQuestions(view.header.name)}
+        />
 
         <PropertiesSection
           clientId={view.clientId}

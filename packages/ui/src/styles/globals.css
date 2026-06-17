@@ -483,3 +483,38 @@
 .to-dots circle:nth-child(3) {
   animation-delay: calc(var(--to-dur) * 0.32);
 }
+
+/* ==========================================================================
+ * Ask — grounded Q&A surface. Shimmer placeholder while "thinking" and a
+ * gentle rise-in for the answer. Reduced motion is handled by the global
+ * prefers-reduced-motion rule above. Ported from the design handoff
+ * (ui_kits/webapp/ai-surfaces.css), remapped onto the tokens.
+ * ====================================================================== */
+@keyframes ask-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+@keyframes ask-rise {
+  from {
+    transform: translateY(6px);
+  }
+}
+.ask-shimmer-line {
+  height: 13px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--foreground) 5%, transparent) 0%,
+    color-mix(in oklch, var(--foreground) 11%, transparent) 40%,
+    color-mix(in oklch, var(--foreground) 5%, transparent) 80%
+  );
+  background-size: 300% 100%;
+  animation: ask-shimmer 1.3s var(--ease-inout) infinite;
+}
+.ask-answer-rise {
+  animation: ask-rise var(--dur-slow) var(--ease-out);
+}
