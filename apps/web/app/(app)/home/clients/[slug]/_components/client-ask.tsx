@@ -16,7 +16,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Section, SectionHead } from "@workspace/ui/components/section"
 
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion"
-import type { AskMessage, GroundedAnswerData } from "@/features/clients/application/client-ask"
+import type { AskMessage, GroundedAnswerData } from "@/features/ask/application/client-ask"
 import { GroundedAnswer } from "./grounded-answer"
 
 function latestAnswer(messages: AskMessage[]): GroundedAnswerData | null {
@@ -33,14 +33,12 @@ function latestAnswer(messages: AskMessage[]): GroundedAnswerData | null {
 // the AI SDK `useChat` against a (currently mocked) per-client streaming route;
 // answers stream back as a typed `data-answer` part rendered by GroundedAnswer.
 export function ClientAsk({
-  clientId,
+  slug,
   clientName,
-  clientEmail,
   exampleQuestions,
 }: {
-  clientId: string
+  slug: string
   clientName: string
-  clientEmail: string
   exampleQuestions: string[]
 }) {
   const first = clientName.trim().split(/\s+/)[0] || clientName
@@ -48,10 +46,9 @@ export function ClientAsk({
   const transport = React.useMemo(
     () =>
       new DefaultChatTransport<AskMessage>({
-        api: `/api/clients/${clientId}/ask`,
-        body: { clientName, clientEmail },
+        api: `/api/clients/${slug}/ask`,
       }),
-    [clientId, clientName, clientEmail]
+    [slug]
   )
 
   const { messages, status, sendMessage, setMessages, stop } =

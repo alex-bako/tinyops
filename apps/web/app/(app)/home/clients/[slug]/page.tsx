@@ -7,7 +7,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Section } from "@workspace/ui/components/section"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
-import { askExampleQuestions } from "@/features/clients/adapters/client-ask-fixtures"
+import { askExampleQuestions } from "@/features/ask/application/ask-example-questions"
 import {
   loadClientDetailPageAccess,
   loadClientMemoryRepository,
@@ -75,9 +75,8 @@ export default async function ClientDetailPage({
         <MemoryCallout memory={view.memory} />
 
         <ClientAsk
-          clientId={view.clientId}
+          slug={slug}
           clientName={view.header.name}
-          clientEmail={view.header.email}
           exampleQuestions={askExampleQuestions(view.header.name)}
         />
 

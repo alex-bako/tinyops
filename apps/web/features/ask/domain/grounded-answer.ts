@@ -1,10 +1,7 @@
-import type { UIMessage } from "ai"
-
-// Contract for the client-scoped "Ask AI" surface. This is the application-layer
-// port between the UI and the grounding backend: the server streams a
-// `GroundedAnswerData` to the client as a typed `data-answer` message part, and
-// the UI renders it. Swapping the mocked adapter for a real grounding use-case
-// changes only the adapter + route — these types and every component stay put.
+// The grounded-answer domain model for the "Ask AI" surface: a synthesized,
+// citation-backed answer about one client. This is the shape the server streams
+// to the UI and the UI renders. It carries no framework types — the AI SDK
+// transport envelope lives in the application layer.
 
 /** Source kinds we know how to badge in a citation chip. */
 export type AskSourceIcon = "mail" | "form" | "sent" | "course" | "payment"
@@ -36,20 +33,4 @@ export type GroundedAnswerData = {
   firewall?: string
   sources: AskSource[]
   followUps: string[]
-}
-
-/** Typed AI SDK data parts carried on the assistant message. */
-export type AskDataParts = {
-  answer: GroundedAnswerData
-}
-
-export type AskMessage = UIMessage<never, AskDataParts>
-
-/**
- * Extra context the client posts alongside the chat messages so the grounding
- * backend can scope and attribute the answer to the open client.
- */
-export type AskRequestContext = {
-  clientName: string
-  clientEmail: string
 }
