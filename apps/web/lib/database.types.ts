@@ -1174,6 +1174,20 @@ export type Database = {
         }
         Returns: string
       }
+      connect_gmail_data_source: {
+        Args: {
+          gmail_available_labels: Json
+          gmail_display_name: string
+          gmail_email: string
+          gmail_history_window: string
+          gmail_message_filters: Json
+          gmail_refresh_token: string
+          gmail_skip_senders: string[]
+          gmail_watched_labels: string[]
+          target_workspace_id: string
+        }
+        Returns: string
+      }
       connect_google_forms_manual_csv_data_source: {
         Args: {
           form_connection_mode: string
@@ -1272,6 +1286,10 @@ export type Database = {
         Args: { fallback: string[]; input_values: string[] }
         Returns: string[]
       }
+      read_gmail_data_source_refresh_token: {
+        Args: { target_source_id: string; target_workspace_id: string }
+        Returns: string
+      }
       read_imap_data_source_password: {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: string
@@ -1302,6 +1320,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      require_unique_gmail_source_config: {
+        Args: {
+          ignored_source_id: string
+          normalized_email: string
+          target_workspace_id: string
+        }
+        Returns: undefined
+      }
       require_unique_google_forms_source_config: {
         Args: {
           ignored_source_id: string
@@ -1326,9 +1352,28 @@ export type Database = {
         Args: { target_invitation_id: string }
         Returns: undefined
       }
+      rotate_gmail_data_source_refresh_token: {
+        Args: {
+          new_refresh_token: string
+          target_source_id: string
+          target_workspace_id: string
+        }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       slugify_client_name: { Args: { value: string }; Returns: string }
+      update_gmail_intake_config: {
+        Args: {
+          gmail_history_window: string
+          gmail_message_filters: Json
+          gmail_skip_senders: string[]
+          gmail_watched_labels: string[]
+          target_source_id: string
+          target_workspace_id: string
+        }
+        Returns: undefined
+      }
       update_google_forms_manual_csv_data_source: {
         Args: {
           form_display_name: string

@@ -86,7 +86,7 @@ describe("workspace source catalog", () => {
   it("marks catalog entries disconnected until workspace rows exist", () => {
     const catalog = composeWorkspaceSourceCatalog([])
 
-    expect(catalog).toHaveLength(7)
+    expect(catalog).toHaveLength(8)
     expect(catalog.every((source) => !source.connected)).toBe(true)
   })
 
@@ -197,6 +197,7 @@ describe("workspace source catalog", () => {
       catalog.filter((source) => !source.connected).map((source) => source.id)
     ).toEqual([
       "imap",
+      "gmail",
       "csv",
       "forms",
       "stripe",

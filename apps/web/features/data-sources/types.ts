@@ -15,7 +15,9 @@ export type DataSourceWorkspace = {
 export type DataSourceStatus = "connected" | "error" | "disconnected"
 export type DataSourceSyncStatus = "idle" | "queued" | "running" | "error"
 export type DataSourceSyncRunStatus = "running" | "succeeded" | "failed"
-export type DataSourceSecretPurpose = "imap_password"
+export type DataSourceSecretPurpose =
+  | "imap_password"
+  | "gmail_oauth_refresh_token"
 
 export type ImapEncryption = "ssl" | "starttls" | "none"
 export type ImapHistoryWindow = "30d" | "90d" | "12mo" | "all"
@@ -106,6 +108,33 @@ export type ImapDataSource = {
   updatedAt: string
 }
 
+export type GmailConnectionConfig = {
+  emailAddress: string
+}
+
+/**
+ * Gmail reuses the IMAP intake + folder-snapshot shapes (DRY): `watchedFolders`
+ * holds Gmail **label IDs** and `folderSnapshot.availableFolders` holds the
+ * connect-time label snapshot. Same `data_source_intake_configs` table backs both.
+ */
+export type GmailDataSource = {
+  id: string
+  workspaceId: string
+  type: Extract<SourceId, "gmail">
+  sourceSlug: string
+  displayName: string
+  status: DataSourceStatus
+  configVersion: 1
+  connection: GmailConnectionConfig
+  intake: ImapIntakeSettings
+  folderSnapshot: ImapFolderSnapshot
+  secret: DataSourceSecret | null
+  sync: DataSourceSyncState
+  syncRuns?: DataSourceSyncRun[]
+  createdAt: string
+  updatedAt: string
+}
+
 export type GoogleFormsUpload = {
   id: string
   fileName: string
@@ -131,7 +160,10 @@ export type GoogleFormsDataSource = {
   updatedAt: string
 }
 
-export type WorkspaceDataSource = ImapDataSource | GoogleFormsDataSource
+export type WorkspaceDataSource =
+  | ImapDataSource
+  | GmailDataSource
+  | GoogleFormsDataSource
 
 export type ConnectImapInput = {
   workspaceId: string

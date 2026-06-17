@@ -1,7 +1,14 @@
 "use server"
 
+import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
 import { after } from "next/server"
+
+import {
+  buildGmailConsentUrl,
+  GMAIL_OAUTH_STATE_COOKIE,
+} from "@/features/data-sources/gmail/gmail-oauth"
+import { getGmailOAuthConfig } from "@/lib/supabase/server-env"
 
 import {
   createDataSourceCommandApplication,
@@ -65,6 +72,45 @@ export async function connectImapDataSourceAction(input: ImapConnectCommand) {
     after(scheduleDataSourceSyncDispatch)
   }
   return result
+}
+
+export async function startGmailOAuthAction(): Promise<
+  | { url: string }
+  | { error: "not_authenticated" | "forbidden" | "oauth_unconfigured" }
+> {
+  const context = await createDataSourceServerContext()
+  if (!context) return { error: "not_authenticated" }
+  if (
+    context.workspace.role !== "owner" &&
+    context.workspace.role !== "admin"
+  ) {
+    return { error: "forbidden" }
+  }
+
+  let config
+  try {
+    config = getGmailOAuthConfig()
+  } catch {
+    return { error: "oauth_unconfigured" }
+  }
+
+  const state = crypto.randomUUID()
+  const cookieStore = await cookies()
+  cookieStore.set(GMAIL_OAUTH_STATE_COOKIE, state, {
+    httpOnly: true,
+    secure: config.redirectUri.startsWith("https://"),
+    sameSite: "lax",
+    path: "/",
+    maxAge: 600,
+  })
+
+  return {
+    url: buildGmailConsentUrl({
+      clientId: config.clientId,
+      redirectUri: config.redirectUri,
+      state,
+    }),
+  }
 }
 
 export async function connectGoogleFormsManualCsvDataSourceAction(

@@ -6,6 +6,7 @@ import {
 
 export type ConnectorSourceType =
   | "imap"
+  | "gmail"
   | "csv"
   | "forms"
   | "stripe"

@@ -50,6 +50,7 @@ describe("data source connector platform", () => {
 
     expect(CONNECTOR_IDS).toEqual([
       "imap",
+      "gmail",
       "csv",
       "forms",
       "stripe",
@@ -57,7 +58,7 @@ describe("data source connector platform", () => {
       "calendly",
       "teachable",
     ])
-    expect(definitions).toHaveLength(7)
+    expect(definitions).toHaveLength(8)
     expect(definitions[0]).toMatchObject({
       id: "imap",
       title: "IMAP mailbox",
