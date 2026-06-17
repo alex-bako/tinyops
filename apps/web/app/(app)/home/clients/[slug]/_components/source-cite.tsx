@@ -13,7 +13,7 @@ import {
 import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
 import { cn } from "@workspace/ui/lib/utils"
 
-import type { AskSource, AskSourceIcon } from "@/features/clients/application/client-ask"
+import type { AskSource, AskSourceIcon } from "@/features/ask/application/client-ask"
 
 const SOURCE_ICONS: Record<AskSourceIcon, LucideIcon> = {
   mail: MailIcon,

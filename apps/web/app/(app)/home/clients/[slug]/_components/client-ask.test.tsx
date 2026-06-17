@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { ChatStatus } from "ai"
 
-import type { AskMessage, GroundedAnswerData } from "@/features/clients/application/client-ask"
+import type { AskMessage, GroundedAnswerData } from "@/features/ask/application/client-ask"
 import { ClientAsk } from "./client-ask"
 
 // --- controllable useChat mock -------------------------------------------
@@ -25,6 +25,16 @@ vi.mock("@ai-sdk/react", () => ({
   }),
 }))
 
+// Capture how the chat transport is configured so we can assert the endpoint.
+const transportCtor = vi.fn()
+vi.mock("ai", () => ({
+  DefaultChatTransport: class {
+    constructor(options: unknown) {
+      transportCtor(options)
+    }
+  },
+}))
+
 // The markdown renderer is heavy (Streamdown + plugins); stub it out.
 vi.mock("@/components/ai-elements/message", () => ({
   MessageResponse: ({ children }: { children?: ReactNode }) => <p>{children}</p>,
@@ -38,9 +48,8 @@ const exampleQuestions = [
 function renderAsk() {
   return render(
     <ClientAsk
-      clientId="client_1"
+      slug="anna-smith"
       clientName="Anna Smith"
-      clientEmail="anna@example.com"
       exampleQuestions={exampleQuestions}
     />
   )
@@ -79,6 +88,14 @@ beforeEach(() => {
 })
 
 describe("ClientAsk", () => {
+  it("posts to the client's slug-scoped ask endpoint", () => {
+    renderAsk()
+
+    expect(transportCtor).toHaveBeenCalledWith(
+      expect.objectContaining({ api: "/api/clients/anna-smith/ask" })
+    )
+  })
+
   it("renders the header and example questions when idle", () => {
     renderAsk()
 

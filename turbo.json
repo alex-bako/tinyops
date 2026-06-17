@@ -14,7 +14,9 @@
         "DEPLOY_HEALTH_SECRET",
         "TINYOPS_APP_BASE_URL",
         "TINYOPS_DEPLOY_ENV",
-        "TINYOPS_LOG_LEVEL"
+        "TINYOPS_LOG_LEVEL",
+        "OPENAI_API_KEY",
+        "ASK_AI_MODEL"
       ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**"]
@@ -43,7 +45,9 @@
         "DEPLOY_HEALTH_SECRET",
         "TINYOPS_APP_BASE_URL",
         "TINYOPS_DEPLOY_ENV",
-        "TINYOPS_LOG_LEVEL"
+        "TINYOPS_LOG_LEVEL",
+        "OPENAI_API_KEY",
+        "ASK_AI_MODEL"
       ]
     }
   }

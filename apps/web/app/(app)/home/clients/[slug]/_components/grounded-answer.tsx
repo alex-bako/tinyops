@@ -6,7 +6,7 @@ import { ConfidenceMeter } from "@workspace/ui/components/confidence-meter"
 
 import { MessageResponse } from "@/components/ai-elements/message"
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion"
-import type { AskSource, GroundedAnswerData } from "@/features/clients/application/client-ask"
+import type { AskSource, GroundedAnswerData } from "@/features/ask/application/client-ask"
 import { SourceCite } from "./source-cite"
 
 // Renders one grounded answer: question echo, synthesized lead + body, an

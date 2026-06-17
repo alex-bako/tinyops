@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import type { GroundedAnswerData } from "@/features/clients/application/client-ask"
+import type { GroundedAnswerData } from "@/features/ask/application/client-ask"
 import { GroundedAnswer } from "./grounded-answer"
 
 // The markdown renderer (Streamdown + heavy plugins) is exercised elsewhere;
