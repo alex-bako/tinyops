@@ -1,5 +1,6 @@
 const CONNECTOR_ID_VALUES = [
   "imap",
+  "gmail",
   "csv",
   "forms",
   "stripe",
@@ -41,6 +42,15 @@ export const CONNECTOR_METADATA: ConnectorMetadata[] = [
     sub: "Read email threads from any IMAP mailbox",
     category: "Mail",
     auth: "imap",
+  },
+  {
+    id: "gmail",
+    icon: "mail",
+    title: "Gmail",
+    sub: "Read email threads from a Gmail mailbox",
+    category: "Mail",
+    auth: "oauth",
+    isNew: true,
   },
   {
     id: "csv",

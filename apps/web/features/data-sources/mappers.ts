@@ -13,6 +13,7 @@ import type {
   DataSourceSecret,
   DataSourceSyncRun,
   DataSourceSyncState,
+  GmailDataSource,
   GoogleFormsDataSource,
   GoogleFormsUpload,
   ImapConnectionConfig,
@@ -83,11 +84,43 @@ export function mapDataSourceRow(row: DataSourceRow): WorkspaceDataSource {
     return mapImapDataSourceRow(row)
   }
 
+  if (row.source_type === "gmail") {
+    return mapGmailDataSourceRow(row)
+  }
+
   if (row.source_type === "forms") {
     return mapGoogleFormsDataSourceRow(row)
   }
 
   throw new Error(`Unsupported data source type: ${row.source_type}`)
+}
+
+function mapGmailDataSourceRow(row: DataSourceRow): GmailDataSource {
+  const config = jsonObject(row.config)
+  if (!config) throw new Error("Invalid Gmail config")
+
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    type: "gmail",
+    sourceSlug: row.slug,
+    displayName: row.display_name,
+    status: coerceStatus(row.status),
+    configVersion: 1,
+    connection: { emailAddress: stringValue(config.emailAddress) },
+    // Gmail reuses the IMAP intake + folder-snapshot shapes (label ids live in
+    // watchedFolders; the label snapshot in availableFolders).
+    intake: mapImapIntakeSettings(row.data_source_intake_configs, row.config),
+    folderSnapshot: mapImapFolderSnapshot(
+      row.data_source_intake_configs,
+      row.config
+    ),
+    secret: mapSecret(row.data_source_secrets),
+    sync: mapSyncState(row.data_source_sync_states),
+    syncRuns: mapSyncRuns(row.data_source_sync_runs),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  } satisfies GmailDataSource
 }
 
 function mapImapDataSourceRow(row: DataSourceRow): ImapDataSource {
@@ -183,10 +216,16 @@ function mapSecret(
   rows: DataSourceSecretRow[] | null | undefined
 ): DataSourceSecret | null {
   const active = rows?.find((row) => !row.replaced_at)
-  if (!active || active.purpose !== "imap_password") return null
+  if (
+    !active ||
+    (active.purpose !== "imap_password" &&
+      active.purpose !== "gmail_oauth_refresh_token")
+  ) {
+    return null
+  }
 
   return {
-    purpose: "imap_password",
+    purpose: active.purpose,
     maskedValue: active.masked_value,
   }
 }

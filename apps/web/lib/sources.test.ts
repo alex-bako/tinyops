@@ -25,6 +25,7 @@ describe("sources", () => {
     expect(connectedSources().map((source) => source.id)).toEqual([])
     expect(availableSources().map((source) => source.id)).toEqual([
       "imap",
+      "gmail",
       "csv",
       "forms",
       "stripe",

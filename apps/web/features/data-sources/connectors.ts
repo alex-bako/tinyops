@@ -1,4 +1,5 @@
 import type {
+  GmailDataSource,
   GoogleFormsDataSource,
   GoogleFormsUpload,
   ImapDataSource,
@@ -126,6 +127,8 @@ export function composeWorkspaceConnectorCatalog(
     )
     if (!definition) return []
     if (source.type === "imap") return [connectedImapSource(definition, source)]
+    if (source.type === "gmail")
+      return [connectedGmailSource(definition, source)]
     if (source.type === "forms")
       return [connectedGoogleFormsSource(definition, source)]
     return []
@@ -280,7 +283,48 @@ function connectedGoogleFormsSource(
   }
 }
 
+function connectedGmailSource(
+  catalogSource: ConnectorDefinition,
+  source: GmailDataSource
+): WorkspaceDataSourceCatalogItem {
+  const syncLabel = syncStatusLabel(source)
+
+  return {
+    ...catalogSource,
+    kind: "data_source",
+    title: source.displayName,
+    sourceId: source.id,
+    sourceType: source.type,
+    sourceSlug: source.sourceSlug,
+    sub: source.connection.emailAddress,
+    connected: true,
+    health: gmailHealth(source),
+    lastSync: syncLabel.toLowerCase(),
+    summaryStatId: "synced",
+    stats: [
+      { id: "synced", label: "Sync", value: syncLabel },
+      {
+        id: "window",
+        label: "Window",
+        value: historyWindowLabel(source.intake.historyWindow),
+      },
+      {
+        id: "events",
+        label: "Labels",
+        value: String(source.intake.watchedFolders.length),
+      },
+    ],
+  }
+}
+
 function imapHealth(source: ImapDataSource): DataSourceHealth {
+  if (source.status === "error" || source.sync.status === "error") {
+    return "error"
+  }
+  return "healthy"
+}
+
+function gmailHealth(source: GmailDataSource): DataSourceHealth {
   if (source.status === "error" || source.sync.status === "error") {
     return "error"
   }
@@ -293,7 +337,9 @@ function googleFormsHealth(source: GoogleFormsDataSource): DataSourceHealth {
   return "healthy"
 }
 
-function syncStatusLabel(source: ImapDataSource | GoogleFormsDataSource) {
+function syncStatusLabel(
+  source: ImapDataSource | GmailDataSource | GoogleFormsDataSource
+) {
   if (source.sync.status === "error") return "Error"
   if (source.sync.status === "running") return "Syncing"
   if (source.sync.status === "queued") return "Queued"

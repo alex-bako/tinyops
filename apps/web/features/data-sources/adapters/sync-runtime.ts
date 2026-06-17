@@ -2,8 +2,10 @@ import {
   createSupabaseClientIngestionWriter,
   type SupabaseClientIngestionWriterClient,
 } from "@/features/clients/adapters/supabase-ingestion-writer"
+import { createGmailSourceSyncAdapter } from "@/features/data-sources/adapters/gmail-source-sync-adapter"
 import { createGoogleFormsSourceSyncAdapter } from "@/features/data-sources/adapters/google-forms-source-sync-adapter"
 import { createImapSourceSyncAdapter } from "@/features/data-sources/adapters/imap-source-sync-adapter"
+import { createSupabaseGmailCredentialReader } from "@/features/data-sources/gmail/gmail-secret-reader"
 import {
   createSupabaseGoogleFormsManualCsvRowReader,
   type SupabaseGoogleFormsManualCsvRowReaderClient,
@@ -57,6 +59,13 @@ export function createDataSourceSyncRuntime() {
         imapCredentialReader,
         imapThreadIndexReader: createSupabaseImapThreadIndexReader({
           client: threadIndexClient,
+        }),
+        logger,
+      }),
+      createGmailSourceSyncAdapter({
+        dataSourceReader,
+        gmailCredentialReader: createSupabaseGmailCredentialReader({
+          client: rpcClient,
         }),
         logger,
       }),

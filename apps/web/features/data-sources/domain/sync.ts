@@ -32,6 +32,8 @@ export type SyncFailureCode =
   | "invalid_imap_config"
   | "secret_read_failed"
   | "imap_connection_failed"
+  | "gmail_auth_revoked"
+  | "gmail_api_error"
   | "ingestion_failed"
   | "sync_failed"
 
@@ -76,6 +78,8 @@ export function isSyncFailureCode(value: string): value is SyncFailureCode {
     value === "invalid_imap_config" ||
     value === "secret_read_failed" ||
     value === "imap_connection_failed" ||
+    value === "gmail_auth_revoked" ||
+    value === "gmail_api_error" ||
     value === "ingestion_failed" ||
     value === "sync_failed"
   )
@@ -86,6 +90,9 @@ export function syncFailureMessage(code: SyncFailureCode) {
   if (code === "invalid_imap_config") return "Invalid IMAP configuration"
   if (code === "secret_read_failed") return "Could not read IMAP password"
   if (code === "imap_connection_failed") return "IMAP connection failed"
+  if (code === "gmail_auth_revoked")
+    return "Gmail access was revoked — reconnect the mailbox"
+  if (code === "gmail_api_error") return "Gmail API request failed"
   if (code === "ingestion_failed") return "Could not persist synced records"
   return "Sync failed"
 }

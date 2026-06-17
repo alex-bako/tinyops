@@ -8,6 +8,8 @@ import { CsvConfig } from "./_components/config-blocks/csv-config"
 import { CsvConnect } from "./_components/connection-blocks/csv-connect"
 import { FormsConfig } from "./_components/config-blocks/forms-config"
 import { FormsConnect } from "./_components/connection-blocks/forms-connect"
+import { GmailConfig } from "./_components/config-blocks/gmail-config"
+import { GmailConnect } from "./_components/connection-blocks/gmail-connect"
 import { ImapConfig } from "./_components/config-blocks/imap-config"
 import { ImapConnect } from "./_components/connection-blocks/imap-connect"
 import { MailerLiteConfig } from "./_components/config-blocks/mailerlite-config"
@@ -45,6 +47,13 @@ export const SOURCE_UI_REGISTRY: Record<SourceId, SourceUiRegistryEntry> = {
     Config: ImapConfig,
     logoClassName: "bg-cobalt-500/12 text-cobalt-700",
     activity: ACTIVITY.imap,
+  },
+  gmail: {
+    id: "gmail",
+    Connection: GmailConnect,
+    Config: GmailConfig,
+    logoClassName: "bg-[#EA4335] text-white",
+    activity: [],
   },
   csv: {
     id: "csv",

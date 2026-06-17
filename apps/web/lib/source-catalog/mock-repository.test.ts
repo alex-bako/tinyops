@@ -10,7 +10,7 @@ describe("mock source catalog repository", () => {
     const view = createSourcesPageView(await repository.listDataSources())
 
     expect(view.connected.count).toBe("0")
-    expect(view.available.count).toBe("7")
+    expect(view.available.count).toBe("8")
   })
 
   it("finds a data source by id and returns null when missing", async () => {

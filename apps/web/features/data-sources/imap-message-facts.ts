@@ -1,36 +1,23 @@
-import type {
-  NormalizedConnectorRecord,
-  NormalizedParticipant,
-} from "@/features/clients/application/connector-ingestion"
-import { classifyTimelineSensitivity } from "@/features/clients/domain/sensitivity"
-import { matchesImapSkipSender } from "@/features/data-sources/imap-intake-predicate"
+import type { NormalizedParticipant } from "@/features/clients/application/connector-ingestion"
 import {
-  buildImapThreadHeaders,
-  type ImapThreadHeaders,
-} from "@/features/data-sources/imap-threading"
+  addressEmails,
+  buildEmailMessageFacts,
+  ownerEmailSet,
+  type EmailEventType,
+  type ParsedAddress,
+  type ParsedAddressList,
+  type ParsedMailLike,
+} from "@/features/data-sources/email/email-message-facts"
+import type { ImapThreadHeaders } from "@/features/data-sources/imap-threading"
 import type { ImapDataSource } from "@/features/data-sources/types"
-import { normalizeEmail } from "@/lib/auth/email"
 
-export type ParsedAddress = {
-  address?: string
-  name?: string
-}
-
-export type ParsedAddressList = {
-  value?: ParsedAddress[]
-}
-
-export type ParsedMailLike = {
-  messageId?: string
-  inReplyTo?: string
-  references?: string[]
-  subject?: string
-  date?: Date
-  text?: string
-  from?: ParsedAddressList
-  to?: ParsedAddressList
-  cc?: ParsedAddressList
-  bcc?: ParsedAddressList
+// Re-exported so existing IMAP modules keep importing these from here.
+export {
+  addressEmails,
+  ownerEmailSet,
+  type ParsedAddress,
+  type ParsedAddressList,
+  type ParsedMailLike,
 }
 
 export type ImapMessageFacts = {
@@ -46,20 +33,22 @@ export type ImapMessageFacts = {
   toEmails: string[]
   ccEmails: string[]
   bccEmails: string[]
-  eventType: Extract<
-    NormalizedConnectorRecord["eventType"],
-    "email_received" | "email_sent"
-  >
+  eventType: EmailEventType
   occurredAt: string
   participants: NormalizedParticipant[]
   matchedSensitivityKeywords: string[]
-  sensitivityLevel: NormalizedConnectorRecord["sensitivityLevel"]
+  sensitivityLevel: 0 | 1 | 2 | 3 | 4
 }
 
 export type ImapMessageFactsResult =
   | { ok: true; facts: ImapMessageFacts }
   | { ok: false; reason: "skip_sender" | "no_external_participant" }
 
+/**
+ * IMAP-specific facts builder. Delegates the provider-neutral work to
+ * `buildEmailMessageFacts` and layers on the IMAP-only fields (uid / folder)
+ * plus the IMAP `externalId` fallback used when a message has no Message-ID.
+ */
 export function buildImapMessageFacts({
   source,
   uid,
@@ -81,90 +70,38 @@ export function buildImapMessageFacts({
   manualReviewKeywords: string[]
   fallbackDate: Date
 }): ImapMessageFactsResult {
-  const fromEmails = addressEmails(parsed.from)
-  if (matchesImapSkipSender(source.intake.skipSenders, fromEmails)) {
-    return { ok: false, reason: "skip_sender" }
-  }
-
-  const participants = externalParticipants(parsed, ownerEmails)
-  if (participants.length === 0) {
-    return { ok: false, reason: "no_external_participant" }
-  }
-
-  const bodyText = (parsed.text ?? "").trim()
-  const subject = (parsed.subject ?? "(no subject)").trim()
-  const sensitivity = classifyTimelineSensitivity({
-    text: `${subject}\n${bodyText}`,
+  const result = buildEmailMessageFacts({
+    parsed,
+    ownerEmails,
+    skipSenders: source.intake.skipSenders,
     manualReviewKeywords,
+    fallbackDate,
+    internalDate,
   })
-  const messageId = parsed.messageId?.trim() || null
-  const senderIsOwner = fromEmails.some((email) => ownerEmails.has(email))
-  const headers = buildImapThreadHeaders({
-    messageId,
-    inReplyTo: parsed.inReplyTo,
-    references: parsed.references,
-  })
+  if (!result.ok) return result
 
+  const facts = result.facts
   return {
     ok: true,
     facts: {
       uid,
       uidValidity,
       folder,
-      messageId,
-      externalId: messageId
-        ? `message:${messageId}`
-        : `imap:${folder}:${uidValidity}:${uid}`,
-      headers,
-      subject,
-      bodyText,
-      fromEmails,
-      toEmails: addressEmails(parsed.to),
-      ccEmails: addressEmails(parsed.cc),
-      bccEmails: addressEmails(parsed.bcc),
-      eventType: senderIsOwner ? "email_sent" : "email_received",
-      occurredAt: toIso(parsed.date ?? internalDate ?? fallbackDate),
-      participants,
-      matchedSensitivityKeywords: sensitivity.matchedKeywords,
-      sensitivityLevel: sensitivity.level,
+      messageId: facts.messageId,
+      externalId:
+        facts.externalId ?? `imap:${folder}:${uidValidity}:${uid}`,
+      headers: facts.headers,
+      subject: facts.subject,
+      bodyText: facts.bodyText,
+      fromEmails: facts.fromEmails,
+      toEmails: facts.toEmails,
+      ccEmails: facts.ccEmails,
+      bccEmails: facts.bccEmails,
+      eventType: facts.eventType,
+      occurredAt: facts.occurredAt,
+      participants: facts.participants,
+      matchedSensitivityKeywords: facts.matchedSensitivityKeywords,
+      sensitivityLevel: facts.sensitivityLevel,
     },
   }
-}
-
-export function ownerEmailSet(username: string, ownerEmails: string[]) {
-  return new Set(
-    [username, ...ownerEmails].flatMap((value) => {
-      const email = normalizeEmail(value)
-      return email ? [email] : []
-    })
-  )
-}
-
-export function addressEmails(list: ParsedAddressList | undefined) {
-  return (list?.value ?? []).flatMap((address) => {
-    const email = normalizeEmail(address.address ?? "")
-    return email ? [email] : []
-  })
-}
-
-function externalParticipants(
-  parsed: ParsedMailLike,
-  ownerEmails: Set<string>
-): NormalizedParticipant[] {
-  const seen = new Set<string>()
-  return [
-    ...(parsed.from?.value ?? []),
-    ...(parsed.to?.value ?? []),
-    ...(parsed.cc?.value ?? []),
-    ...(parsed.bcc?.value ?? []),
-  ].flatMap((address) => {
-    const email = normalizeEmail(address.address ?? "")
-    if (!email || ownerEmails.has(email) || seen.has(email)) return []
-    seen.add(email)
-    return [{ email, name: address.name ?? null, role: "external" as const }]
-  })
-}
-
-function toIso(value: Date | string) {
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString()
 }

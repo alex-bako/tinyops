@@ -8,9 +8,10 @@ describe("sources page view", () => {
     const view = createSourcesPageView()
 
     expect(view.connected.count).toBe("0")
-    expect(view.available.count).toBe("7")
+    expect(view.available.count).toBe("8")
     expect(view.available.rows.map((source) => source.id)).toEqual([
       "imap",
+      "gmail",
       "csv",
       "forms",
       "stripe",
@@ -23,6 +24,7 @@ describe("sources page view", () => {
     ).toBe(true)
     expect(view.available.rows.map((source) => source.href)).toEqual([
       "/home/sources/imap/new",
+      "/home/sources/gmail/new",
       "/home/sources/csv/new",
       "/home/sources/forms/new",
       "/home/sources/stripe/new",
@@ -45,7 +47,7 @@ describe("sources page view", () => {
       configureLabel: "Configure IMAP mailbox",
       statusLabel: "Not connected",
     })
-    expect(view.available.rows[3]).toMatchObject({
+    expect(view.available.rows[4]).toMatchObject({
       id: "stripe",
       action: "connect",
       href: "/home/sources/stripe/new",
