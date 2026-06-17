@@ -6,7 +6,7 @@ import {
   CalloutStamp,
   CalloutSummary,
 } from "@workspace/ui/components/callout"
-import { cn } from "@workspace/ui/lib/utils"
+import { ConfidenceMeter } from "@workspace/ui/components/confidence-meter"
 
 import type { ClientMemoryView } from "../_view-model"
 
@@ -18,24 +18,8 @@ export function MemoryCallout({ memory }: { memory: ClientMemoryView }) {
         AI memory · grounded in source events
       </CalloutStamp>
       <CalloutSummary>{memory.summary}</CalloutSummary>
-      <div
-        className={cn(
-          "mt-3 flex items-center gap-2 text-[12.5px] text-muted-foreground"
-        )}
-      >
-        <span>Confidence</span>
-        <span
-          aria-hidden
-          className="inline-block h-1 w-20 overflow-hidden rounded-full bg-cobalt-500/15"
-        >
-          <span
-            className="block h-full rounded-full bg-cobalt-500"
-            style={{ width: memory.confidenceWidth }}
-          />
-        </span>
-        <span className="font-mono text-foreground tabular-nums">
-          {memory.confidencePct}%
-        </span>
+      <div className="mt-3 flex items-center gap-3 text-[12px] text-muted-foreground">
+        <ConfidenceMeter pct={memory.confidencePct} />
         <span aria-hidden className="text-muted-foreground/40">
           ·
         </span>
