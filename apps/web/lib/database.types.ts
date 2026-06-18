@@ -52,6 +52,58 @@ export type Database = {
         }
         Relationships: []
       }
+      client_ask_turns: {
+        Row: {
+          answer: Json
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          question: string
+          workspace_id: string
+        }
+        Insert: {
+          answer: Json
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          question: string
+          workspace_id: string
+        }
+        Update: {
+          answer?: Json
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          question?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_ask_turns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_ask_turns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_ask_turns_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_attributes: {
         Row: {
           attribute_key: string

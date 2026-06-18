@@ -1,6 +1,6 @@
 "use client"
 
-import { CornerDownRightIcon, ShieldIcon, SparklesIcon } from "lucide-react"
+import { ShieldIcon, SparklesIcon } from "lucide-react"
 
 import { ConfidenceMeter } from "@workspace/ui/components/confidence-meter"
 
@@ -9,28 +9,25 @@ import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion"
 import type { AskSource, GroundedAnswerData } from "@/features/ask/application/client-ask"
 import { SourceCite } from "./source-cite"
 
-// Renders one grounded answer: question echo, synthesized lead + body, an
-// optional firewall notice, confidence + scope, the cited sources, and
-// follow-up chips. Purely presentational — it receives a `GroundedAnswerData`
-// and emits intent through callbacks.
+// Renders one grounded answer body: synthesized lead + body, an optional firewall
+// notice, confidence + scope, the cited sources, and (only on the latest turn)
+// follow-up chips. Purely presentational — it receives a `GroundedAnswerData` and
+// emits intent through callbacks. The question echo + author live in the turn
+// wrapper so live and pending turns read identically.
 export function GroundedAnswer({
   answer,
   onFollowUp,
   onOpenSource,
+  showFollowUps = true,
 }: {
   answer: GroundedAnswerData
   onFollowUp: (question: string) => void
   onOpenSource?: (source: AskSource) => void
+  /** Only the latest answered turn offers follow-ups, to keep the thread clean. */
+  showFollowUps?: boolean
 }) {
   return (
-    <div className="ask-answer-rise mt-6 border-l-[3px] border-cobalt-500 pl-5">
-      <div className="mb-3 inline-flex items-center gap-2 text-[13px] text-muted-foreground">
-        <span className="inline-flex size-5 items-center justify-center rounded-xs bg-muted text-muted-foreground">
-          <CornerDownRightIcon className="size-3" />
-        </span>
-        {answer.question}
-      </div>
-
+    <div>
       <MessageResponse className="mb-3 max-w-[60ch] font-sans text-[21px] leading-[1.42] tracking-[-0.014em] text-foreground [&_em]:font-serif [&_em]:font-normal [&_em]:text-cobalt-700 [&_em]:italic">
         {answer.lead}
       </MessageResponse>
@@ -54,20 +51,24 @@ export function GroundedAnswer({
         <span>{answer.scope}</span>
       </div>
 
-      <div className="mt-[22px] mb-2 font-mono text-[11px] tracking-[0.04em] uppercase text-muted-foreground">
-        Sources · {answer.sources.length} cited
-      </div>
-      <div className="flex flex-col">
-        {answer.sources.map((source, index) => (
-          <SourceCite
-            key={`${source.email}-${source.when}-${index}`}
-            source={source}
-            onOpen={onOpenSource}
-          />
-        ))}
-      </div>
+      {answer.sources.length > 0 ? (
+        <>
+          <div className="mt-[22px] mb-2 font-mono text-[11px] tracking-[0.04em] uppercase text-muted-foreground">
+            Sources · {answer.sources.length} cited
+          </div>
+          <div className="flex flex-col">
+            {answer.sources.map((source, index) => (
+              <SourceCite
+                key={`${source.email}-${source.when}-${index}`}
+                source={source}
+                onOpen={onOpenSource}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
 
-      {answer.followUps.length > 0 ? (
+      {showFollowUps && answer.followUps.length > 0 ? (
         <div className="mt-5">
           <div className="mb-1.5 text-[12px] text-muted-foreground">
             Follow up

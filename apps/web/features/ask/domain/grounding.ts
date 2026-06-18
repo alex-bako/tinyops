@@ -31,8 +31,10 @@ export function firstNameOf(name: string): string {
 /** Flatten a client's profile + timeline into the context the model reasons over. */
 export function buildGroundingContext(
   client: ClientProfile,
-  question: string
+  question: string,
+  history?: string
 ): GroundingContext {
+  const trimmedHistory = history?.trim()
   return {
     question,
     client: {
@@ -41,6 +43,7 @@ export function buildGroundingContext(
       firstName: firstNameOf(client.displayName),
     },
     events: client.timeline.map(toGroundingEvent),
+    ...(trimmedHistory ? { history: trimmedHistory } : {}),
   }
 }
 
@@ -158,10 +161,12 @@ export function draftToGroundedAnswer(input: {
   draft: PartialAnswerDraft
   context: GroundingContext
   now: Date
+  askedBy?: string | null
 }): GroundedAnswerData {
-  const { question, draft, context, now } = input
+  const { question, draft, context, now, askedBy } = input
   return {
     question,
+    ...(askedBy ? { askedBy } : {}),
     lead: draft.lead ?? "",
     body: draft.body ?? "",
     scope: buildScope(context.client.firstName, context.events.length),
@@ -183,10 +188,12 @@ export function draftToGroundedAnswer(input: {
 export function emptyGroundedAnswer(input: {
   question: string
   context: GroundingContext
+  askedBy?: string | null
 }): GroundedAnswerData {
   const first = input.context.client.firstName
   return {
     question: input.question,
+    ...(input.askedBy ? { askedBy: input.askedBy } : {}),
     lead: `There's nothing on ${first}'s timeline yet to ground an answer.`,
     body: `Once ${first} has activity — emails, forms, or notes — I can answer here with cited sources.`,
     scope: buildScope(first, 0),
@@ -201,11 +208,17 @@ export function buildGroundingPrompt(context: GroundingContext): {
   system: string
   user: string
 } {
+  const history = context.history?.trim()
   const system = [
     `You answer questions about a single client (${context.client.name}), grounded ONLY in the timeline events provided below.`,
     `Never invent facts, people, dates, or events. If the events don't support an answer, say so plainly.`,
     `Cite supporting events ONLY by the exact [id] given — never invent an id. Each citation's snippet must be a short excerpt drawn from that event.`,
-    `Write a concise markdown "lead" (one sentence, *italics* for emphasis) and a short "body" paragraph (**bold** for emphasis). Report a 0–100 confidence reflecting how well the events support the answer, and up to three natural follow-up questions.`,
+    ...(history
+      ? [
+          `Earlier turns in this conversation are provided for context. Use them ONLY to resolve what the current question refers to (e.g. "that", "they", "the email"). Do NOT treat earlier answers as fact: every claim in this answer must still be grounded in the timeline events and cited by [id].`,
+        ]
+      : []),
+    `Write a concise markdown "lead" (one sentence, *italics* for emphasis) and a short "body" paragraph (**bold** for emphasis). Report a 0–100 confidence reflecting how well the events support the answer, and up to three natural follow-up questions. Phrase follow-ups so they stand alone (name the client, not "that").`,
   ].join("\n")
 
   const events = context.events
@@ -215,7 +228,12 @@ export function buildGroundingPrompt(context: GroundingContext): {
     )
     .join("\n\n")
 
-  const user = `Question: ${context.question}\n\nTimeline events:\n${events}`
+  const user = [
+    ...(history ? [`Conversation so far:\n${history}\n`] : []),
+    `Question: ${context.question}`,
+    ``,
+    `Timeline events:\n${events}`,
+  ].join("\n")
 
   return { system, user }
 }
