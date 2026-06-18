@@ -23,6 +23,8 @@ export type AskSource = {
 /** A synthesized, grounded answer. `lead`/`body` are markdown. */
 export type GroundedAnswerData = {
   question: string
+  /** Display name of the member who asked, for shared-thread attribution. */
+  askedBy?: string
   lead: string
   body: string
   /** e.g. "Grounded in 9 events for Anna". */

@@ -8,6 +8,7 @@ import { Section } from "@workspace/ui/components/section"
 
 import { WorkspacePageSurface } from "@/components/page-surface"
 import { askExampleQuestions } from "@/features/ask/application/ask-example-questions"
+import { loadClientAskThread } from "@/features/ask/loaders"
 import {
   loadClientDetailPageAccess,
   loadClientMemoryRepository,
@@ -53,6 +54,7 @@ export default async function ClientDetailPage({
   if (!client) notFound()
 
   const view = createClientDetailView(client)
+  const askThread = await loadClientAskThread({ clientId: view.clientId })
 
   return (
     <WorkspacePageSurface>
@@ -78,6 +80,9 @@ export default async function ClientDetailPage({
           slug={slug}
           clientName={view.header.name}
           exampleQuestions={askExampleQuestions(view.header.name)}
+          initialMessages={askThread.initialMessages}
+          canClearThread={askThread.canClearThread}
+          currentUserName={askThread.currentUserName}
         />
 
         <PropertiesSection

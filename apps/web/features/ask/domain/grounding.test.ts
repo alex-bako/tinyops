@@ -294,4 +294,65 @@ describe("buildGroundingPrompt", () => {
     expect(user).toContain("evt_2")
     expect(`${system} ${user}`.toLowerCase()).toContain("only")
   })
+
+  it("omits the conversation section when there is no history", () => {
+    const { system, user } = buildGroundingPrompt(context([groundingEvent()]))
+
+    expect(user).not.toContain("Conversation so far")
+    expect(system).not.toContain("Earlier turns")
+  })
+
+  it("adds a conversation section and reference-only instruction when history is present", () => {
+    const ctx: GroundingContext = {
+      ...context([groundingEvent()]),
+      history: "Q: What has Anna asked for?\nA: Mostly practical access.",
+    }
+    const { system, user } = buildGroundingPrompt(ctx)
+
+    expect(user).toContain("Conversation so far")
+    expect(user).toContain("Mostly practical access.")
+    // Still demands grounding + citations for new claims.
+    expect(system).toContain("Earlier turns")
+    expect(system.toLowerCase()).toContain("grounded in the timeline")
+  })
+})
+
+describe("buildGroundingContext history", () => {
+  it("carries a trimmed history when provided and omits it when blank", () => {
+    expect(buildGroundingContext(profile(), "Q", "  prior  ").history).toBe("prior")
+    expect(buildGroundingContext(profile(), "Q", "   ").history).toBeUndefined()
+    expect(buildGroundingContext(profile(), "Q").history).toBeUndefined()
+  })
+})
+
+describe("askedBy stamping", () => {
+  it("stamps askedBy onto a grounded answer when provided", () => {
+    const answer = draftToGroundedAnswer({
+      question: "Q",
+      draft: { lead: "Lead", body: "Body", confidence: 50, citations: [], followUps: [] },
+      context: context([groundingEvent()]),
+      now: NOW,
+      askedBy: "Alex Bako",
+    })
+    expect(answer.askedBy).toBe("Alex Bako")
+  })
+
+  it("leaves askedBy unset when not provided", () => {
+    const answer = draftToGroundedAnswer({
+      question: "Q",
+      draft: { lead: "Lead", body: "Body", confidence: 50, citations: [], followUps: [] },
+      context: context([groundingEvent()]),
+      now: NOW,
+    })
+    expect(answer.askedBy).toBeUndefined()
+  })
+
+  it("stamps askedBy onto the empty answer too", () => {
+    const answer = emptyGroundedAnswer({
+      question: "Q",
+      context: context([]),
+      askedBy: "Alex Bako",
+    })
+    expect(answer.askedBy).toBe("Alex Bako")
+  })
 })

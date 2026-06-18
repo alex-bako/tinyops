@@ -41,11 +41,12 @@ const baseAnswer: GroundedAnswerData = {
 }
 
 describe("GroundedAnswer", () => {
-  it("renders the question, scope, confidence and a citation card", () => {
+  it("renders the lead, scope, confidence and a citation card", () => {
     render(<GroundedAnswer answer={baseAnswer} onFollowUp={() => {}} />)
 
+    // The question echo lives in the turn wrapper; the answer renders its body.
     expect(
-      screen.getByText("What has Anna actually asked me for?")
+      screen.getByText("Mostly *practical access* — how to reach materials.")
     ).toBeInTheDocument()
     expect(screen.getByText("Grounded in 9 events for Anna")).toBeInTheDocument()
     expect(screen.getByText("86%")).toBeInTheDocument()
@@ -53,6 +54,16 @@ describe("GroundedAnswer", () => {
       screen.getByText("Asked for clearer steps to reach the replay library.")
     ).toBeInTheDocument()
     expect(screen.getByText("imap")).toBeInTheDocument()
+  })
+
+  it("hides follow-up chips when showFollowUps is false", () => {
+    render(
+      <GroundedAnswer answer={baseAnswer} onFollowUp={() => {}} showFollowUps={false} />
+    )
+
+    expect(
+      screen.queryByRole("button", { name: /is anything sensitive\?/i })
+    ).not.toBeInTheDocument()
   })
 
   it("does not render a firewall notice when there is none", () => {

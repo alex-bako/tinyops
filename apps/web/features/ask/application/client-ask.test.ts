@@ -12,7 +12,9 @@ import type {
   GroundingContext,
   PartialAnswerDraft,
 } from "@/features/ask/domain/answer-draft"
-import { createClientAskApplication } from "./client-ask"
+import type { AskThreadTurn } from "@/features/ask/domain/ask-thread"
+import type { GroundedAnswerData } from "@/features/ask/domain/grounded-answer"
+import { askThreadToMessages, createClientAskApplication } from "./client-ask"
 
 const NOW = () => new Date("2026-03-10T00:00:00.000Z")
 
@@ -134,6 +136,27 @@ describe("createClientAskApplication", () => {
     expect(synthesizer.lastContext?.question).toBe("What has Anna asked for?")
   })
 
+  it("passes history into the grounding context and stamps askedBy onto answers", async () => {
+    const reader = fakeReader(profile([event()]))
+    const synthesizer = fakeSynthesizer([{ lead: "Mid" }], blankDraft())
+    const app = createClientAskApplication({ workspaceId: "ws_1", reader, synthesizer, now: NOW })
+
+    const yielded = []
+    for await (const answer of app.streamGroundedAnswer({
+      client: profile([event()]),
+      question: "And is that sensitive?",
+      history: "Q: What has Anna asked for?\nA: Mostly practical access.",
+      askedBy: "Alex Bako",
+    })) {
+      yielded.push(answer)
+    }
+
+    expect(synthesizer.lastContext?.history).toBe(
+      "Q: What has Anna asked for?\nA: Mostly practical access."
+    )
+    expect(yielded.every((answer) => answer.askedBy === "Alex Bako")).toBe(true)
+  })
+
   it("short-circuits a grounded empty answer for a client with no events, never calling the model", async () => {
     const reader = fakeReader(profile([]))
     const synthesizer = fakeSynthesizer([], blankDraft())
@@ -157,3 +180,49 @@ describe("createClientAskApplication", () => {
 function blankDraft(): AnswerDraft {
   return { lead: "", body: "", confidence: 0, citations: [], followUps: [] }
 }
+
+describe("askThreadToMessages", () => {
+  const answer: GroundedAnswerData = {
+    question: "What has Anna asked for?",
+    lead: "Mostly practical access.",
+    body: "Logistics.",
+    scope: "Grounded in 1 event for Anna",
+    confidencePct: 86,
+    sources: [],
+    followUps: ["Is anything sensitive?"],
+  }
+
+  function turn(overrides: Partial<AskThreadTurn> = {}): AskThreadTurn {
+    return {
+      id: "t1",
+      question: "What has Anna asked for?",
+      answer,
+      askedBy: "Alex Bako",
+      createdAt: "2026-06-18T10:00:00.000Z",
+      ...overrides,
+    }
+  }
+
+  it("reconstructs a user question + assistant answer per turn, asker stamped", () => {
+    const messages = askThreadToMessages([turn()])
+
+    expect(messages).toHaveLength(2)
+    expect(messages[0]).toMatchObject({
+      role: "user",
+      parts: [{ type: "text", text: "What has Anna asked for?" }],
+    })
+    expect(messages[1]?.role).toBe("assistant")
+    const part = messages[1]?.parts[0]
+    expect(part?.type).toBe("data-answer")
+    expect(part && "data" in part ? part.data.askedBy : null).toBe("Alex Bako")
+  })
+
+  it("preserves order across turns with stable, unique message ids", () => {
+    const messages = askThreadToMessages([
+      turn({ id: "t1", question: "Q1" }),
+      turn({ id: "t2", question: "Q2" }),
+    ])
+
+    expect(messages.map((message) => message.id)).toEqual(["t1-q", "t1-a", "t2-q", "t2-a"])
+  })
+})

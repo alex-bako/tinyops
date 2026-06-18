@@ -72,6 +72,12 @@ export type GroundingContext = {
   question: string
   client: GroundingClient
   events: GroundingEvent[]
+  /**
+   * Compact transcript of earlier turns in the thread, for context-aware
+   * follow-ups. Used ONLY to resolve references; new claims must still be
+   * grounded in `events`. Empty/absent for a fresh thread.
+   */
+  history?: string
 }
 
 /** A streaming synthesis: progressive partials plus the resolved final draft. */
