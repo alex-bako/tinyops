@@ -47,6 +47,8 @@ Configure runtime env vars in each Vercel project:
 - `TINYOPS_APP_BASE_URL`
 - `TINYOPS_DEPLOY_ENV`
 - `TINYOPS_LOG_LEVEL`
+- `OPENAI_API_KEY` (only needed for the "Ask AI" feature)
+- `ASK_AI_MODEL` (optional; defaults to `gpt-5.5`)
 
 Set `TINYOPS_DEPLOY_ENV=staging` in `tinyops-staging` and
 `TINYOPS_DEPLOY_ENV=production` in `tinyops-prod`.

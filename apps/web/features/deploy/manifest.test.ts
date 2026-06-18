@@ -45,7 +45,7 @@ describe("deploy manifest", () => {
     expect(DEPLOY_TOOL_VERSIONS).toEqual({
       node: "20",
       pnpm: "10.18.3",
-      supabaseCli: "2.98.2",
+      supabaseCli: "2.106.0",
       vercelCli: "47.0.5",
     })
   })
