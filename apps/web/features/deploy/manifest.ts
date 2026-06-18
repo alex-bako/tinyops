@@ -57,6 +57,8 @@ export const DEPLOY_RUNTIME_ENV = [
   "TINYOPS_APP_BASE_URL",
   "TINYOPS_DEPLOY_ENV",
   "TINYOPS_LOG_LEVEL",
+  "OPENAI_API_KEY",
+  "ASK_AI_MODEL",
 ] as const
 
 export const DEPLOY_BUILD_ENV = {
@@ -74,7 +76,7 @@ export const DEPLOY_BUILD_ENV = {
 export const DEPLOY_TOOL_VERSIONS = {
   node: "20",
   pnpm: "10.18.3",
-  supabaseCli: "2.98.2",
+  supabaseCli: "2.106.0",
   vercelCli: "47.0.5",
 } as const
 
