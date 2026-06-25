@@ -18,13 +18,13 @@ describe("deploy manifest", () => {
         githubEnvironment: "staging",
         includeSeed: true,
         requiresTagOnMain: false,
-        syncDrainSchedule: "0 * * * *",
+        syncDrainSchedule: "*/30 * * * *",
       },
       production: {
         githubEnvironment: "production",
         includeSeed: false,
         requiresTagOnMain: true,
-        syncDrainSchedule: "* * * * *",
+        syncDrainSchedule: "*/30 * * * *",
       },
     })
     expect(DEPLOY_ROUTES).toEqual({
@@ -52,10 +52,10 @@ describe("deploy manifest", () => {
 
   it("creates Vercel cron config from the deploy manifest", () => {
     expect(createVercelConfig("staging").crons).toEqual([
-      { path: "/api/sync/drain", schedule: "0 * * * *" },
+      { path: "/api/sync/drain", schedule: "*/30 * * * *" },
     ])
     expect(createVercelConfig("production").crons).toEqual([
-      { path: "/api/sync/drain", schedule: "* * * * *" },
+      { path: "/api/sync/drain", schedule: "*/30 * * * *" },
     ])
   })
 

@@ -53,10 +53,11 @@ Configure runtime env vars in each Vercel project:
 Set `TINYOPS_DEPLOY_ENV=staging` in `tinyops-staging` and
 `TINYOPS_DEPLOY_ENV=production` in `tinyops-prod`.
 
-Cron schedule comes from `apps/web/vercel.ts`:
+Cron schedule comes from `apps/web/vercel.ts`. Each tick enqueues every idle
+connector (steady-state incremental sync) and drains the queue:
 
-- staging: hourly, `0 * * * *`
-- production: minutely, `* * * * *`
+- staging: every 30 minutes, `*/30 * * * *`
+- production: every 30 minutes, `*/30 * * * *`
 
 ## Supabase Projects
 

@@ -27,6 +27,15 @@ export type DataSourceSyncJobStore = {
   fail(input: { sourceId: string; leaseToken: string; error: string }): Promise<void>
 }
 
+/**
+ * Periodically re-queues connected, idle connectors so steady-state incremental
+ * sync runs on the cron cadence. In-flight (queued/running/error) sources are
+ * left untouched, so it is safe to call on every tick.
+ */
+export type DataSourceSyncScheduler = {
+  enqueueDueSyncs(): Promise<{ queued: number }>
+}
+
 export type SyncFailureCode =
   | "source_not_found"
   | "invalid_imap_config"

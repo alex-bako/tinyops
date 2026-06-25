@@ -1278,6 +1278,7 @@ export type Database = {
         Returns: undefined
       }
       enforce_invited_user: { Args: { event: Json }; Returns: Json }
+      enqueue_due_data_source_syncs: { Args: never; Returns: number }
       fail_data_source_sync: {
         Args: {
           lease_token: string
