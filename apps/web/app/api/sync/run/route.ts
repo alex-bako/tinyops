@@ -1,10 +1,18 @@
-import { NextResponse } from "next/server"
+import { after, NextResponse } from "next/server"
 
 import type { SyncFailure } from "@/features/data-sources/domain/sync"
 import { createDataSourceSyncRuntime } from "@/features/data-sources/adapters/sync-runtime"
+import {
+  dispatchDataSourceSyncWorker,
+  nextSyncChainStep,
+} from "@/features/data-sources/sync-dispatcher"
 import { isAuthorizedBearerRequest } from "@/lib/http/bearer-auth"
 import { getLogger } from "@/lib/logging"
-import { getSyncWorkerSecret } from "@/lib/supabase/server-env"
+import {
+  getOptionalSyncWorkerSecret,
+  getOptionalTinyOpsAppBaseUrl,
+  getSyncWorkerSecret,
+} from "@/lib/supabase/server-env"
 
 export const runtime = "nodejs"
 
@@ -21,6 +29,13 @@ export async function POST(request: Request) {
 
   const worker = createDataSourceSyncRuntime()
   const result = await worker.runNext({ trigger: "immediate" })
+
+  const chain = Number(request.headers.get("x-sync-chain")) || 0
+  const step = nextSyncChainStep(result, chain)
+  if (step.dispatch) {
+    after(() => chainNextSyncBatch(step.chain))
+  }
+
   if (!result.claimed) {
     return NextResponse.json({ status: "idle" })
   }
@@ -48,6 +63,31 @@ export async function POST(request: Request) {
     persisted: result.persisted,
     truncated: result.truncated,
   })
+}
+
+async function chainNextSyncBatch(chain: number) {
+  const logger = getLogger().child({ component: "sync_run_route" })
+  try {
+    const dispatch = await dispatchDataSourceSyncWorker({
+      baseUrl: getOptionalTinyOpsAppBaseUrl(),
+      secret: getOptionalSyncWorkerSecret(),
+      chain,
+    })
+    if (dispatch.dispatched && !dispatch.ok) {
+      logger.warn(
+        { event: "data_source_sync_chain_failed", status: dispatch.status },
+        "data source sync chain dispatch failed"
+      )
+    }
+  } catch (error) {
+    logger.warn(
+      {
+        event: "data_source_sync_chain_failed",
+        message: error instanceof Error ? error.message.slice(0, 500) : "Unknown error",
+      },
+      "data source sync chain dispatch failed"
+    )
+  }
 }
 
 function logContext(failure: SyncFailure) {
