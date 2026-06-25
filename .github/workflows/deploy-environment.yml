@@ -101,13 +101,14 @@ jobs:
         if: ${{ !inputs.include-seed }}
         run: pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" db push --linked --password "${SUPABASE_DB_PASSWORD}"
 
+      # Vercel commands run from the repo root: the project's Root Directory is
+      # apps/web, so running inside apps/web would double the path. VERCEL_ORG_ID
+      # and VERCEL_PROJECT_ID identify the project regardless of cwd.
       - name: Pull Vercel environment
         run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" pull --yes --environment=production --token="${VERCEL_TOKEN}"
-        working-directory: apps/web
 
       - name: Build Vercel artifact
         run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build --prod --token="${VERCEL_TOKEN}"
-        working-directory: apps/web
 
       - name: Deploy Vercel artifact
         id: vercel-deploy
@@ -117,7 +118,6 @@ jobs:
           deployment_url="$(grep -Eo 'https://[^[:space:]]+\.vercel\.app[^[:space:]]*' /tmp/vercel-deploy.log | tail -n 1)"
           test -n "${deployment_url}"
           echo "url=${deployment_url}" >> "$GITHUB_OUTPUT"
-        working-directory: apps/web
 
       - name: Smoke test deployment
         run: |
