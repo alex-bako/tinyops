@@ -77,7 +77,7 @@ export const DEPLOY_TOOL_VERSIONS = {
   node: "20",
   pnpm: "10.18.3",
   supabaseCli: "2.106.0",
-  vercelCli: "47.0.5",
+  vercelCli: "54.14.0",
 } as const
 
 export function createVercelConfig(
