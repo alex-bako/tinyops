@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   createDataSourceSyncRuntime: vi.fn(),
   runBatch: vi.fn(),
+  createDataSourceSyncScheduler: vi.fn(),
+  enqueueDueSyncs: vi.fn(),
+  order: [] as string[],
 }))
 
 vi.mock("@/lib/supabase/server-env", () => ({
@@ -11,6 +14,10 @@ vi.mock("@/lib/supabase/server-env", () => ({
 
 vi.mock("@/features/data-sources/adapters/sync-runtime", () => ({
   createDataSourceSyncRuntime: mocks.createDataSourceSyncRuntime,
+}))
+
+vi.mock("@/features/data-sources/adapters/sync-scheduler", () => ({
+  createDataSourceSyncScheduler: mocks.createDataSourceSyncScheduler,
 }))
 
 import { GET } from "./route"
@@ -25,8 +32,20 @@ function cronRequest(secret = "cron-secret") {
 describe("sync drain cron route", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.order = []
+    mocks.enqueueDueSyncs.mockImplementation(async () => {
+      mocks.order.push("enqueue")
+      return { queued: 0 }
+    })
+    mocks.runBatch.mockImplementation(async () => {
+      mocks.order.push("drain")
+      return { claimed: 0, succeeded: 0, failed: 0, results: [] }
+    })
     mocks.createDataSourceSyncRuntime.mockReturnValue({
       runBatch: mocks.runBatch,
+    })
+    mocks.createDataSourceSyncScheduler.mockReturnValue({
+      enqueueDueSyncs: mocks.enqueueDueSyncs,
     })
   })
 
@@ -37,9 +56,11 @@ describe("sync drain cron route", () => {
     expect(response.status).toBe(401)
     expect(mocks.createDataSourceSyncRuntime).not.toHaveBeenCalled()
     expect(mocks.runBatch).not.toHaveBeenCalled()
+    expect(mocks.enqueueDueSyncs).not.toHaveBeenCalled()
   })
 
   it("drains a capped batch and returns 200 even when claimed jobs fail", async () => {
+    mocks.enqueueDueSyncs.mockResolvedValue({ queued: 4 })
     mocks.runBatch.mockResolvedValue({
       claimed: 3,
       succeeded: 2,
@@ -63,6 +84,7 @@ describe("sync drain cron route", () => {
 
     await expect(response.json()).resolves.toEqual({
       status: "drained",
+      queued: 4,
       claimed: 3,
       succeeded: 2,
       failed: 1,
@@ -73,5 +95,12 @@ describe("sync drain cron route", () => {
       trigger: "cron",
       maxJobs: 50,
     })
+  })
+
+  it("enqueues due syncs before draining the queue", async () => {
+    await GET(cronRequest())
+
+    expect(mocks.enqueueDueSyncs).toHaveBeenCalledTimes(1)
+    expect(mocks.order).toEqual(["enqueue", "drain"])
   })
 })

@@ -19,13 +19,13 @@ export const DEPLOY_ENVIRONMENTS = {
     githubEnvironment: "staging",
     includeSeed: true,
     requiresTagOnMain: false,
-    syncDrainSchedule: "0 * * * *",
+    syncDrainSchedule: "*/30 * * * *",
   },
   production: {
     githubEnvironment: "production",
     includeSeed: false,
     requiresTagOnMain: true,
-    syncDrainSchedule: "* * * * *",
+    syncDrainSchedule: "*/30 * * * *",
   },
 } as const satisfies Record<
   TinyOpsDeployEnv,
