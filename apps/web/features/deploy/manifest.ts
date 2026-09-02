@@ -59,6 +59,7 @@ export const DEPLOY_RUNTIME_ENV = [
   "TINYOPS_LOG_LEVEL",
   "OPENAI_API_KEY",
   "ASK_AI_MODEL",
+  "GOOGLE_SERVICE_ACCOUNT_KEY",
 ] as const
 
 export const DEPLOY_BUILD_ENV = {

@@ -3,7 +3,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
+  connectGoogleFormsApiDataSourceAction,
   connectGoogleFormsManualCsvDataSourceAction,
+  inspectGoogleFormsApiAction,
   updateGoogleFormsManualCsvDataSourceAction,
 } from "@/features/data-sources/actions"
 import type { DataSource } from "@/lib/sources"
@@ -22,6 +24,24 @@ vi.mock("@/features/data-sources/actions", () => ({
     data: { type: "forms", sourceSlug: "practice-intake" },
   })),
   updateGoogleFormsManualCsvDataSourceAction: vi.fn(async () => ({ data: {} })),
+  describeGoogleFormsApiAction: vi.fn(async () => ({
+    data: { serviceAccountEmail: "sync@tinyops.iam.gserviceaccount.com" },
+  })),
+  inspectGoogleFormsApiAction: vi.fn(async () => ({
+    data: {
+      serviceAccountEmail: "sync@tinyops.iam.gserviceaccount.com",
+      formId: "1AbC_Def-1234567890",
+      formTitle: "Practice intake",
+      collectsEmail: false,
+      questions: [
+        { id: "q_email", title: "Your email" },
+        { id: "q_goal", title: "What do you need?" },
+      ],
+    },
+  })),
+  connectGoogleFormsApiDataSourceAction: vi.fn(async () => ({
+    data: { type: "forms", sourceSlug: "practice-intake" },
+  })),
 }))
 
 function source(): DataSource {
@@ -44,6 +64,8 @@ describe("FormsConnect", () => {
     replace.mockReset()
     vi.mocked(connectGoogleFormsManualCsvDataSourceAction).mockClear()
     vi.mocked(updateGoogleFormsManualCsvDataSourceAction).mockClear()
+    vi.mocked(inspectGoogleFormsApiAction).mockClear()
+    vi.mocked(connectGoogleFormsApiDataSourceAction).mockClear()
   })
 
   it("uploads a mapped Google Forms CSV export", async () => {
@@ -170,17 +192,79 @@ describe("FormsConnect", () => {
     expect(replace).not.toHaveBeenCalled()
   })
 
-  it("keeps the mock OAuth connection mode available", () => {
+  it("connects a live Google Form after checking service-account access", async () => {
     render(<FormsConnect source={source()} />)
 
-    fireEvent.click(screen.getByRole("tab", { name: "OAuth" }))
+    fireEvent.click(screen.getByRole("tab", { name: "Live sync" }))
+    await screen.findByText("sync@tinyops.iam.gserviceaccount.com")
 
-    expect(
-      screen.getByText(/grant TinyOps read-only access/i)
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: /Connect Google Forms/i })
-    ).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText("Google Form URL or ID"), {
+      target: {
+        value: "https://docs.google.com/forms/d/1AbC_Def-1234567890/edit",
+      },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /Check access/i }))
+
+    await screen.findByText(/does not collect emails/)
+    expect(inspectGoogleFormsApiAction).toHaveBeenCalledWith(
+      "https://docs.google.com/forms/d/1AbC_Def-1234567890/edit"
+    )
+    expect(screen.getByLabelText("Form name")).toHaveValue("Practice intake")
+    expect(screen.getByLabelText("Client identity")).toHaveValue("q_email")
+
+    fireEvent.change(screen.getByLabelText("Client identity"), {
+      target: { value: "q_goal" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /Connect form/i }))
+
+    await waitFor(() =>
+      expect(connectGoogleFormsApiDataSourceAction).toHaveBeenCalledWith({
+        formUrlOrId: "https://docs.google.com/forms/d/1AbC_Def-1234567890/edit",
+        displayName: "Practice intake",
+        identityQuestionId: "q_goal",
+      })
+    )
+    expect(replace).toHaveBeenCalledWith("/home/sources/forms/practice-intake")
     expect(connectGoogleFormsManualCsvDataSourceAction).not.toHaveBeenCalled()
+  })
+
+  it("shows a read-only summary for connected live forms", () => {
+    render(
+      <FormsConnect
+        source={{
+          ...source(),
+          kind: "data_source",
+          title: "Practice intake live",
+          connected: true,
+          sourceId: "forms_source_2",
+          sourceType: "forms",
+          sourceSlug: "practice-intake-live",
+          health: "healthy",
+          lastSync: "synced",
+          summaryStatId: "synced",
+          forms: {
+            connections: [
+              {
+                sourceId: "forms_source_2",
+                externalFormId: "1AbC_Def-1234567890",
+                displayName: "Practice intake live",
+                connectionMode: "api",
+                mapping: { identityColumn: "", timestampColumn: "" },
+                identityQuestionId: "q_email",
+                latestUpload: null,
+              },
+            ],
+          },
+        }}
+      />
+    )
+
+    expect(screen.getByLabelText("Google Form ID")).toHaveValue(
+      "1AbC_Def-1234567890"
+    )
+    expect(
+      screen.getByText("Answer to the selected form question")
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument()
   })
 })

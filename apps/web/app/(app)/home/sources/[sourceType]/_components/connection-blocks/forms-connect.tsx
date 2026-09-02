@@ -2,23 +2,25 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { UploadIcon } from "lucide-react"
+import { PlugZapIcon, ShieldCheckIcon, UploadIcon } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 import { Form, FormRow } from "@workspace/ui/components/form-row"
 import { Input } from "@workspace/ui/components/input"
 
 import {
+  connectGoogleFormsApiDataSourceAction,
   connectGoogleFormsManualCsvDataSourceAction,
+  describeGoogleFormsApiAction,
+  inspectGoogleFormsApiAction,
   updateGoogleFormsManualCsvDataSourceAction,
 } from "@/features/data-sources/actions"
+import type { GoogleFormsApiInspection } from "@/features/data-sources/application"
 import {
   parseGoogleFormsCsv,
   type GoogleFormsParsedCsv,
 } from "@/features/data-sources/google-forms"
-import type { DataSource } from "@/lib/sources"
-
-import { OAuthConnect } from "./oauth-connect"
+import type { DataSource, DataSourceGoogleFormsSettings } from "@/lib/sources"
 
 type CsvState = {
   fileName: string
@@ -26,7 +28,12 @@ type CsvState = {
   parsed: GoogleFormsParsedCsv | null
 }
 
-type FormsConnectionTab = "manual_csv" | "oauth_mock"
+type FormsConnectionTab = "manual_csv" | "api"
+
+type ServiceAccountState = {
+  loaded: boolean
+  email: string | null
+}
 
 type FormsConnectState = {
   connectionMode: FormsConnectionTab
@@ -35,6 +42,9 @@ type FormsConnectState = {
   identityColumn: string
   timestampColumn: string
   csv: CsvState
+  serviceAccount: ServiceAccountState
+  inspection: GoogleFormsApiInspection | null
+  identityQuestionId: string
   error: string | null
 }
 
@@ -51,6 +61,9 @@ type FormsConnectAction =
       parsed: GoogleFormsParsedCsv
     }
   | { type: "csv_failed" }
+  | { type: "set_service_account"; value: string | null }
+  | { type: "form_inspected"; value: GoogleFormsApiInspection }
+  | { type: "set_identity_question"; value: string }
   | { type: "clear_error" }
   | { type: "set_error"; value: string }
 
@@ -67,6 +80,9 @@ const INITIAL_FORMS_CONNECT_STATE: FormsConnectState = {
   identityColumn: "",
   timestampColumn: "",
   csv: EMPTY_CSV_STATE,
+  serviceAccount: { loaded: false, email: null },
+  inspection: null,
+  identityQuestionId: "",
   error: null,
 }
 
@@ -85,10 +101,35 @@ function FormsConnect({ source }: { source: DataSource }) {
     identityColumn,
     timestampColumn,
     csv,
+    serviceAccount,
+    inspection,
+    identityQuestionId,
     error,
   } = state
-  const connectedSourceId =
-    source.kind === "data_source" ? source.sourceId : undefined
+  const connection =
+    source.kind === "data_source" ? source.forms?.connections[0] : undefined
+  const connectedSourceId = connection?.sourceId
+
+  React.useEffect(() => {
+    if (connectionMode !== "api" || serviceAccount.loaded || connectedSourceId) {
+      return
+    }
+    let cancelled = false
+    void describeGoogleFormsApiAction().then((result) => {
+      if (cancelled) return
+      dispatch({
+        type: "set_service_account",
+        value: "data" in result ? (result.data?.serviceAccountEmail ?? null) : null,
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [connectionMode, serviceAccount.loaded, connectedSourceId])
+
+  if (connection?.connectionMode === "api") {
+    return <LiveConnected connection={connection} />
+  }
 
   const headers = csv.parsed?.headers ?? []
   const canSubmit =
@@ -97,6 +138,11 @@ function FormsConnect({ source }: { source: DataSource }) {
     csv.csvText &&
     identityColumn &&
     timestampColumn
+  const canConnectLive =
+    inspection &&
+    formUrlOrId.trim() &&
+    displayName.trim() &&
+    (inspection.collectsEmail || identityQuestionId)
 
   const uploadCsv = async (file: File | undefined) => {
     dispatch({ type: "clear_error" })
@@ -149,91 +195,197 @@ function FormsConnect({ source }: { source: DataSource }) {
     })
   }
 
-  const oauthSource: DataSource = {
-    id: source.id,
-    kind: "connector_type",
-    icon: source.icon,
-    title: source.title,
-    sub: source.sub,
-    category: source.category,
-    auth: "oauth",
-    isNew: source.isNew,
-    connected: false,
-    stats: [],
+  const checkAccess = () => {
+    if (!formUrlOrId.trim()) return
+    dispatch({ type: "clear_error" })
+    startTransition(async () => {
+      const result = await inspectGoogleFormsApiAction(formUrlOrId)
+      if (result.error) {
+        dispatch({ type: "set_error", value: formsErrorLabel(result.error) })
+        return
+      }
+      dispatch({ type: "form_inspected", value: result.data })
+    })
+  }
+
+  const connectLive = () => {
+    if (!canConnectLive) return
+    dispatch({ type: "clear_error" })
+    startTransition(async () => {
+      const result = await connectGoogleFormsApiDataSourceAction({
+        formUrlOrId,
+        displayName,
+        identityQuestionId: identityQuestionId || null,
+      })
+      if (result.error) {
+        dispatch({ type: "set_error", value: formsErrorLabel(result.error) })
+        return
+      }
+      replace(`/home/sources/${result.data.type}/${result.data.sourceSlug}`)
+    })
   }
 
   return (
     <Form>
-      <FormRow label="Connection mode">
-        <div
-          role="tablist"
-          aria-label="Google Forms connection mode"
-          className="inline-flex h-8 w-fit items-center rounded-lg bg-muted p-[3px] text-muted-foreground"
+      {!connectedSourceId ? (
+        <FormRow label="Connection mode">
+          <div
+            role="tablist"
+            aria-label="Google Forms connection mode"
+            className="inline-flex h-8 w-fit items-center rounded-lg bg-muted p-[3px] text-muted-foreground"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={connectionMode === "manual_csv"}
+              className={modeTabClassName(connectionMode === "manual_csv")}
+              onClick={() =>
+                dispatch({ type: "set_connection_mode", value: "manual_csv" })
+              }
+            >
+              CSV upload
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={connectionMode === "api"}
+              className={modeTabClassName(connectionMode === "api")}
+              onClick={() =>
+                dispatch({ type: "set_connection_mode", value: "api" })
+              }
+            >
+              Live sync
+            </button>
+          </div>
+        </FormRow>
+      ) : null}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <FormRow
+          label="Google Form URL or ID"
+          className="sm:grid-cols-[140px_minmax(0,1fr)]"
         >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={connectionMode === "manual_csv"}
-            className={modeTabClassName(connectionMode === "manual_csv")}
-            onClick={() =>
-              dispatch({ type: "set_connection_mode", value: "manual_csv" })
+          <Input
+            aria-label="Google Form URL or ID"
+            value={formUrlOrId}
+            disabled={Boolean(connectedSourceId)}
+            onChange={(event) =>
+              dispatch({
+                type: "set_form_url_or_id",
+                value: event.target.value,
+              })
             }
-          >
-            CSV upload
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={connectionMode === "oauth_mock"}
-            className={modeTabClassName(connectionMode === "oauth_mock")}
-            onClick={() =>
-              dispatch({ type: "set_connection_mode", value: "oauth_mock" })
+            placeholder="https://docs.google.com/forms/d/..."
+            className="font-mono text-[12.5px]"
+          />
+        </FormRow>
+        <FormRow
+          label="Form name"
+          className="sm:grid-cols-[100px_minmax(0,1fr)]"
+        >
+          <Input
+            aria-label="Form name"
+            value={displayName}
+            onChange={(event) =>
+              dispatch({
+                type: "set_display_name",
+                value: event.target.value,
+              })
             }
+            placeholder="Practice intake"
+          />
+        </FormRow>
+      </div>
+      {connectionMode === "api" ? (
+        <>
+          <FormRow
+            label="Share with"
+            help="Open the form in Google Forms, choose Share, and add this address as an editor. TinyOps then reads new responses on every sync."
           >
-            OAuth
-          </button>
-        </div>
-      </FormRow>
-      {connectionMode === "oauth_mock" ? (
-        <OAuthConnect source={oauthSource} />
+            {!serviceAccount.loaded ? (
+              <span className="text-[12.5px] text-muted-foreground">
+                Loading service account
+              </span>
+            ) : serviceAccount.email ? (
+              <span className="font-mono text-[12.5px] select-all">
+                {serviceAccount.email}
+              </span>
+            ) : (
+              <span className="text-[12.5px] text-coral-700">
+                Live sync is not configured on this server. Set
+                GOOGLE_SERVICE_ACCOUNT_KEY, or use CSV upload.
+              </span>
+            )}
+          </FormRow>
+          {inspection ? (
+            <>
+              <FormRow label="Form">
+                <span className="text-[13px] text-foreground/85">
+                  {inspection.formTitle || inspection.formId} ·{" "}
+                  {inspection.questions.length}{" "}
+                  {inspection.questions.length === 1 ? "question" : "questions"}{" "}
+                  ·{" "}
+                  {inspection.collectsEmail
+                    ? "collects respondent emails"
+                    : "does not collect emails"}
+                </span>
+              </FormRow>
+              <FormRow
+                label="Client identity"
+                help="The answer that identifies the client. A collected respondent email always wins."
+              >
+                <select
+                  aria-label="Client identity"
+                  value={identityQuestionId}
+                  onChange={(event) =>
+                    dispatch({
+                      type: "set_identity_question",
+                      value: event.target.value,
+                    })
+                  }
+                  className="h-8 rounded-md border border-input bg-background px-2 text-[13px]"
+                >
+                  {inspection.collectsEmail ? (
+                    <option value="">Collected email address</option>
+                  ) : null}
+                  {inspection.questions.map((question) => (
+                    <option key={question.id} value={question.id}>
+                      {question.title || `Question ${question.id}`}
+                    </option>
+                  ))}
+                </select>
+              </FormRow>
+            </>
+          ) : null}
+          <div className="inline-flex items-center gap-3">
+            <Button
+              type="button"
+              variant={inspection ? "ghost" : "primary"}
+              size="sm"
+              disabled={pending || !formUrlOrId.trim() || !serviceAccount.email}
+              onClick={checkAccess}
+            >
+              <ShieldCheckIcon />
+              {pending && !inspection ? "Checking" : "Check access"}
+            </Button>
+            {inspection ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={pending || !canConnectLive}
+                onClick={connectLive}
+              >
+                <PlugZapIcon />
+                {pending ? "Connecting" : "Connect form"}
+              </Button>
+            ) : null}
+            {error ? (
+              <span className="text-[12px] text-coral-700">{error}</span>
+            ) : null}
+          </div>
+        </>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormRow
-              label="Google Form URL or ID"
-              className="sm:grid-cols-[140px_minmax(0,1fr)]"
-            >
-              <Input
-                aria-label="Google Form URL or ID"
-                value={formUrlOrId}
-                disabled={Boolean(connectedSourceId)}
-                onChange={(event) =>
-                  dispatch({
-                    type: "set_form_url_or_id",
-                    value: event.target.value,
-                  })
-                }
-                placeholder="https://docs.google.com/forms/d/..."
-                className="font-mono text-[12.5px]"
-              />
-            </FormRow>
-            <FormRow
-              label="Form name"
-              className="sm:grid-cols-[100px_minmax(0,1fr)]"
-            >
-              <Input
-                aria-label="Form name"
-                value={displayName}
-                onChange={(event) =>
-                  dispatch({
-                    type: "set_display_name",
-                    value: event.target.value,
-                  })
-                }
-                placeholder="Practice intake"
-              />
-            </FormRow>
-          </div>
           <FormRow
             label="Responses CSV"
             help="Export responses from Google Forms, then upload the CSV here."
@@ -321,12 +473,45 @@ function FormsConnect({ source }: { source: DataSource }) {
   )
 }
 
+function LiveConnected({
+  connection,
+}: {
+  connection: DataSourceGoogleFormsSettings["connections"][number]
+}) {
+  return (
+    <Form>
+      <FormRow label="Google Form ID">
+        <Input
+          aria-label="Google Form ID"
+          value={connection.externalFormId}
+          disabled
+          className="font-mono text-[12.5px]"
+        />
+      </FormRow>
+      <FormRow label="Client identity">
+        <span className="text-[13px] text-foreground/85">
+          {connection.identityQuestionId
+            ? "Answer to the selected form question"
+            : "Collected respondent email"}
+        </span>
+      </FormRow>
+      <FormRow label="Sync">
+        <span className="text-[13px] text-foreground/85">
+          Live sync as the TinyOps service account. New and edited responses are
+          pulled on every sync run.
+        </span>
+      </FormRow>
+    </Form>
+  )
+}
+
 function initialFormsConnectState(source: DataSource): FormsConnectState {
   const connection =
     source.kind === "data_source" ? source.forms?.connections[0] : undefined
   if (!connection) return INITIAL_FORMS_CONNECT_STATE
   return {
     ...INITIAL_FORMS_CONNECT_STATE,
+    connectionMode: connection.connectionMode === "api" ? "api" : "manual_csv",
     formUrlOrId: connection.externalFormId,
     displayName: connection.displayName,
     identityColumn: connection.mapping.identityColumn,
@@ -340,9 +525,9 @@ function formsConnectReducer(
 ): FormsConnectState {
   switch (action.type) {
     case "set_connection_mode":
-      return { ...state, connectionMode: action.value }
+      return { ...state, connectionMode: action.value, error: null }
     case "set_form_url_or_id":
-      return { ...state, formUrlOrId: action.value }
+      return { ...state, formUrlOrId: action.value, inspection: null }
     case "set_display_name":
       return { ...state, displayName: action.value }
     case "set_identity_column":
@@ -371,6 +556,19 @@ function formsConnectReducer(
         timestampColumn: "",
         error: "CSV could not be parsed.",
       }
+    case "set_service_account":
+      return { ...state, serviceAccount: { loaded: true, email: action.value } }
+    case "form_inspected":
+      return {
+        ...state,
+        inspection: action.value,
+        displayName: state.displayName.trim() || action.value.formTitle,
+        identityQuestionId: action.value.collectsEmail
+          ? ""
+          : preferredQuestion(action.value.questions),
+      }
+    case "set_identity_question":
+      return { ...state, identityQuestionId: action.value }
     case "clear_error":
       return { ...state, error: null }
     case "set_error":
@@ -391,18 +589,35 @@ function preferredColumn(headers: string[], pattern: RegExp) {
   return headers.find((header) => pattern.test(header)) ?? headers[0] ?? ""
 }
 
+function preferredQuestion(questions: GoogleFormsApiInspection["questions"]) {
+  return (
+    questions.find((question) => /e-?mail/i.test(question.title))?.id ??
+    questions[0]?.id ??
+    ""
+  )
+}
+
 function formsErrorLabel(error: string) {
   if (error === "source_manage_forbidden") {
     return "Only workspace owners and admins can manage data sources."
   }
   if (error === "invalid_data_source_name") {
-    return "Name this connector before uploading."
+    return "Name this connector before connecting."
   }
   if (error === "duplicate_data_source_name") {
     return "Use a different connector name."
   }
   if (error === "duplicate_data_source_config") {
     return "That Google Form is already connected."
+  }
+  if (error === "google_forms_not_configured") {
+    return "Live sync is not configured on this server."
+  }
+  if (error === "google_forms_access_failed") {
+    return "TinyOps cannot open this form yet. Share it with the service account address, then check again."
+  }
+  if (error === "invalid_google_forms_identity") {
+    return "Choose the question that holds the client's email."
   }
   if (
     error === "invalid_google_form_id" ||
@@ -412,7 +627,7 @@ function formsErrorLabel(error: string) {
   ) {
     return "Check the form ID, selected columns, and CSV values."
   }
-  return "Could not upload Google Forms CSV."
+  return "Could not connect Google Forms."
 }
 
 export { FormsConnect }

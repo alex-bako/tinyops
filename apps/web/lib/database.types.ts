@@ -1226,6 +1226,15 @@ export type Database = {
         }
         Returns: string
       }
+      connect_google_forms_api_data_source: {
+        Args: {
+          form_display_name: string
+          form_external_id: string
+          form_identity_question_id: string
+          target_workspace_id: string
+        }
+        Returns: string
+      }
       connect_google_forms_manual_csv_data_source: {
         Args: {
           form_connection_mode: string

@@ -63,4 +63,42 @@ describe("data source row mapper", () => {
     })
     expect(mapDataSourceRow(row).sync).not.toHaveProperty("historyWindow")
   })
+
+  it("maps Google Forms live API rows with an identity question and no upload", () => {
+    const row: DataSourceRow = {
+      id: "forms_source_2",
+      workspace_id: "workspace_1",
+      source_type: "forms",
+      slug: "practice-intake-live",
+      display_name: "Practice intake live",
+      status: "connected",
+      config_version: 1,
+      config: {
+        externalFormId: "1AbC_Def-1234567890",
+        connectionMode: "api",
+        identityQuestionId: "q_email",
+      },
+      created_at: "2026-09-02T00:00:00.000Z",
+      updated_at: "2026-09-02T00:00:00.000Z",
+      data_source_sync_states: {
+        status: "queued",
+        cursor: { api: { since: "2026-09-01T00:00:00.000Z" } },
+        last_error: null,
+        last_synced_at: null,
+      },
+      data_source_sync_runs: [],
+    }
+
+    expect(mapDataSourceRow(row)).toMatchObject({
+      type: "forms",
+      connectionMode: "api",
+      identityQuestionId: "q_email",
+      mapping: { identityColumn: "", timestampColumn: "" },
+      latestUpload: null,
+      sync: { status: "queued", cursor: { api: { since: "2026-09-01T00:00:00.000Z" } } },
+    })
+    expect(
+      mapDataSourceRow({ ...row, config: { ...(row.config as object), identityQuestionId: null } })
+    ).toMatchObject({ identityQuestionId: null })
+  })
 })

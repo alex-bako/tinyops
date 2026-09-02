@@ -41,6 +41,8 @@ export type SyncFailureCode =
   | "invalid_imap_config"
   | "secret_read_failed"
   | "imap_connection_failed"
+  | "google_forms_not_configured"
+  | "google_forms_access_failed"
   | "ingestion_failed"
   | "sync_failed"
 
@@ -85,6 +87,8 @@ export function isSyncFailureCode(value: string): value is SyncFailureCode {
     value === "invalid_imap_config" ||
     value === "secret_read_failed" ||
     value === "imap_connection_failed" ||
+    value === "google_forms_not_configured" ||
+    value === "google_forms_access_failed" ||
     value === "ingestion_failed" ||
     value === "sync_failed"
   )
@@ -95,6 +99,12 @@ export function syncFailureMessage(code: SyncFailureCode) {
   if (code === "invalid_imap_config") return "Invalid IMAP configuration"
   if (code === "secret_read_failed") return "Could not read IMAP password"
   if (code === "imap_connection_failed") return "IMAP connection failed"
+  if (code === "google_forms_not_configured") {
+    return "Google Forms live sync is not configured"
+  }
+  if (code === "google_forms_access_failed") {
+    return "Google Forms access failed. Share the form with the TinyOps service account"
+  }
   if (code === "ingestion_failed") return "Could not persist synced records"
   return "Sync failed"
 }

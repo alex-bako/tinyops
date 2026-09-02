@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  buildGoogleFormsApiRecords,
+  buildGoogleFormsApiSourceConfig,
   buildGoogleFormsManualCsvRows,
   buildGoogleFormsManualCsvSourceConfig,
   buildGoogleFormsManualCsvUploadRows,
@@ -252,5 +254,145 @@ describe("Google Forms manual CSV domain", () => {
     })
 
     expect(rows[0]?.record.occurredAt).toBe("2026-01-14T19:22:08.000Z")
+  })
+})
+
+describe("Google Forms live API domain", () => {
+  const form = {
+    formId: "1AbC_Def-1234567890",
+    title: "Practice intake",
+    collectsEmail: false,
+    questions: [
+      { id: "q_email", title: "Your email" },
+      { id: "q_goal", title: "What do you need?" },
+      { id: "q_blank", title: "" },
+    ],
+  }
+
+  it("requires a resolvable client identity when building live source config", () => {
+    const formUrl = "https://docs.google.com/forms/d/1AbC_Def-1234567890/edit"
+
+    expect(() =>
+      buildGoogleFormsApiSourceConfig({
+        formId: formUrl,
+        displayName: "Practice intake",
+        identityQuestionId: null,
+        form,
+      })
+    ).toThrow("invalid_google_forms_identity")
+    expect(() =>
+      buildGoogleFormsApiSourceConfig({
+        formId: formUrl,
+        displayName: "Practice intake",
+        identityQuestionId: "q_missing",
+        form,
+      })
+    ).toThrow("invalid_google_forms_identity")
+    expect(() =>
+      buildGoogleFormsApiSourceConfig({
+        formId: formUrl,
+        displayName: "  ",
+        identityQuestionId: "q_email",
+        form,
+      })
+    ).toThrow("invalid_data_source_name")
+
+    expect(
+      buildGoogleFormsApiSourceConfig({
+        formId: formUrl,
+        displayName: " Practice intake ",
+        identityQuestionId: " q_email ",
+        form,
+      })
+    ).toEqual({
+      externalFormId: "1AbC_Def-1234567890",
+      connectionMode: "api",
+      displayName: "Practice intake",
+      identityQuestionId: "q_email",
+    })
+    expect(
+      buildGoogleFormsApiSourceConfig({
+        formId: "1AbC_Def-1234567890",
+        displayName: "Practice intake",
+        identityQuestionId: undefined,
+        form: { ...form, collectsEmail: true },
+      })
+    ).toMatchObject({ identityQuestionId: null })
+  })
+
+  it("normalizes live responses, preferring collected emails over the identity question", () => {
+    const records = buildGoogleFormsApiRecords({
+      workspaceId: "workspace_1",
+      sourceId: "forms_source_1",
+      source: {
+        externalFormId: "1AbC_Def-1234567890",
+        displayName: "Practice intake",
+        identityQuestionId: "q_email",
+      },
+      form,
+      responses: [
+        {
+          responseId: "resp-1",
+          createTime: "2026-05-10T09:15:00.000Z",
+          lastSubmittedTime: "2026-05-11T08:00:00.000Z",
+          respondentEmail: "Collected@Example.com",
+          answers: {
+            q_email: "typed@example.com",
+            q_goal: "Replay, workbook",
+            q_blank: "yes",
+          },
+        },
+        {
+          responseId: "resp-2",
+          createTime: "2026-05-10T10:15:00.000Z",
+          lastSubmittedTime: "2026-05-10T10:15:00.000Z",
+          respondentEmail: null,
+          answers: { q_email: " Priya@Example.com " },
+        },
+        {
+          responseId: "resp-3",
+          createTime: "2026-05-10T11:15:00.000Z",
+          lastSubmittedTime: "2026-05-10T11:15:00.000Z",
+          respondentEmail: null,
+          answers: { q_email: "not-an-email", q_goal: "Skip me" },
+        },
+      ],
+    })
+
+    expect(records).toHaveLength(2)
+    expect(records[0]).toMatchObject({
+      workspaceId: "workspace_1",
+      sourceId: "forms_source_1",
+      sourceType: "forms",
+      externalId: "forms:api:resp-1",
+      recordType: "google_form_response",
+      eventType: "form_submission",
+      occurredAt: "2026-05-10T09:15:00.000Z",
+      participants: [{ email: "collected@example.com", role: "external" }],
+      body: {
+        blocks: [
+          { kind: "qa", question: "What do you need?", answer: "Replay, workbook" },
+          { kind: "qa", question: "Question q_blank", answer: "yes" },
+        ],
+      },
+      metadata: {
+        externalFormId: "1AbC_Def-1234567890",
+        formTitle: "Practice intake",
+        connectionMode: "api",
+        responseId: "resp-1",
+        lastSubmittedTime: "2026-05-11T08:00:00.000Z",
+      },
+      attributes: [
+        { key: "What do you need?", value: "Replay, workbook", confidence: 1 },
+        { key: "Question q_blank", value: "yes", confidence: 1 },
+      ],
+      sensitivityLevel: 0,
+    })
+    expect(records[1]).toMatchObject({
+      externalId: "forms:api:resp-2",
+      participants: [{ email: "priya@example.com", role: "external" }],
+      body: { text: "", blocks: [] },
+      attributes: [],
+    })
   })
 })

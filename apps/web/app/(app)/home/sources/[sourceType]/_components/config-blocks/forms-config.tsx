@@ -34,10 +34,12 @@ function FormsConfig({ source }: { source: DataSource }) {
                   meta={[
                     connection.connectionMode === "manual_csv"
                       ? "manual CSV"
-                      : connection.connectionMode,
-                    connection.latestUpload
-                      ? `${connection.latestUpload.rowCount} responses`
-                      : "no upload",
+                      : "live sync",
+                    connection.connectionMode === "manual_csv"
+                      ? connection.latestUpload
+                        ? `${connection.latestUpload.rowCount} responses`
+                        : "no upload"
+                      : "polls Google Forms",
                     connection.syncStatus ?? "idle",
                   ].join(" · ")}
                 >
@@ -51,7 +53,10 @@ function FormsConfig({ source }: { source: DataSource }) {
                 </FileRow>
               ))
             ) : (
-              <FileRow name="No forms connected" meta="Upload a CSV to connect" />
+              <FileRow
+                name="No forms connected"
+                meta="Upload a CSV or connect live sync"
+              />
             )}
           </div>
         </FormRow>

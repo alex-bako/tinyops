@@ -182,6 +182,22 @@ describe("data sources database contract", () => {
     )
   })
 
+  it("connects Google Forms live API sources without uploads and queues a backfill", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(
+      /function public\.connect_google_forms_api_data_source\(\s*target_workspace_id uuid,\s*form_external_id text,\s*form_display_name text,\s*form_identity_question_id text\s*\)/
+    )
+    expect(migration).toMatch(/'connectionMode', 'api'/)
+    expect(migration).toMatch(/'identityQuestionId', normalized_identity_question_id/)
+    expect(migration).toMatch(
+      /grant execute on function public\.connect_google_forms_api_data_source\(\s*uuid,\s*text,\s*text,\s*text\s*\) to authenticated;/
+    )
+    expect(migration).toMatch(
+      /revoke execute on function public\.connect_google_forms_api_data_source\(\s*uuid,\s*text,\s*text,\s*text\s*\) from anon, public;/
+    )
+  })
+
   it("exposes IMAP password decrypt through a service-role-only RPC", () => {
     const migration = migrationSource()
 

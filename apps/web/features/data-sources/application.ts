@@ -6,6 +6,8 @@ import type {
 } from "@/features/data-sources/imap"
 import {
   createDataSourceUseCases,
+  type GoogleFormsApiConnectCommand,
+  type GoogleFormsApiInspection,
   type GoogleFormsManualCsvConnectCommand,
   type GoogleFormsManualCsvUpdateCommand,
   type ImapCredentialReader,
@@ -15,6 +17,7 @@ import type {
   DataSourceQueryPort,
   DataSourceStore,
   DataSourceWorkspace,
+  GoogleFormsApiPort,
   GoogleFormsSourceCommandPort,
   ImapConnectionTester,
   ImapSourceCommandPort,
@@ -41,6 +44,9 @@ export type DataSourceActionError =
   | "invalid_google_forms_csv"
   | "invalid_google_forms_csv_mapping"
   | "invalid_google_forms_csv_row"
+  | "invalid_google_forms_identity"
+  | "google_forms_not_configured"
+  | "google_forms_access_failed"
   | "invalid_data_source_name"
   | "duplicate_data_source_name"
   | "duplicate_data_source_config"
@@ -60,6 +66,8 @@ export type RequestAllDataSourceSyncsResult = {
 export type ImapConnectCommand = ImapConnectCommandDraft
 export type ImapImportSettingsCommand = ImapIntakeSettingsCommand
 export type {
+  GoogleFormsApiConnectCommand,
+  GoogleFormsApiInspection,
   GoogleFormsManualCsvConnectCommand,
   GoogleFormsManualCsvUpdateCommand,
 }
@@ -109,6 +117,7 @@ export function createDataSourceCommandApplication({
   lifecycleCommands = store,
   imapConnectionTester,
   imapCredentialReader,
+  googleFormsApi = null,
 }: {
   workspace: DataSourceWorkspace
   store?: DataSourceStore
@@ -118,6 +127,7 @@ export function createDataSourceCommandApplication({
   lifecycleCommands?: SourceLifecycleCommandPort
   imapConnectionTester: ImapConnectionTester
   imapCredentialReader: ImapCredentialReader
+  googleFormsApi?: GoogleFormsApiPort | null
 }) {
   if (!queryPort || !imapCommands || !formsCommands || !lifecycleCommands) {
     throw new Error("data_source_ports_required")
@@ -130,6 +140,7 @@ export function createDataSourceCommandApplication({
     lifecycleCommands,
     imapConnectionTester,
     imapCredentialReader,
+    googleFormsApi,
   })
 
   async function runManaged<T>(
@@ -166,6 +177,18 @@ export function createDataSourceCommandApplication({
       return runManaged(() =>
         useCases.updateGoogleFormsManualCsv(sourceId, input)
       )
+    },
+
+    async describeGoogleFormsApi() {
+      return runManaged(async () => useCases.describeGoogleFormsApi())
+    },
+
+    async inspectGoogleFormsApi(formUrlOrId: string) {
+      return runManaged(() => useCases.inspectGoogleFormsApi(formUrlOrId))
+    },
+
+    async connectGoogleFormsApi(input: GoogleFormsApiConnectCommand) {
+      return runManaged(() => useCases.connectGoogleFormsApi(input))
     },
 
     async updateImapConnectionSettings(
@@ -235,6 +258,9 @@ function isDataSourceActionError(
     value === "invalid_google_forms_csv" ||
     value === "invalid_google_forms_csv_mapping" ||
     value === "invalid_google_forms_csv_row" ||
+    value === "invalid_google_forms_identity" ||
+    value === "google_forms_not_configured" ||
+    value === "google_forms_access_failed" ||
     value === "invalid_data_source_name" ||
     value === "duplicate_data_source_name" ||
     value === "duplicate_data_source_config" ||

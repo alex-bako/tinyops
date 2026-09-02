@@ -128,6 +128,9 @@ function dataSourceStore(overrides: Partial<DataSourceStore> = {}): DataSourceSt
     async updateGoogleFormsManualCsv() {
       throw new Error("unexpected Google Forms update")
     },
+    async connectGoogleFormsApi() {
+      throw new Error("unexpected Google Forms live connect")
+    },
     async disconnect() {
       throw new Error("unexpected disconnect")
     },
@@ -205,6 +208,7 @@ describe("data source application", () => {
     const formsCommands: GoogleFormsSourceCommandPort = {
       connectGoogleFormsManualCsv: vi.fn(async () => connectedGoogleFormsSource()),
       updateGoogleFormsManualCsv: vi.fn(async () => connectedGoogleFormsSource()),
+      connectGoogleFormsApi: vi.fn(async () => connectedGoogleFormsSource()),
     }
     const lifecycleCommands: SourceLifecycleCommandPort = {
       disconnect: vi.fn(),
@@ -476,6 +480,108 @@ describe("data source application", () => {
         },
       },
     ])
+  })
+
+  it("connects Google Forms live after verifying service-account access and identity", async () => {
+    const persisted: unknown[] = []
+    const apiCalls: string[] = []
+    const application = createDataSourceCommandApplication({
+      workspace,
+      store: dataSourceStore({
+        async connectGoogleFormsApi(input) {
+          persisted.push(input)
+          return {
+            ...connectedGoogleFormsSource(),
+            connectionMode: "api",
+            latestUpload: null,
+            identityQuestionId: "q_email",
+          }
+        },
+      }),
+      imapConnectionTester: successfulTester,
+      imapCredentialReader: {
+        async readImapPassword() {
+          throw new Error("unexpected secret read")
+        },
+      },
+      googleFormsApi: {
+        serviceAccountEmail: "sync@tinyops.iam.gserviceaccount.com",
+        async getForm(formId) {
+          apiCalls.push(`form:${formId}`)
+          return {
+            formId,
+            title: "Practice intake",
+            collectsEmail: false,
+            questions: [{ id: "q_email", title: "Your email" }],
+          }
+        },
+        async listResponses(input) {
+          apiCalls.push(`responses:${input.formId}`)
+          return { responses: [], nextPageToken: null }
+        },
+      },
+    })
+
+    await expect(
+      application.inspectGoogleFormsApi(
+        "https://docs.google.com/forms/d/1AbC_Def-1234567890/edit"
+      )
+    ).resolves.toEqual({
+      data: {
+        serviceAccountEmail: "sync@tinyops.iam.gserviceaccount.com",
+        formId: "1AbC_Def-1234567890",
+        formTitle: "Practice intake",
+        collectsEmail: false,
+        questions: [{ id: "q_email", title: "Your email" }],
+      },
+    })
+    await expect(
+      application.connectGoogleFormsApi({
+        formUrlOrId: "1AbC_Def-1234567890",
+        displayName: "",
+        identityQuestionId: null,
+      })
+    ).resolves.toEqual({ error: "invalid_google_forms_identity" })
+    await expect(
+      application.connectGoogleFormsApi({
+        formUrlOrId: "1AbC_Def-1234567890",
+        displayName: "",
+        identityQuestionId: "q_email",
+      })
+    ).resolves.toMatchObject({ data: { connectionMode: "api" } })
+
+    expect(persisted).toEqual([
+      {
+        workspaceId: workspace.id,
+        source: {
+          externalFormId: "1AbC_Def-1234567890",
+          connectionMode: "api",
+          displayName: "Practice intake",
+          identityQuestionId: "q_email",
+        },
+      },
+    ])
+    expect(apiCalls).toHaveLength(6)
+  })
+
+  it("reports Google Forms live sync as not configured without a service account", async () => {
+    const application = createDataSourceCommandApplication({
+      workspace,
+      store: dataSourceStore(),
+      imapConnectionTester: successfulTester,
+      imapCredentialReader: {
+        async readImapPassword() {
+          throw new Error("unexpected secret read")
+        },
+      },
+    })
+
+    await expect(application.describeGoogleFormsApi()).resolves.toEqual({
+      data: { serviceAccountEmail: null },
+    })
+    await expect(
+      application.inspectGoogleFormsApi("1AbC_Def-1234567890")
+    ).resolves.toEqual({ error: "google_forms_not_configured" })
   })
 
   it("connects Google Forms manual CSV after parsing mapped response rows", async () => {

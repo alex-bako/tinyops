@@ -49,6 +49,7 @@ export type DataSourceGoogleFormsConnection = {
   displayName: string
   connectionMode: GoogleFormsDataSource["connectionMode"]
   mapping: GoogleFormsDataSource["mapping"]
+  identityQuestionId?: string | null
   latestUpload: GoogleFormsUpload | null
   syncStatus?: "idle" | "queued" | "running" | "error"
   lastError?: string | null
@@ -243,6 +244,7 @@ function connectedGoogleFormsSource(
 ): WorkspaceDataSourceCatalogItem {
   const syncLabel = syncStatusLabel(source)
   const rowCount = source.latestUpload?.rowCount ?? 0
+  const live = source.connectionMode === "api"
 
   return {
     ...catalogSource,
@@ -256,12 +258,21 @@ function connectedGoogleFormsSource(
     connected: true,
     health: googleFormsHealth(source),
     lastSync: syncLabel.toLowerCase(),
-    summaryStatId: "submissions",
-    stats: [
-      { id: "submissions", label: "Responses", value: String(rowCount) },
-      { id: "events", label: "Files", value: source.latestUpload ? "1" : "0" },
-      { id: "synced", label: "Sync", value: syncLabel },
-    ],
+    summaryStatId: live ? "synced" : "submissions",
+    stats: live
+      ? [
+          { id: "synced", label: "Sync", value: syncLabel },
+          { id: "events", label: "Mode", value: "Live" },
+        ]
+      : [
+          { id: "submissions", label: "Responses", value: String(rowCount) },
+          {
+            id: "events",
+            label: "Files",
+            value: source.latestUpload ? "1" : "0",
+          },
+          { id: "synced", label: "Sync", value: syncLabel },
+        ],
     forms: {
       connections: [
         {
@@ -270,6 +281,7 @@ function connectedGoogleFormsSource(
           displayName: source.displayName,
           connectionMode: source.connectionMode,
           mapping: source.mapping,
+          identityQuestionId: source.identityQuestionId ?? null,
           latestUpload: source.latestUpload,
           syncStatus: source.sync.status,
           lastError: source.sync.lastError,
