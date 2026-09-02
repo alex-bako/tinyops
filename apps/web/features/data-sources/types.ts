@@ -1,5 +1,8 @@
 import type { SourceId } from "@/lib/sources"
 import type {
+  GoogleFormsApiForm,
+  GoogleFormsApiResponse,
+  GoogleFormsApiSourceConfig,
   GoogleFormsConnectionMode,
   GoogleFormsManualCsvMapping,
   GoogleFormsManualCsvUploadRow,
@@ -124,6 +127,8 @@ export type GoogleFormsDataSource = {
   externalFormId: string
   connectionMode: GoogleFormsConnectionMode
   mapping: GoogleFormsManualCsvMapping
+  /** Live API mode only: question answered with the client email. */
+  identityQuestionId?: string | null
   latestUpload: GoogleFormsUpload | null
   sync: DataSourceSyncState
   syncRuns?: DataSourceSyncRun[]
@@ -155,6 +160,11 @@ export type UpdateGoogleFormsManualCsvInput =
   ConnectGoogleFormsManualCsvInput & {
     sourceId: string
   }
+
+export type ConnectGoogleFormsApiInput = {
+  workspaceId: string
+  source: GoogleFormsApiSourceConfig
+}
 
 export type UpdateImapConnectionInput = {
   sourceId: string
@@ -208,6 +218,24 @@ export type GoogleFormsSourceCommandPort = {
   updateGoogleFormsManualCsv(
     input: UpdateGoogleFormsManualCsvInput
   ): Promise<GoogleFormsDataSource>
+  connectGoogleFormsApi(
+    input: ConnectGoogleFormsApiInput
+  ): Promise<GoogleFormsDataSource>
+}
+
+/** Read-only Google Forms API access on behalf of the TinyOps service account. */
+export type GoogleFormsApiPort = {
+  serviceAccountEmail: string
+  getForm(formId: string): Promise<GoogleFormsApiForm>
+  listResponses(input: {
+    formId: string
+    filter?: string
+    pageSize?: number
+    pageToken?: string
+  }): Promise<{
+    responses: GoogleFormsApiResponse[]
+    nextPageToken: string | null
+  }>
 }
 
 export type SourceLifecycleCommandPort = {

@@ -130,6 +130,7 @@ function mapGoogleFormsDataSourceRow(
     externalFormId: stringValue(config.externalFormId),
     connectionMode: coerceGoogleFormsConnectionMode(config.connectionMode),
     mapping: googleFormsMapping(config.mapping),
+    identityQuestionId: stringValue(config.identityQuestionId) || null,
     latestUpload: googleFormsUpload(config.latestUpload),
     sync: mapSyncState(row.data_source_sync_states),
     syncRuns: mapSyncRuns(row.data_source_sync_runs),
@@ -281,7 +282,7 @@ function messageFiltersValue(
 function coerceGoogleFormsConnectionMode(
   value: unknown
 ): GoogleFormsConnectionMode {
-  if (value === "manual_csv") return value
+  if (value === "manual_csv" || value === "api") return value
   return "manual_csv"
 }
 

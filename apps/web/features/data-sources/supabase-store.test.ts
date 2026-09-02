@@ -518,4 +518,45 @@ describe("supabase data source store", () => {
       },
     ])
   })
+
+  it("connects Google Forms live sources through the api RPC then reloads the source", async () => {
+    const calls: unknown[] = []
+    const client = {
+      from(table: string) {
+        return queryChain(table, calls, {
+          data: googleFormsSourceRow,
+          error: null,
+        })
+      },
+      rpc(fn: string, args: unknown) {
+        calls.push({ method: "rpc", fn, args })
+        return Promise.resolve({ data: "forms_source_1", error: null })
+      },
+    }
+
+    const store = createSupabaseDataSourceStore({ client: client as never })
+
+    await expect(
+      store.connectGoogleFormsApi({
+        workspaceId: "workspace_1",
+        source: {
+          externalFormId: "1AbC_Def-1234567890",
+          connectionMode: "api",
+          displayName: "Practice intake live",
+          identityQuestionId: "q_email",
+        },
+      })
+    ).resolves.toMatchObject({ id: "forms_source_1", type: "forms" })
+
+    expect(calls[0]).toEqual({
+      method: "rpc",
+      fn: "connect_google_forms_api_data_source",
+      args: {
+        target_workspace_id: "workspace_1",
+        form_external_id: "1AbC_Def-1234567890",
+        form_display_name: "Practice intake live",
+        form_identity_question_id: "q_email",
+      },
+    })
+  })
 })

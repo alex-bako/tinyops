@@ -4,10 +4,15 @@ import type {
   ConnectorIngestionResult,
 } from "@/features/clients/application/connector-ingestion"
 import {
+  buildGoogleFormsApiRecords,
   buildGoogleFormsManualCsvRows,
   type GoogleFormsManualCsvStoredRow,
 } from "@/features/data-sources/google-forms"
-import type { GoogleFormsDataSource } from "@/features/data-sources/types"
+import { googleFormsApiErrorStatus } from "@/features/data-sources/google-forms-api"
+import type {
+  GoogleFormsApiPort,
+  GoogleFormsDataSource,
+} from "@/features/data-sources/types"
 import type { Json } from "@/lib/database.types"
 
 export type GoogleFormsManualCsvRowReader = {
@@ -105,4 +110,134 @@ function manualCsvCursor(cursor: Json | null, uploadId: string) {
         ? lastRowNumber
         : 0,
   }
+}
+
+// --- Live API connector ---------------------------------------------------
+
+type ApiCursor = {
+  api?: {
+    since?: unknown
+    pageToken?: unknown
+    maxSeen?: unknown
+  }
+}
+
+/**
+ * Polls the Google Forms API for responses submitted (or edited) after the
+ * stored `since` timestamp. Pages are walked with `pageToken` before `since`
+ * advances, so unordered results cannot be skipped; re-fetched edits upsert
+ * in place through the ingestion writer.
+ */
+export function createGoogleFormsApiConnector({
+  source,
+  api,
+}: {
+  source: GoogleFormsDataSource
+  api: GoogleFormsApiPort
+}): ConnectorIngestionPort {
+  async function collect(
+    input: ConnectorIngestionInput
+  ): Promise<ConnectorIngestionResult> {
+    const limit = Math.max(1, input.limit ?? 50)
+    const cursor = apiCursor(source.sync.cursor as Json | null)
+    const filter = cursor.since ? `timestamp > ${cursor.since}` : undefined
+    const form = await api.getForm(source.externalFormId)
+    const page = await listResponsePage({
+      api,
+      formId: source.externalFormId,
+      filter,
+      limit,
+      pageToken: cursor.pageToken,
+    })
+    const records = buildGoogleFormsApiRecords({
+      workspaceId: input.workspaceId,
+      sourceId: input.sourceId,
+      source,
+      form,
+      responses: page.responses,
+    })
+    const maxSeen = latestTimestamp([
+      cursor.maxSeen,
+      ...page.responses.map((response) => response.lastSubmittedTime),
+    ])
+    const hasMore = page.nextPageToken !== null
+
+    return {
+      records,
+      truncated: hasMore,
+      cursor: {
+        api: hasMore
+          ? {
+              since: cursor.since,
+              pageToken: page.nextPageToken,
+              maxSeen,
+            }
+          : { since: maxSeen ?? cursor.since },
+      } satisfies Json,
+      diagnostics: {
+        scanned: page.responses.length,
+        accepted: records.length,
+        since: cursor.since,
+      },
+    }
+  }
+
+  return {
+    preview: collect,
+    sync: collect,
+  }
+}
+
+async function listResponsePage({
+  api,
+  formId,
+  filter,
+  limit,
+  pageToken,
+}: {
+  api: GoogleFormsApiPort
+  formId: string
+  filter: string | undefined
+  limit: number
+  pageToken: string | null
+}) {
+  try {
+    return await api.listResponses({
+      formId,
+      filter,
+      pageSize: limit,
+      pageToken: pageToken ?? undefined,
+    })
+  } catch (error) {
+    // Expired page tokens come back as 400; restart the walk from `since`.
+    // Re-fetched responses upsert, so restarting is safe.
+    if (pageToken && googleFormsApiErrorStatus(error) === 400) {
+      return api.listResponses({ formId, filter, pageSize: limit })
+    }
+    throw error
+  }
+}
+
+function apiCursor(cursor: Json | null) {
+  const value =
+    cursor && typeof cursor === "object" && !Array.isArray(cursor)
+      ? (cursor as ApiCursor).api
+      : undefined
+  return {
+    since: optionalString(value?.since),
+    pageToken: optionalString(value?.pageToken),
+    maxSeen: optionalString(value?.maxSeen),
+  }
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null
+}
+
+function latestTimestamp(values: Array<string | null>): string | null {
+  return values.reduce<string | null>((latest, value) => {
+    const parsed = Date.parse(value ?? "")
+    if (Number.isNaN(parsed)) return latest
+    return latest && Date.parse(latest) >= parsed ? latest : value
+  }, null)
 }

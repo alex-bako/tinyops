@@ -25,6 +25,11 @@ export function getOptionalTinyOpsAppBaseUrl() {
   return process.env.TINYOPS_APP_BASE_URL?.trim() || null
 }
 
+/** Google service-account JSON key (raw or base64) used by Google Forms live sync. */
+export function getOptionalGoogleServiceAccountKey() {
+  return process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.trim() || null
+}
+
 export function getCronSecret() {
   return requiredEnv("CRON_SECRET")
 }

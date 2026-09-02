@@ -3,6 +3,7 @@ import {
   type SupabaseClientIngestionWriterClient,
 } from "@/features/clients/adapters/supabase-ingestion-writer"
 import { createGoogleFormsSourceSyncAdapter } from "@/features/data-sources/adapters/google-forms-source-sync-adapter"
+import { createGoogleFormsApiClientFromEnv } from "@/features/data-sources/google-forms-api"
 import { createImapSourceSyncAdapter } from "@/features/data-sources/adapters/imap-source-sync-adapter"
 import {
   createSupabaseGoogleFormsManualCsvRowReader,
@@ -65,6 +66,7 @@ export function createDataSourceSyncRuntime() {
         rowReader: createSupabaseGoogleFormsManualCsvRowReader({
           client: googleFormsRowReaderClient,
         }),
+        api: createGoogleFormsApiClientFromEnv(),
       }),
     ]),
     logger,

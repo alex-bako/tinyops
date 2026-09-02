@@ -4,7 +4,7 @@ import type { NormalizedConnectorRecord } from "@/features/clients/domain/connec
 import { createQaTimelineEventBody } from "@/features/clients/domain/timeline-event-body"
 import type { Json } from "@/lib/database.types"
 
-export const GOOGLE_FORMS_CONNECTION_MODES = ["manual_csv"] as const
+export const GOOGLE_FORMS_CONNECTION_MODES = ["manual_csv", "api"] as const
 
 export type GoogleFormsConnectionMode =
   (typeof GOOGLE_FORMS_CONNECTION_MODES)[number]
@@ -348,4 +348,154 @@ function formResponseBody(
         : []
     )
   )
+}
+
+// --- Live API mode (service account) -------------------------------------
+
+export type GoogleFormsApiQuestion = {
+  id: string
+  title: string
+}
+
+export type GoogleFormsApiForm = {
+  formId: string
+  title: string
+  collectsEmail: boolean
+  questions: GoogleFormsApiQuestion[]
+}
+
+export type GoogleFormsApiResponse = {
+  responseId: string
+  createTime: string
+  lastSubmittedTime: string
+  respondentEmail: string | null
+  /** questionId -> flattened answer text (file uploads already rendered as links). */
+  answers: Record<string, string>
+}
+
+export type GoogleFormsApiSourceConfig = {
+  externalFormId: string
+  connectionMode: "api"
+  displayName: string
+  /** Question used as the client email when the form does not collect emails. */
+  identityQuestionId: string | null
+}
+
+export function buildGoogleFormsApiSourceConfig({
+  formId,
+  displayName,
+  identityQuestionId,
+  form,
+}: {
+  formId: string
+  displayName: string
+  identityQuestionId: string | null | undefined
+  form: Pick<GoogleFormsApiForm, "collectsEmail" | "questions">
+}): GoogleFormsApiSourceConfig {
+  const normalizedDisplayName = displayName.trim()
+  if (!normalizedDisplayName) throw new Error("invalid_data_source_name")
+
+  const questionId = identityQuestionId?.trim() || null
+  if (questionId && !form.questions.some((question) => question.id === questionId)) {
+    throw new Error("invalid_google_forms_identity")
+  }
+  if (!questionId && !form.collectsEmail) {
+    throw new Error("invalid_google_forms_identity")
+  }
+
+  return {
+    externalFormId: extractGoogleFormId(formId),
+    connectionMode: "api",
+    displayName: normalizedDisplayName,
+    identityQuestionId: questionId,
+  }
+}
+
+export function googleFormsApiRecordExternalId(responseId: string) {
+  return `forms:api:${responseId}`
+}
+
+/**
+ * Normalizes live API responses into connector records. Responses without a
+ * resolvable client email are skipped, mirroring the manual CSV filter.
+ */
+export function buildGoogleFormsApiRecords({
+  workspaceId,
+  sourceId,
+  source,
+  form,
+  responses,
+}: {
+  workspaceId: string
+  sourceId: string
+  source: Pick<GoogleFormsApiSourceConfig, "externalFormId" | "displayName"> & {
+    identityQuestionId?: string | null
+  }
+  form: Pick<GoogleFormsApiForm, "questions">
+  responses: GoogleFormsApiResponse[]
+}): NormalizedConnectorRecord[] {
+  const identityQuestionId = source.identityQuestionId ?? null
+  return responses.flatMap((response) => {
+    const email = apiResponseEmail(response, identityQuestionId)
+    const occurredAt =
+      isoTimestamp(response.createTime) ?? isoTimestamp(response.lastSubmittedTime)
+    if (!email || !occurredAt || !response.responseId.trim()) return []
+
+    const pairs = form.questions.flatMap((question) => {
+      const answer = (response.answers[question.id] ?? "").trim()
+      return question.id !== identityQuestionId && answer
+        ? [
+            {
+              question: question.title.trim() || `Question ${question.id}`,
+              answer,
+            },
+          ]
+        : []
+    })
+
+    return [
+      {
+        workspaceId,
+        sourceId,
+        sourceType: "forms",
+        externalId: googleFormsApiRecordExternalId(response.responseId),
+        recordType: "google_form_response",
+        eventType: "form_submission",
+        occurredAt,
+        body: createQaTimelineEventBody(pairs),
+        participants: [{ email, role: "external" }],
+        metadata: {
+          externalFormId: source.externalFormId,
+          formTitle: source.displayName,
+          connectionMode: "api",
+          responseId: response.responseId,
+          createTime: response.createTime,
+          lastSubmittedTime: response.lastSubmittedTime,
+        },
+        attributes: pairs.map(({ question, answer }) => ({
+          key: question,
+          value: answer as Json,
+          confidence: 1,
+        })),
+        sensitivityLevel: 0,
+      } satisfies NormalizedConnectorRecord,
+    ]
+  })
+}
+
+function apiResponseEmail(
+  response: GoogleFormsApiResponse,
+  identityQuestionId: string | null
+): string | null {
+  const collected = (response.respondentEmail ?? "").trim().toLowerCase()
+  if (isValidEmail(collected)) return collected
+  const answered = identityQuestionId
+    ? (response.answers[identityQuestionId] ?? "").trim().toLowerCase()
+    : ""
+  return isValidEmail(answered) ? answered : null
+}
+
+function isoTimestamp(value: string | undefined): string | null {
+  const parsed = Date.parse((value ?? "").trim())
+  return Number.isNaN(parsed) ? null : new Date(parsed).toISOString()
 }

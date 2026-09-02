@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { createGoogleFormsSourceSyncAdapter } from "@/features/data-sources/adapters/google-forms-source-sync-adapter"
 import type {
   DataSourceQueryPort,
+  GoogleFormsApiPort,
   GoogleFormsDataSource,
 } from "@/features/data-sources/types"
 
@@ -85,5 +86,73 @@ describe("Google Forms source sync adapter", () => {
         })
       ).resolves.toMatchObject({ records: [], truncated: false })
     }
+  })
+
+  it("prepares a live API connector for api-mode sources and fails without a service account", async () => {
+    const reader: DataSourceQueryPort = {
+      async listForWorkspace() {
+        throw new Error("unexpected list")
+      },
+      async findBySlugForWorkspace() {
+        throw new Error("unexpected find by slug")
+      },
+      async findByIdForWorkspace() {
+        return { ...source(), connectionMode: "api", latestUpload: null }
+      },
+    }
+    const api: GoogleFormsApiPort = {
+      serviceAccountEmail: "sync@tinyops.iam.gserviceaccount.com",
+      async getForm() {
+        throw new Error("unexpected form read")
+      },
+      async listResponses() {
+        throw new Error("unexpected responses read")
+      },
+    }
+    const factoryCalls: unknown[] = []
+    const job = {
+      sourceId: "forms_source_1",
+      workspaceId: "workspace_1",
+      sourceType: "forms" as const,
+      leaseToken: "lease_1",
+    }
+
+    const configured = await createGoogleFormsSourceSyncAdapter({
+      dataSourceReader: reader,
+      rowReader: {
+        async listManualCsvRows() {
+          throw new Error("unexpected csv read")
+        },
+      },
+      api,
+      apiConnectorFactory(input) {
+        factoryCalls.push(input)
+        return {
+          async preview() {
+            return { records: [], truncated: false }
+          },
+          async sync() {
+            return { records: [], truncated: false }
+          },
+        }
+      },
+    }).prepare({ job })
+
+    expect(configured).toMatchObject({ ok: true })
+    expect(factoryCalls).toMatchObject([{ api, source: { connectionMode: "api" } }])
+
+    const unconfigured = await createGoogleFormsSourceSyncAdapter({
+      dataSourceReader: reader,
+      rowReader: {
+        async listManualCsvRows() {
+          return []
+        },
+      },
+    }).prepare({ job })
+
+    expect(unconfigured).toMatchObject({
+      ok: false,
+      error: { code: "google_forms_not_configured", sourceId: "forms_source_1" },
+    })
   })
 })

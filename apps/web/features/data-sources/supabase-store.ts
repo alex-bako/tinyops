@@ -232,6 +232,27 @@ export function createSupabaseDataSourceStore({
       })
     },
 
+    async connectGoogleFormsApi(input) {
+      const { data, error } = await client.rpc(
+        "connect_google_forms_api_data_source",
+        {
+          target_workspace_id: input.workspaceId,
+          form_external_id: input.source.externalFormId,
+          form_display_name: input.source.displayName,
+          form_identity_question_id: input.source.identityQuestionId,
+        }
+      )
+
+      if (error) {
+        throwDataSourceStoreError(error, "Could not connect Google Forms")
+      }
+
+      return requireGoogleFormsById({
+        workspaceId: input.workspaceId,
+        sourceId: String(data),
+      })
+    },
+
     async updateImapConnection(input) {
       const { error } = await client.rpc("update_imap_connection_settings", {
         target_source_id: input.sourceId,

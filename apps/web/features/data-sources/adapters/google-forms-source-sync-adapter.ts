@@ -1,11 +1,13 @@
 import type { ConnectorIngestionPort } from "@/features/clients/application/connector-ingestion"
 import {
+  createGoogleFormsApiConnector,
   createGoogleFormsManualCsvConnector,
   type GoogleFormsManualCsvRowReader,
 } from "@/features/data-sources/google-forms-sync"
 import type { SourceSyncAdapter } from "@/features/data-sources/sync-worker"
 import type {
   DataSourceQueryPort,
+  GoogleFormsApiPort,
   GoogleFormsDataSource,
   WorkspaceDataSource,
 } from "@/features/data-sources/types"
@@ -17,14 +19,23 @@ type ConnectorFactoryInput = {
   rowReader: GoogleFormsManualCsvRowReader
 }
 
+type ApiConnectorFactoryInput = {
+  source: GoogleFormsDataSource
+  api: GoogleFormsApiPort
+}
+
 export function createGoogleFormsSourceSyncAdapter({
   dataSourceReader,
   rowReader,
+  api = null,
   connectorFactory = createGoogleFormsManualCsvConnector,
+  apiConnectorFactory = createGoogleFormsApiConnector,
 }: {
   dataSourceReader: DataSourceQueryPort
   rowReader: GoogleFormsManualCsvRowReader
+  api?: GoogleFormsApiPort | null
   connectorFactory?: (input: ConnectorFactoryInput) => ConnectorIngestionPort
+  apiConnectorFactory?: (input: ApiConnectorFactoryInput) => ConnectorIngestionPort
 }): SourceSyncAdapter {
   return {
     sourceType: "forms",
@@ -35,6 +46,16 @@ export function createGoogleFormsSourceSyncAdapter({
           ok: false,
           error: syncFailure("source_not_found", job),
         }
+      }
+
+      if (source.connectionMode === "api") {
+        if (!api) {
+          return {
+            ok: false,
+            error: syncFailure("google_forms_not_configured", job),
+          }
+        }
+        return { ok: true, value: apiConnectorFactory({ source, api }) }
       }
 
       if (source.connectionMode !== "manual_csv") {
