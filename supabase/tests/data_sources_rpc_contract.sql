@@ -763,6 +763,74 @@ select pg_temp.assert_true(
   'Google Forms source stores mode, mapping, and latest upload metadata'
 );
 
+select public.connect_google_forms_api_data_source(
+  current_setting('tinyops.workspace_id')::uuid,
+  '1AbC_Def-1234567890',
+  'Practice intake live',
+  'q_email'
+) as forms_api_source_id \gset
+
+select pg_temp.assert_true(
+  (
+    select config->>'externalFormId' = '1AbC_Def-1234567890'
+      and config->>'connectionMode' = 'api'
+      and config->>'identityQuestionId' = 'q_email'
+      and not (config ? 'mapping')
+    from public.data_sources
+    where id = :'forms_api_source_id'::uuid
+  ),
+  'Google Forms live source stores api mode and identity question beside the CSV source for the same form'
+);
+
+select pg_temp.assert_true(
+  (
+    select status = 'queued' and cursor is null
+    from public.data_source_sync_states
+    where source_id = :'forms_api_source_id'::uuid
+  ),
+  'Google Forms live source queues a full backfill on connect'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_google_forms_api_data_source(%L::uuid, %L, %L, %L)',
+    current_setting('tinyops.workspace_id'),
+    '1AbC_Def-1234567890',
+    'Practice intake live copy',
+    ''
+  ),
+  'duplicate_data_source_config',
+  'Google Forms live duplicate external form is rejected'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_google_forms_api_data_source(%L::uuid, %L, %L, %L)',
+    current_setting('tinyops.workspace_id'),
+    '',
+    'Empty live form',
+    ''
+  ),
+  'invalid_google_form_id',
+  'Google Forms live rejects an empty form id'
+);
+
+select public.connect_google_forms_api_data_source(
+  current_setting('tinyops.workspace_id')::uuid,
+  '1Collected_Email_Form',
+  'Collected email live',
+  '   '
+) as forms_api_collected_source_id \gset
+
+select pg_temp.assert_true(
+  (
+    select config->>'identityQuestionId' is null
+    from public.data_sources
+    where id = :'forms_api_collected_source_id'::uuid
+  ),
+  'Google Forms live stores a null identity question when the form collects emails'
+);
+
 select pg_temp.assert_true(
   (
     select count(*) = 4
