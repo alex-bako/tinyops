@@ -28,6 +28,7 @@ export function sourceAdapterKey(source: DataSource) {
           connection.connectionMode,
           connection.mapping.identityColumn,
           connection.mapping.timestampColumn,
+          connection.identityQuestionId ?? "",
           connection.latestUpload?.id ?? "",
         ].join("\u0000")
       )

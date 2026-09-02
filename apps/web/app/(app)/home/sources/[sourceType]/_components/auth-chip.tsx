@@ -15,7 +15,7 @@ const AUTH_META: Record<DataSourceAuth, { icon: LucideIcon; label: string }> = {
   apikey: { icon: KeyRoundIcon, label: "API key" },
   imap: { icon: ServerIcon, label: "IMAP" },
   csv: { icon: UploadIcon, label: "Upload" },
-  multi: { icon: ShieldCheckIcon, label: "CSV / OAuth" },
+  multi: { icon: ShieldCheckIcon, label: "CSV / Live" },
 }
 
 function AuthChip({ auth }: { auth: DataSourceAuth }) {

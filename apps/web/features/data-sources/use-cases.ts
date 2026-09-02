@@ -9,13 +9,17 @@ import {
   type ImapIntakeSettingsCommand,
 } from "@/features/data-sources/imap"
 import {
+  buildGoogleFormsApiSourceConfig,
   buildGoogleFormsManualCsvSourceConfig,
   buildGoogleFormsManualCsvUploadRows,
+  extractGoogleFormId,
   parseGoogleFormsCsv,
+  type GoogleFormsApiQuestion,
 } from "@/features/data-sources/google-forms"
 import type {
   DataSourceQueryPort,
   DataSourceWorkspace,
+  GoogleFormsApiPort,
   GoogleFormsDataSource,
   GoogleFormsSourceCommandPort,
   ImapConnectionTester,
@@ -38,6 +42,20 @@ export type GoogleFormsManualCsvUpdateCommand = Omit<
   "formUrlOrId"
 >
 
+export type GoogleFormsApiConnectCommand = {
+  formUrlOrId: string
+  displayName: string
+  identityQuestionId: string | null
+}
+
+export type GoogleFormsApiInspection = {
+  serviceAccountEmail: string
+  formId: string
+  formTitle: string
+  collectsEmail: boolean
+  questions: GoogleFormsApiQuestion[]
+}
+
 export type ImapCredentialReader = {
   readImapPassword(input: {
     workspaceId: string
@@ -53,6 +71,7 @@ export function createDataSourceUseCases({
   lifecycleCommands,
   imapConnectionTester,
   imapCredentialReader,
+  googleFormsApi = null,
 }: {
   workspace: DataSourceWorkspace
   queryPort: DataSourceQueryPort
@@ -61,6 +80,7 @@ export function createDataSourceUseCases({
   lifecycleCommands: SourceLifecycleCommandPort
   imapConnectionTester: ImapConnectionTester
   imapCredentialReader: ImapCredentialReader
+  googleFormsApi?: GoogleFormsApiPort | null
 }) {
   async function loadImapSource(sourceId: string) {
     const source = await queryPort.findByIdForWorkspace({
@@ -82,6 +102,33 @@ export function createDataSourceUseCases({
       throw new Error("source_not_found")
     }
     return source
+  }
+
+  function requireGoogleFormsApi(): GoogleFormsApiPort {
+    if (!googleFormsApi) throw new Error("google_forms_not_configured")
+    return googleFormsApi
+  }
+
+  /**
+   * Verifies the service account can open the form. The settings flag can be
+   * absent on older forms, so one sampled response also counts as email
+   * collection evidence.
+   */
+  async function inspectForm(api: GoogleFormsApiPort, formUrlOrId: string) {
+    const formId = extractGoogleFormId(formUrlOrId)
+    const [form, sample] = await Promise.all([
+      api.getForm(formId),
+      api.listResponses({ formId, pageSize: 1 }),
+    ])
+    return {
+      formId,
+      form: {
+        ...form,
+        collectsEmail:
+          form.collectsEmail ||
+          sample.responses.some((response) => Boolean(response.respondentEmail)),
+      },
+    }
   }
 
   async function readStoredPassword(sourceId: string) {
@@ -225,6 +272,41 @@ export function createDataSourceUseCases({
           fileName: input.fileName.trim() || "google-forms-responses.csv",
           rows,
         },
+      })
+    },
+
+    describeGoogleFormsApi() {
+      return { serviceAccountEmail: googleFormsApi?.serviceAccountEmail ?? null }
+    },
+
+    async inspectGoogleFormsApi(
+      formUrlOrId: string
+    ): Promise<GoogleFormsApiInspection> {
+      const api = requireGoogleFormsApi()
+      const { formId, form } = await inspectForm(api, formUrlOrId)
+      return {
+        serviceAccountEmail: api.serviceAccountEmail,
+        formId,
+        formTitle: form.title,
+        collectsEmail: form.collectsEmail,
+        questions: form.questions,
+      }
+    },
+
+    async connectGoogleFormsApi(
+      input: GoogleFormsApiConnectCommand
+    ): Promise<GoogleFormsDataSource> {
+      const api = requireGoogleFormsApi()
+      const { formId, form } = await inspectForm(api, input.formUrlOrId)
+      const source = buildGoogleFormsApiSourceConfig({
+        formId,
+        displayName: input.displayName.trim() || form.title,
+        identityQuestionId: input.identityQuestionId,
+        form,
+      })
+      return formsCommands.connectGoogleFormsApi({
+        workspaceId: workspace.id,
+        source,
       })
     },
 

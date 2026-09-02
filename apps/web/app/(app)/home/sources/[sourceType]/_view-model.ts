@@ -95,7 +95,9 @@ function deriveStatus(source: DataSource): SourceStatus {
 }
 
 function isConnectionFailure(lastError: string | undefined) {
-  return lastError?.startsWith("imap_connection_failed") ?? false
+  return /^(imap_connection_failed|google_forms_access_failed|google_forms_not_configured)/.test(
+    lastError ?? ""
+  )
 }
 
 function createSourceDetailView(

@@ -63,6 +63,7 @@ vi.mock("@/lib/logging", () => ({
 vi.mock("@/lib/supabase/server-env", () => ({
   getOptionalTinyOpsAppBaseUrl: () => "https://app.example.com",
   getOptionalSyncWorkerSecret: () => "sync-secret",
+  getOptionalGoogleServiceAccountKey: () => null,
 }))
 
 import {

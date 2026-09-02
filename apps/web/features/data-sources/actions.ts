@@ -5,12 +5,14 @@ import { after } from "next/server"
 
 import {
   createDataSourceCommandApplication,
+  type GoogleFormsApiConnectCommand,
   type GoogleFormsManualCsvConnectCommand,
   type GoogleFormsManualCsvUpdateCommand,
   type ImapConnectionSettingsCommand,
   type ImapConnectCommand,
   type ImapImportSettingsCommand,
 } from "@/features/data-sources/application"
+import { createGoogleFormsApiClientFromEnv } from "@/features/data-sources/google-forms-api"
 import { createImapFlowConnectionTester } from "@/features/data-sources/imap-connection-tester"
 import { createSupabaseImapSecretReader } from "@/features/data-sources/imap-secret-reader"
 import { createDataSourceServerContext } from "@/features/data-sources/loaders"
@@ -46,6 +48,7 @@ async function createActionApplication(): Promise<
     store: context.store,
     imapConnectionTester: createImapFlowConnectionTester(),
     imapCredentialReader: createSupabaseImapSecretReader(),
+    googleFormsApi: createGoogleFormsApiClientFromEnv(),
   })
 }
 
@@ -89,6 +92,34 @@ export async function updateGoogleFormsManualCsvDataSourceAction(
   if (isActionApplicationError(application)) return application
 
   const result = await application.updateGoogleFormsManualCsv(sourceId, input)
+  if (result.data) {
+    revalidateDataSources()
+    after(scheduleDataSourceSyncDispatch)
+  }
+  return result
+}
+
+export async function describeGoogleFormsApiAction() {
+  const application = await createActionApplication()
+  if (isActionApplicationError(application)) return application
+
+  return application.describeGoogleFormsApi()
+}
+
+export async function inspectGoogleFormsApiAction(formUrlOrId: string) {
+  const application = await createActionApplication()
+  if (isActionApplicationError(application)) return application
+
+  return application.inspectGoogleFormsApi(formUrlOrId)
+}
+
+export async function connectGoogleFormsApiDataSourceAction(
+  input: GoogleFormsApiConnectCommand
+) {
+  const application = await createActionApplication()
+  if (isActionApplicationError(application)) return application
+
+  const result = await application.connectGoogleFormsApi(input)
   if (result.data) {
     revalidateDataSources()
     after(scheduleDataSourceSyncDispatch)
