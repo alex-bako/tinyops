@@ -49,6 +49,8 @@ Configure runtime env vars in each Vercel project:
 - `TINYOPS_LOG_LEVEL`
 - `OPENAI_API_KEY` (only needed for the "Ask AI" feature)
 - `ASK_AI_MODEL` (optional; defaults to `gpt-5.5`)
+- `GOOGLE_SERVICE_ACCOUNT_KEY` (only needed for Google Forms live sync; see
+  below)
 
 Set `TINYOPS_DEPLOY_ENV=staging` in `tinyops-staging` and
 `TINYOPS_DEPLOY_ENV=production` in `tinyops-prod`.
@@ -58,6 +60,28 @@ connector (steady-state incremental sync) and drains the queue:
 
 - staging: every 30 minutes, `*/30 * * * *`
 - production: every 30 minutes, `*/30 * * * *`
+
+## Google Forms Live Sync
+
+Live sync reads responses through the Google Forms API as a Google service
+account. Manual CSV upload keeps working without it.
+
+1. In Google Cloud Console pick or create a project and enable the
+   **Google Forms API**.
+2. Create a service account (IAM & Admin → Service Accounts). It needs no
+   project roles.
+3. Create a JSON key for the service account and download it.
+4. Set `GOOGLE_SERVICE_ACCOUNT_KEY` to the key file content in `.env.local`
+   and in each Vercel project. Paste the JSON on one line, or base64-encode
+   the whole file; both are accepted.
+5. Form owners share each form with the service account address (the
+   `client_email` in the key) as an editor. The Google Forms connect page
+   shows this address, checks access, and lists the form questions so the
+   client-email question can be picked when the form does not collect emails.
+
+Each sync drain tick then pulls new and edited responses for every connected
+live form. A Google Workspace domain that blocks sharing outside the
+organization must allow the service account address.
 
 ## Supabase Projects
 

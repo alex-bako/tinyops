@@ -16,7 +16,8 @@
         "TINYOPS_DEPLOY_ENV",
         "TINYOPS_LOG_LEVEL",
         "OPENAI_API_KEY",
-        "ASK_AI_MODEL"
+        "ASK_AI_MODEL",
+        "GOOGLE_SERVICE_ACCOUNT_KEY"
       ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**"]
@@ -47,7 +48,8 @@
         "TINYOPS_DEPLOY_ENV",
         "TINYOPS_LOG_LEVEL",
         "OPENAI_API_KEY",
-        "ASK_AI_MODEL"
+        "ASK_AI_MODEL",
+        "GOOGLE_SERVICE_ACCOUNT_KEY"
       ]
     }
   }
