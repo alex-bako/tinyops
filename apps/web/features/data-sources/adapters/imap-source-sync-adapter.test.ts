@@ -151,7 +151,7 @@ describe("IMAP source sync adapter", () => {
             ok: false,
             error: {
               code: "secret_read_failed",
-              message: "Could not read IMAP password",
+              message: "Could not read stored credential",
             },
           }
         },
@@ -171,7 +171,7 @@ describe("IMAP source sync adapter", () => {
       ok: false,
       error: {
         code: "secret_read_failed",
-        message: "Could not read IMAP password",
+        message: "Could not read stored credential",
         sourceId: "source_1",
         workspaceId: "workspace_1",
       },

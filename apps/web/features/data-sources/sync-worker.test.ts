@@ -272,7 +272,7 @@ describe("data source sync worker", () => {
               ok: false,
               error: {
                 code: "secret_read_failed",
-                message: "Could not read IMAP password",
+                message: "Could not read stored credential",
                 sourceId: job.sourceId,
                 workspaceId: job.workspaceId,
               },
@@ -299,7 +299,7 @@ describe("data source sync worker", () => {
       workspaceId: "workspace_1",
       failure: {
         code: "secret_read_failed",
-        message: "Could not read IMAP password",
+        message: "Could not read stored credential",
       },
     })
     expect(calls).toContainEqual({
@@ -307,7 +307,7 @@ describe("data source sync worker", () => {
       input: {
         sourceId: "source_1",
         leaseToken: "lease_1",
-        error: "secret_read_failed: Could not read IMAP password",
+        error: "secret_read_failed: Could not read stored credential",
       },
     })
     expect(calls).toContainEqual({
@@ -318,7 +318,7 @@ describe("data source sync worker", () => {
         workspaceId: "workspace_1",
         failure: expect.objectContaining({
           code: "secret_read_failed",
-          message: "Could not read IMAP password",
+          message: "Could not read stored credential",
         }),
       },
     })

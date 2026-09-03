@@ -77,6 +77,7 @@ function deriveStatus(source: DataSource): SourceStatus {
       source.imap?.lastError ??
       source.forms?.connections.find((connection) => connection.lastError)
         ?.lastError ??
+      source.stripe?.lastError ??
       undefined
     return {
       variant: "warn",
@@ -95,7 +96,7 @@ function deriveStatus(source: DataSource): SourceStatus {
 }
 
 function isConnectionFailure(lastError: string | undefined) {
-  return /^(imap_connection_failed|google_forms_access_failed|google_forms_not_configured)/.test(
+  return /^(imap_connection_failed|google_forms_access_failed|google_forms_not_configured|stripe_access_failed|invalid_stripe_config)/.test(
     lastError ?? ""
   )
 }
@@ -139,6 +140,7 @@ function syncAttempts(source: DataSource): SourceSyncAttempt[] {
   if (source.kind !== "data_source") return []
   return [
     ...(source.imap?.syncRuns ?? []),
+    ...(source.stripe?.syncRuns ?? []),
     ...(source.forms?.connections.flatMap((connection) => connection.syncRuns ?? []) ??
       []),
   ]

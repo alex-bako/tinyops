@@ -5,6 +5,7 @@ import type {
   ImapFolder,
   ImapMessageFilters,
   DataSourceSyncRun,
+  StripeDataSource,
   WorkspaceDataSource,
 } from "@/features/data-sources/types"
 import {
@@ -76,6 +77,16 @@ export type DataSourceImapSettings = {
   syncRuns?: DataSourceSyncRun[]
 }
 
+export type DataSourceStripeSettings = {
+  accountId: string
+  syncFrom: string
+  livemode: boolean
+  apiKeyMasked?: string
+  syncStatus?: "idle" | "queued" | "running" | "error"
+  lastError?: string | null
+  syncRuns?: DataSourceSyncRun[]
+}
+
 export type ConnectorDefinition = ConnectorMetadata
 
 export type ConnectorTypeCatalogItem = ConnectorDefinition & {
@@ -96,6 +107,7 @@ export type WorkspaceDataSourceCatalogItem = ConnectorDefinition & {
   stats: DataSourceStat[]
   imap?: DataSourceImapSettings
   forms?: DataSourceGoogleFormsSettings
+  stripe?: DataSourceStripeSettings
 }
 
 export type DataSource = ConnectorTypeCatalogItem | WorkspaceDataSourceCatalogItem
@@ -129,6 +141,8 @@ export function composeWorkspaceConnectorCatalog(
     if (source.type === "imap") return [connectedImapSource(definition, source)]
     if (source.type === "forms")
       return [connectedGoogleFormsSource(definition, source)]
+    if (source.type === "stripe")
+      return [connectedStripeSource(definition, source)]
     return []
   })
 
@@ -292,6 +306,44 @@ function connectedGoogleFormsSource(
   }
 }
 
+function connectedStripeSource(
+  catalogSource: ConnectorDefinition,
+  source: StripeDataSource
+): WorkspaceDataSourceCatalogItem {
+  const syncLabel = syncStatusLabel(source)
+  return {
+    ...catalogSource,
+    kind: "data_source",
+    title: source.displayName,
+    sourceId: source.id,
+    sourceType: source.type,
+    sourceSlug: source.sourceSlug,
+    sub: catalogSource.title,
+    connected: true,
+    health: sourceHealth(source),
+    lastSync: syncLabel.toLowerCase(),
+    summaryStatId: "synced",
+    stats: [
+      { id: "synced", label: "Sync", value: syncLabel },
+      { id: "events", label: "Mode", value: source.livemode ? "Live" : "Test" },
+    ],
+    stripe: {
+      accountId: source.accountId,
+      syncFrom: source.syncFrom,
+      livemode: source.livemode,
+      apiKeyMasked: source.secret?.maskedValue,
+      syncStatus: source.sync.status,
+      lastError: source.sync.lastError,
+      syncRuns: source.syncRuns ?? [],
+    },
+  }
+}
+
+function sourceHealth(source: WorkspaceDataSource): DataSourceHealth {
+  if (source.status === "error" || source.sync.status === "error") return "error"
+  return "healthy"
+}
+
 function imapHealth(source: ImapDataSource): DataSourceHealth {
   if (source.status === "error" || source.sync.status === "error") {
     return "error"
@@ -305,7 +357,7 @@ function googleFormsHealth(source: GoogleFormsDataSource): DataSourceHealth {
   return "healthy"
 }
 
-function syncStatusLabel(source: ImapDataSource | GoogleFormsDataSource) {
+function syncStatusLabel(source: WorkspaceDataSource) {
   if (source.sync.status === "error") return "Error"
   if (source.sync.status === "running") return "Syncing"
   if (source.sync.status === "queued") return "Queued"
