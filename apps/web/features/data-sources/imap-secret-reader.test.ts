@@ -65,7 +65,7 @@ describe("IMAP secret reader", () => {
       ok: false,
       error: {
         code: "secret_read_failed",
-        message: "Could not read IMAP password",
+        message: "Could not read stored credential",
         workspaceId: "workspace_1",
         sourceId: "source_1",
         cause: rpcError,
@@ -90,7 +90,7 @@ describe("IMAP secret reader", () => {
       ok: false,
       error: {
         code: "secret_read_failed",
-        message: "Could not read IMAP password",
+        message: "Could not read stored credential",
         workspaceId: "workspace_1",
         sourceId: "source_1",
         cause: rpcError,

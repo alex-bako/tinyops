@@ -11,6 +11,8 @@ import {
   type GoogleFormsManualCsvConnectCommand,
   type GoogleFormsManualCsvUpdateCommand,
   type ImapCredentialReader,
+  type StripeAccountInspection,
+  type StripeConnectCommand,
 } from "@/features/data-sources/use-cases"
 import { isConnectorId } from "@/features/data-sources/connector-metadata"
 import type {
@@ -22,6 +24,8 @@ import type {
   ImapConnectionTester,
   ImapSourceCommandPort,
   SourceLifecycleCommandPort,
+  StripeApiPort,
+  StripeSourceCommandPort,
 } from "@/features/data-sources/types"
 import type { Result, SyncFailure } from "@/features/data-sources/domain/sync"
 
@@ -47,6 +51,9 @@ export type DataSourceActionError =
   | "invalid_google_forms_identity"
   | "google_forms_not_configured"
   | "google_forms_access_failed"
+  | "invalid_stripe_config"
+  | "stripe_access_failed"
+  | "stripe_api_failed"
   | "invalid_data_source_name"
   | "duplicate_data_source_name"
   | "duplicate_data_source_config"
@@ -70,6 +77,8 @@ export type {
   GoogleFormsApiInspection,
   GoogleFormsManualCsvConnectCommand,
   GoogleFormsManualCsvUpdateCommand,
+  StripeAccountInspection,
+  StripeConnectCommand,
 }
 
 export type { ImapConnectionSettingsCommand, ImapIntakeSettingsCommand }
@@ -114,22 +123,32 @@ export function createDataSourceCommandApplication({
   queryPort = store,
   imapCommands = store,
   formsCommands = store,
+  stripeCommands = store,
   lifecycleCommands = store,
   imapConnectionTester,
   imapCredentialReader,
   googleFormsApi = null,
+  stripeApiFactory,
 }: {
   workspace: DataSourceWorkspace
   store?: DataSourceStore
   queryPort?: DataSourceQueryPort
   imapCommands?: ImapSourceCommandPort
   formsCommands?: GoogleFormsSourceCommandPort
+  stripeCommands?: StripeSourceCommandPort
   lifecycleCommands?: SourceLifecycleCommandPort
   imapConnectionTester: ImapConnectionTester
   imapCredentialReader: ImapCredentialReader
   googleFormsApi?: GoogleFormsApiPort | null
+  stripeApiFactory?: (apiKey: string) => StripeApiPort
 }) {
-  if (!queryPort || !imapCommands || !formsCommands || !lifecycleCommands) {
+  if (
+    !queryPort ||
+    !imapCommands ||
+    !formsCommands ||
+    !stripeCommands ||
+    !lifecycleCommands
+  ) {
     throw new Error("data_source_ports_required")
   }
   const useCases = createDataSourceUseCases({
@@ -137,10 +156,12 @@ export function createDataSourceCommandApplication({
     queryPort,
     imapCommands,
     formsCommands,
+    stripeCommands,
     lifecycleCommands,
     imapConnectionTester,
     imapCredentialReader,
     googleFormsApi,
+    ...(stripeApiFactory ? { stripeApiFactory } : {}),
   })
 
   async function runManaged<T>(
@@ -189,6 +210,14 @@ export function createDataSourceCommandApplication({
 
     async connectGoogleFormsApi(input: GoogleFormsApiConnectCommand) {
       return runManaged(() => useCases.connectGoogleFormsApi(input))
+    },
+
+    async inspectStripeAccount(apiKey: string) {
+      return runManaged(() => useCases.inspectStripeAccount(apiKey))
+    },
+
+    async connectStripe(input: StripeConnectCommand) {
+      return runManaged(() => useCases.connectStripe(input))
     },
 
     async updateImapConnectionSettings(
@@ -261,6 +290,9 @@ function isDataSourceActionError(
     value === "invalid_google_forms_identity" ||
     value === "google_forms_not_configured" ||
     value === "google_forms_access_failed" ||
+    value === "invalid_stripe_config" ||
+    value === "stripe_access_failed" ||
+    value === "stripe_api_failed" ||
     value === "invalid_data_source_name" ||
     value === "duplicate_data_source_name" ||
     value === "duplicate_data_source_config" ||

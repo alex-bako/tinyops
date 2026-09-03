@@ -8,6 +8,13 @@ import type {
   GoogleFormsManualCsvUploadRow,
   GoogleFormsSourceConfig,
 } from "@/features/data-sources/google-forms"
+import type { StripeListParams } from "@/features/data-sources/stripe-api"
+import type {
+  StripeAccount,
+  StripeCustomer,
+  StripeListResource,
+  StripeSourceConfig,
+} from "@/features/data-sources/stripe"
 import type { WorkspaceRole } from "@/features/workspaces/types"
 
 export type DataSourceWorkspace = {
@@ -18,7 +25,7 @@ export type DataSourceWorkspace = {
 export type DataSourceStatus = "connected" | "error" | "disconnected"
 export type DataSourceSyncStatus = "idle" | "queued" | "running" | "error"
 export type DataSourceSyncRunStatus = "running" | "succeeded" | "failed"
-export type DataSourceSecretPurpose = "imap_password"
+export type DataSourceSecretPurpose = "imap_password" | "stripe_api_key"
 
 export type ImapEncryption = "ssl" | "starttls" | "none"
 export type ImapHistoryWindow = "30d" | "90d" | "12mo" | "all"
@@ -136,7 +143,35 @@ export type GoogleFormsDataSource = {
   updatedAt: string
 }
 
-export type WorkspaceDataSource = ImapDataSource | GoogleFormsDataSource
+export type StripeDataSource = {
+  id: string
+  workspaceId: string
+  type: Extract<SourceId, "stripe">
+  sourceSlug: string
+  displayName: string
+  status: DataSourceStatus
+  configVersion: 1
+  accountId: string
+  /** ISO timestamp; objects created before it are never imported. */
+  syncFrom: string
+  livemode: boolean
+  secret: DataSourceSecret | null
+  sync: DataSourceSyncState
+  syncRuns?: DataSourceSyncRun[]
+  createdAt: string
+  updatedAt: string
+}
+
+export type WorkspaceDataSource =
+  | ImapDataSource
+  | GoogleFormsDataSource
+  | StripeDataSource
+
+export type ConnectStripeInput = {
+  workspaceId: string
+  source: StripeSourceConfig
+  apiKey: string
+}
 
 export type ConnectImapInput = {
   workspaceId: string
@@ -238,6 +273,20 @@ export type GoogleFormsApiPort = {
   }>
 }
 
+export type StripeSourceCommandPort = {
+  connectStripe(input: ConnectStripeInput): Promise<StripeDataSource>
+}
+
+/** Read-only Stripe API access with one workspace's secret key. */
+export type StripeApiPort = {
+  getAccount(): Promise<StripeAccount>
+  list(
+    resource: StripeListResource,
+    params: StripeListParams
+  ): Promise<{ data: unknown[]; hasMore: boolean }>
+  getCustomer(customerId: string): Promise<StripeCustomer | null>
+}
+
 export type SourceLifecycleCommandPort = {
   disconnect(input: { workspaceId: string; sourceId: string }): Promise<void>
   requestSync(input: { workspaceId: string; sourceId: string }): Promise<void>
@@ -247,6 +296,7 @@ export type SourceLifecycleCommandPort = {
 export type DataSourceStore = DataSourceQueryPort &
   ImapSourceCommandPort &
   GoogleFormsSourceCommandPort &
+  StripeSourceCommandPort &
   SourceLifecycleCommandPort
 
 export type ImapConnectionTestInput = ImapConnectionConfig & {

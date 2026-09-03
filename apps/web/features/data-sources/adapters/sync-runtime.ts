@@ -17,6 +17,11 @@ import {
   createSupabaseImapSecretReader,
   type SupabaseImapSecretReaderClient,
 } from "@/features/data-sources/imap-secret-reader"
+import { createStripeSourceSyncAdapter } from "@/features/data-sources/adapters/stripe-source-sync-adapter"
+import {
+  createSupabaseStripeSecretReader,
+  type SupabaseStripeSecretReaderClient,
+} from "@/features/data-sources/stripe-secret-reader"
 import { createSupabaseDataSourceStore } from "@/features/data-sources/supabase-store"
 import {
   createSupabaseDataSourceSyncJobStore,
@@ -67,6 +72,12 @@ export function createDataSourceSyncRuntime() {
           client: googleFormsRowReaderClient,
         }),
         api: createGoogleFormsApiClientFromEnv(),
+      }),
+      createStripeSourceSyncAdapter({
+        dataSourceReader,
+        secretReader: createSupabaseStripeSecretReader({
+          client: client as unknown as SupabaseStripeSecretReaderClient,
+        }),
       }),
     ]),
     logger,

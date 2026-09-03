@@ -19,6 +19,7 @@ import type {
   ImapDataSource,
   ImapFolderSnapshot,
   ImapIntakeSettings,
+  StripeDataSource,
   WorkspaceDataSource,
 } from "@/features/data-sources/types"
 
@@ -87,6 +88,10 @@ export function mapDataSourceRow(row: DataSourceRow): WorkspaceDataSource {
     return mapGoogleFormsDataSourceRow(row)
   }
 
+  if (row.source_type === "stripe") {
+    return mapStripeDataSourceRow(row)
+  }
+
   throw new Error(`Unsupported data source type: ${row.source_type}`)
 }
 
@@ -139,6 +144,29 @@ function mapGoogleFormsDataSourceRow(
   } satisfies GoogleFormsDataSource
 }
 
+function mapStripeDataSourceRow(row: DataSourceRow): StripeDataSource {
+  const config = jsonObject(row.config)
+  if (!config) throw new Error("Invalid Stripe config")
+
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    type: "stripe",
+    sourceSlug: row.slug,
+    displayName: row.display_name,
+    status: coerceStatus(row.status),
+    configVersion: 1,
+    accountId: stringValue(config.accountId),
+    syncFrom: stringValue(config.syncFrom),
+    livemode: config.livemode === true,
+    secret: mapSecret(row.data_source_secrets, "stripe_api_key"),
+    sync: mapSyncState(row.data_source_sync_states),
+    syncRuns: mapSyncRuns(row.data_source_sync_runs),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  } satisfies StripeDataSource
+}
+
 function mapImapConnectionConfig(config: Json): ImapConnectionConfig {
   const value = jsonObject(config)
   if (!value) throw new Error("Invalid IMAP config")
@@ -181,13 +209,14 @@ function mapImapFolderSnapshot(
 }
 
 function mapSecret(
-  rows: DataSourceSecretRow[] | null | undefined
+  rows: DataSourceSecretRow[] | null | undefined,
+  purpose: DataSourceSecret["purpose"] = "imap_password"
 ): DataSourceSecret | null {
-  const active = rows?.find((row) => !row.replaced_at)
-  if (!active || active.purpose !== "imap_password") return null
+  const active = rows?.find((row) => !row.replaced_at && row.purpose === purpose)
+  if (!active) return null
 
   return {
-    purpose: "imap_password",
+    purpose,
     maskedValue: active.masked_value,
   }
 }

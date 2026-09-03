@@ -7,6 +7,7 @@ import {
 import type {
   DataSourceStore,
   GoogleFormsDataSource,
+  StripeDataSource,
   ImapDataSource,
 } from "@/features/data-sources/types"
 import type { Database } from "@/lib/database.types"
@@ -142,6 +143,17 @@ export function createSupabaseDataSourceStore({
     return source
   }
 
+  async function requireStripeById(input: {
+    workspaceId: string
+    sourceId: string
+  }): Promise<StripeDataSource> {
+    const source = await findByIdForWorkspace(input)
+    if (!source || source.type !== "stripe") {
+      throw new Error("source_not_found")
+    }
+    return source
+  }
+
   return {
     async listForWorkspace(workspaceId) {
       const { data, error } = await withRecentSyncRuns(
@@ -248,6 +260,23 @@ export function createSupabaseDataSourceStore({
       }
 
       return requireGoogleFormsById({
+        workspaceId: input.workspaceId,
+        sourceId: String(data),
+      })
+    },
+
+    async connectStripe(input) {
+      const { data, error } = await client.rpc("connect_stripe_data_source", {
+        target_workspace_id: input.workspaceId,
+        stripe_display_name: input.source.displayName,
+        stripe_account_id: input.source.accountId,
+        stripe_api_key: input.apiKey,
+        stripe_sync_from: input.source.syncFrom,
+      })
+
+      if (error) throwDataSourceStoreError(error, "Could not connect Stripe")
+
+      return requireStripeById({
         workspaceId: input.workspaceId,
         sourceId: String(data),
       })

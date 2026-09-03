@@ -92,7 +92,11 @@ function detailSourceIds(source: DataSource) {
 
 function activeSyncSourceIds(source: DataSource) {
   if (source.kind !== "data_source") return []
-  if (isActiveSyncStatus(source.imap?.syncStatus)) return [source.sourceId]
+  if (
+    isActiveSyncStatus(source.imap?.syncStatus) ||
+    isActiveSyncStatus(source.stripe?.syncStatus)
+  )
+    return [source.sourceId]
   return (source.forms?.connections ?? []).flatMap((connection) =>
     isActiveSyncStatus(connection.syncStatus) ? [connection.sourceId] : []
   )

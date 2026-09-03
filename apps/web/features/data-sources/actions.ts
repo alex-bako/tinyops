@@ -11,6 +11,7 @@ import {
   type ImapConnectionSettingsCommand,
   type ImapConnectCommand,
   type ImapImportSettingsCommand,
+  type StripeConnectCommand,
 } from "@/features/data-sources/application"
 import { createGoogleFormsApiClientFromEnv } from "@/features/data-sources/google-forms-api"
 import { createImapFlowConnectionTester } from "@/features/data-sources/imap-connection-tester"
@@ -120,6 +121,27 @@ export async function connectGoogleFormsApiDataSourceAction(
   if (isActionApplicationError(application)) return application
 
   const result = await application.connectGoogleFormsApi(input)
+  if (result.data) {
+    revalidateDataSources()
+    after(scheduleDataSourceSyncDispatch)
+  }
+  return result
+}
+
+export async function inspectStripeAccountAction(apiKey: string) {
+  const application = await createActionApplication()
+  if (isActionApplicationError(application)) return application
+
+  return application.inspectStripeAccount(apiKey)
+}
+
+export async function connectStripeDataSourceAction(
+  input: StripeConnectCommand
+) {
+  const application = await createActionApplication()
+  if (isActionApplicationError(application)) return application
+
+  const result = await application.connectStripe(input)
   if (result.data) {
     revalidateDataSources()
     after(scheduleDataSourceSyncDispatch)

@@ -16,6 +16,11 @@ import {
   parseGoogleFormsCsv,
   type GoogleFormsApiQuestion,
 } from "@/features/data-sources/google-forms"
+import { buildStripeSourceConfig } from "@/features/data-sources/stripe"
+import {
+  createStripeApiClient,
+  isStripeSecretKey,
+} from "@/features/data-sources/stripe-api"
 import type {
   DataSourceQueryPort,
   DataSourceWorkspace,
@@ -26,7 +31,23 @@ import type {
   ImapDataSource,
   ImapSourceCommandPort,
   SourceLifecycleCommandPort,
+  StripeApiPort,
+  StripeDataSource,
+  StripeSourceCommandPort,
 } from "@/features/data-sources/types"
+
+export type StripeConnectCommand = {
+  apiKey: string
+  displayName: string
+  /** ISO date; objects created before it are never imported. */
+  syncFrom: string
+}
+
+export type StripeAccountInspection = {
+  accountId: string
+  name: string
+  livemode: boolean
+}
 
 export type GoogleFormsManualCsvConnectCommand = {
   formUrlOrId: string
@@ -68,20 +89,30 @@ export function createDataSourceUseCases({
   queryPort,
   imapCommands,
   formsCommands,
+  stripeCommands,
   lifecycleCommands,
   imapConnectionTester,
   imapCredentialReader,
   googleFormsApi = null,
+  stripeApiFactory = (apiKey) => createStripeApiClient({ apiKey }),
 }: {
   workspace: DataSourceWorkspace
   queryPort: DataSourceQueryPort
   imapCommands: ImapSourceCommandPort
   formsCommands: GoogleFormsSourceCommandPort
+  stripeCommands: StripeSourceCommandPort
   lifecycleCommands: SourceLifecycleCommandPort
   imapConnectionTester: ImapConnectionTester
   imapCredentialReader: ImapCredentialReader
   googleFormsApi?: GoogleFormsApiPort | null
+  stripeApiFactory?: (apiKey: string) => StripeApiPort
 }) {
+  async function inspectStripe(apiKey: string): Promise<StripeAccountInspection> {
+    if (!isStripeSecretKey(apiKey)) throw new Error("invalid_stripe_config")
+    const account = await stripeApiFactory(apiKey.trim()).getAccount()
+    return { accountId: account.id, name: account.name, livemode: account.livemode }
+  }
+
   async function loadImapSource(sourceId: string) {
     const source = await queryPort.findByIdForWorkspace({
       workspaceId: workspace.id,
@@ -307,6 +338,23 @@ export function createDataSourceUseCases({
       return formsCommands.connectGoogleFormsApi({
         workspaceId: workspace.id,
         source,
+      })
+    },
+
+    inspectStripeAccount(apiKey: string) {
+      return inspectStripe(apiKey)
+    },
+
+    async connectStripe(input: StripeConnectCommand): Promise<StripeDataSource> {
+      const account = await inspectStripe(input.apiKey)
+      return stripeCommands.connectStripe({
+        workspaceId: workspace.id,
+        apiKey: input.apiKey.trim(),
+        source: buildStripeSourceConfig({
+          displayName: input.displayName.trim() || account.name,
+          accountId: account.accountId,
+          syncFrom: input.syncFrom,
+        }),
       })
     },
 

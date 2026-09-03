@@ -18,6 +18,7 @@ export type {
   DataSourceImapSettings,
   DataSourceStat,
   DataSourceStatId,
+  DataSourceStripeSettings,
   HomeSourceRow,
   WorkspaceDataSourceCatalogItem,
 } from "@/features/data-sources/connectors"

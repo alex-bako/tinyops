@@ -13,6 +13,7 @@ import { ImapConnect } from "./_components/connection-blocks/imap-connect"
 import { MailerLiteConfig } from "./_components/config-blocks/mailerlite-config"
 import { OAuthConnect } from "./_components/connection-blocks/oauth-connect"
 import { StripeConfig } from "./_components/config-blocks/stripe-config"
+import { StripeConnect } from "./_components/connection-blocks/stripe-connect"
 import { TeachableConfig } from "./_components/config-blocks/teachable-config"
 
 export type SourceActivityRow = {
@@ -62,7 +63,7 @@ export const SOURCE_UI_REGISTRY: Record<SourceId, SourceUiRegistryEntry> = {
   },
   stripe: {
     id: "stripe",
-    Connection: OAuthConnect,
+    Connection: StripeConnect,
     Config: StripeConfig,
     logoClassName: "bg-[#635BFF] text-white",
     activity: [],

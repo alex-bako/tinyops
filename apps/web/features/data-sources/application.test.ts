@@ -10,6 +10,7 @@ import type {
   GoogleFormsDataSource,
   ImapSourceCommandPort,
   SourceLifecycleCommandPort,
+  StripeSourceCommandPort,
   DataSourceStore,
   ImapConnectionTester,
   ImapDataSource,
@@ -122,6 +123,9 @@ function dataSourceStore(overrides: Partial<DataSourceStore> = {}): DataSourceSt
     async updateImapFolderSnapshot() {
       throw new Error("unexpected folder snapshot update")
     },
+    async connectStripe() {
+      throw new Error("unexpected stripe connect")
+    },
     async connectGoogleFormsManualCsv() {
       throw new Error("unexpected Google Forms connect")
     },
@@ -210,6 +214,11 @@ describe("data source application", () => {
       updateGoogleFormsManualCsv: vi.fn(async () => connectedGoogleFormsSource()),
       connectGoogleFormsApi: vi.fn(async () => connectedGoogleFormsSource()),
     }
+    const stripeCommands: StripeSourceCommandPort = {
+      async connectStripe() {
+        throw new Error("unexpected stripe connect")
+      },
+    }
     const lifecycleCommands: SourceLifecycleCommandPort = {
       disconnect: vi.fn(),
       requestSync: vi.fn(),
@@ -220,6 +229,7 @@ describe("data source application", () => {
       queryPort: query,
       imapCommands,
       formsCommands,
+      stripeCommands,
       lifecycleCommands,
       imapConnectionTester: successfulTester,
       imapCredentialReader: {
