@@ -19,9 +19,11 @@ import type {
   ImapDataSource,
   ImapFolderSnapshot,
   ImapIntakeSettings,
+  MailerLiteDataSource,
   StripeDataSource,
   WorkspaceDataSource,
 } from "@/features/data-sources/types"
+import type { MailerLiteShop } from "@/features/data-sources/mailerlite"
 
 export type DataSourceRow = {
   id: string
@@ -90,6 +92,10 @@ export function mapDataSourceRow(row: DataSourceRow): WorkspaceDataSource {
 
   if (row.source_type === "stripe") {
     return mapStripeDataSourceRow(row)
+  }
+
+  if (row.source_type === "mailerlite") {
+    return mapMailerLiteDataSourceRow(row)
   }
 
   throw new Error(`Unsupported data source type: ${row.source_type}`)
@@ -165,6 +171,40 @@ function mapStripeDataSourceRow(row: DataSourceRow): StripeDataSource {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   } satisfies StripeDataSource
+}
+
+function mapMailerLiteDataSourceRow(row: DataSourceRow): MailerLiteDataSource {
+  const config = jsonObject(row.config)
+  if (!config) throw new Error("Invalid MailerLite config")
+
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    type: "mailerlite",
+    sourceSlug: row.slug,
+    displayName: row.display_name,
+    status: coerceStatus(row.status),
+    configVersion: 1,
+    accountId: stringValue(config.accountId),
+    syncFrom: stringValue(config.syncFrom),
+    shops: mapMailerLiteShops(config.shops),
+    secret: mapSecret(row.data_source_secrets, "mailerlite_api_key"),
+    sync: mapSyncState(row.data_source_sync_states),
+    syncRuns: mapSyncRuns(row.data_source_sync_runs),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  } satisfies MailerLiteDataSource
+}
+
+function mapMailerLiteShops(value: unknown): MailerLiteShop[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item) => {
+    const shop = jsonObject(item as Json)
+    const id = shop ? stringValue(shop.id) : ""
+    return id
+      ? [{ id, name: stringValue(shop?.name), currency: stringValue(shop?.currency) }]
+      : []
+  })
 }
 
 function mapImapConnectionConfig(config: Json): ImapConnectionConfig {

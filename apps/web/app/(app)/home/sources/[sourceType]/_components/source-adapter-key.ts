@@ -4,6 +4,7 @@ export function sourceAdapterKey(source: DataSource) {
   const imap = source.kind === "data_source" ? source.imap : undefined
   const forms = source.kind === "data_source" ? source.forms : undefined
   const stripe = source.kind === "data_source" ? source.stripe : undefined
+  const mailerlite = source.kind === "data_source" ? source.mailerlite : undefined
 
   return [
     source.id,
@@ -37,5 +38,8 @@ export function sourceAdapterKey(source: DataSource) {
     stripe?.accountId ?? "",
     stripe?.syncFrom ?? "",
     stripe?.apiKeyMasked ?? "",
+    mailerlite?.accountId ?? "",
+    mailerlite?.syncFrom ?? "",
+    mailerlite?.apiKeyMasked ?? "",
   ].join("|")
 }

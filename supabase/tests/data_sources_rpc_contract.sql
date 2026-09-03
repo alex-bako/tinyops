@@ -920,8 +920,108 @@ select pg_temp.expect_error(
   'Stripe API key reader is not callable by authenticated users'
 );
 
+-- MailerLite --------------------------------------------------------------
+
+select public.connect_mailerlite_data_source(
+  current_setting('tinyops.workspace_id')::uuid,
+  'Newsletter',
+  'shop_1',
+  'ml_live_topsecret',
+  '2026-01-01T00:00:00Z'::timestamptz,
+  '[{"id":"shop_1","name":"Shop","currency":"USD"}]'::jsonb
+) as mailerlite_source_id \gset
+
+select pg_temp.assert_true(
+  (
+    select source_type = 'mailerlite'
+      and status = 'connected'
+      and config->>'accountId' = 'shop_1'
+      and config->'shops'->0->>'name' = 'Shop'
+      and (config->>'syncFrom')::timestamptz = '2026-01-01T00:00:00Z'::timestamptz
+    from public.data_sources
+    where id = :'mailerlite_source_id'::uuid
+  ),
+  'MailerLite source stores shop ids, shops, and sync start'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 1
+    from public.data_source_secrets
+    where source_id = :'mailerlite_source_id'::uuid
+      and purpose = 'mailerlite_api_key'
+      and masked_value = '****cret'
+      and replaced_at is null
+  ),
+  'MailerLite API key is stored through Vault with masked metadata'
+);
+
+select public.connect_mailerlite_data_source(
+  current_setting('tinyops.workspace_id')::uuid,
+  'Newsletter without shop',
+  '',
+  'ml_live_noshop',
+  '2026-01-01T00:00:00Z'::timestamptz
+) as mailerlite_noshop_id \gset
+
+select pg_temp.assert_true(
+  (
+    select config->>'accountId' = concat('key:', md5('ml_live_noshop'))
+      and config->'shops' = '[]'::jsonb
+    from public.data_sources
+    where id = :'mailerlite_noshop_id'::uuid
+  ),
+  'MailerLite source without a shop is identified by its key hash'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_mailerlite_data_source(%L::uuid, %L, %L, %L, %L::timestamptz)',
+    current_setting('tinyops.workspace_id'),
+    'Newsletter copy',
+    'shop_1',
+    'ml_live_other',
+    '2026-01-01T00:00:00Z'
+  ),
+  'duplicate_data_source_config',
+  'MailerLite duplicate shop is rejected'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_mailerlite_data_source(%L::uuid, %L, %L, %L, %L::timestamptz)',
+    current_setting('tinyops.workspace_id'),
+    'Empty key',
+    'shop_2',
+    '',
+    '2026-01-01T00:00:00Z'
+  ),
+  'invalid_mailerlite_config',
+  'MailerLite rejects an empty API key'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.read_mailerlite_data_source_api_key(%L::uuid, %L::uuid)',
+    current_setting('tinyops.workspace_id'),
+    :'mailerlite_source_id'
+  ),
+  'permission denied for function read_mailerlite_data_source_api_key',
+  'MailerLite API key reader is not callable by authenticated users'
+);
+
 reset role;
 set role service_role;
+
+select pg_temp.assert_true(
+  (
+    select public.read_mailerlite_data_source_api_key(
+      current_setting('tinyops.workspace_id')::uuid,
+      :'mailerlite_source_id'::uuid
+    ) = 'ml_live_topsecret'
+  ),
+  'service role can read the MailerLite API key for sync'
+);
 
 select pg_temp.assert_true(
   (

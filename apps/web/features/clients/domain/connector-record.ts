@@ -48,6 +48,7 @@ export type NormalizedConnectorRecord = {
     | "tinyops_email"
     | "system_event"
     | "payment"
+    | "email_engagement"
     | null
   occurredAt: string
   body: TimelineEventBody
@@ -109,6 +110,7 @@ function validEventType(value: string | null) {
   return (
     value === null ||
     value === "payment" ||
+    value === "email_engagement" ||
     value === "email_received" ||
     value === "email_sent" ||
     value === "form_submission" ||

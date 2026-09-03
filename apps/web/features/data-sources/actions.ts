@@ -11,6 +11,7 @@ import {
   type ImapConnectionSettingsCommand,
   type ImapConnectCommand,
   type ImapImportSettingsCommand,
+  type MailerLiteConnectCommand,
   type StripeConnectCommand,
 } from "@/features/data-sources/application"
 import { createGoogleFormsApiClientFromEnv } from "@/features/data-sources/google-forms-api"
@@ -142,6 +143,27 @@ export async function connectStripeDataSourceAction(
   if (isActionApplicationError(application)) return application
 
   const result = await application.connectStripe(input)
+  if (result.data) {
+    revalidateDataSources()
+    after(scheduleDataSourceSyncDispatch)
+  }
+  return result
+}
+
+export async function inspectMailerLiteAccountAction(apiKey: string) {
+  const application = await createActionApplication()
+  if (isActionApplicationError(application)) return application
+
+  return application.inspectMailerLiteAccount(apiKey)
+}
+
+export async function connectMailerLiteDataSourceAction(
+  input: MailerLiteConnectCommand
+) {
+  const application = await createActionApplication()
+  if (isActionApplicationError(application)) return application
+
+  const result = await application.connectMailerLite(input)
   if (result.data) {
     revalidateDataSources()
     after(scheduleDataSourceSyncDispatch)

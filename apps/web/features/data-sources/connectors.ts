@@ -5,9 +5,11 @@ import type {
   ImapFolder,
   ImapMessageFilters,
   DataSourceSyncRun,
+  MailerLiteDataSource,
   StripeDataSource,
   WorkspaceDataSource,
 } from "@/features/data-sources/types"
+import type { MailerLiteShop } from "@/features/data-sources/mailerlite"
 import {
   CONNECTOR_IDS,
   CONNECTOR_METADATA,
@@ -87,6 +89,16 @@ export type DataSourceStripeSettings = {
   syncRuns?: DataSourceSyncRun[]
 }
 
+export type DataSourceMailerLiteSettings = {
+  accountId: string
+  syncFrom: string
+  shops: MailerLiteShop[]
+  apiKeyMasked?: string
+  syncStatus?: "idle" | "queued" | "running" | "error"
+  lastError?: string | null
+  syncRuns?: DataSourceSyncRun[]
+}
+
 export type ConnectorDefinition = ConnectorMetadata
 
 export type ConnectorTypeCatalogItem = ConnectorDefinition & {
@@ -108,6 +120,7 @@ export type WorkspaceDataSourceCatalogItem = ConnectorDefinition & {
   imap?: DataSourceImapSettings
   forms?: DataSourceGoogleFormsSettings
   stripe?: DataSourceStripeSettings
+  mailerlite?: DataSourceMailerLiteSettings
 }
 
 export type DataSource = ConnectorTypeCatalogItem | WorkspaceDataSourceCatalogItem
@@ -143,6 +156,8 @@ export function composeWorkspaceConnectorCatalog(
       return [connectedGoogleFormsSource(definition, source)]
     if (source.type === "stripe")
       return [connectedStripeSource(definition, source)]
+    if (source.type === "mailerlite")
+      return [connectedMailerLiteSource(definition, source)]
     return []
   })
 
@@ -331,6 +346,39 @@ function connectedStripeSource(
       accountId: source.accountId,
       syncFrom: source.syncFrom,
       livemode: source.livemode,
+      apiKeyMasked: source.secret?.maskedValue,
+      syncStatus: source.sync.status,
+      lastError: source.sync.lastError,
+      syncRuns: source.syncRuns ?? [],
+    },
+  }
+}
+
+function connectedMailerLiteSource(
+  catalogSource: ConnectorDefinition,
+  source: MailerLiteDataSource
+): WorkspaceDataSourceCatalogItem {
+  const syncLabel = syncStatusLabel(source)
+  return {
+    ...catalogSource,
+    kind: "data_source",
+    title: source.displayName,
+    sourceId: source.id,
+    sourceType: source.type,
+    sourceSlug: source.sourceSlug,
+    sub: catalogSource.title,
+    connected: true,
+    health: sourceHealth(source),
+    lastSync: syncLabel.toLowerCase(),
+    summaryStatId: "synced",
+    stats: [
+      { id: "synced", label: "Sync", value: syncLabel },
+      { id: "events", label: "Shops", value: String(source.shops.length) },
+    ],
+    mailerlite: {
+      accountId: source.accountId,
+      syncFrom: source.syncFrom,
+      shops: source.shops,
       apiKeyMasked: source.secret?.maskedValue,
       syncStatus: source.sync.status,
       lastError: source.sync.lastError,
