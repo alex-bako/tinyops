@@ -20,6 +20,7 @@ const TYPE_META: Record<TimelineEventType, { label: string; swatch: string }> = 
   form: { label: "Form", swatch: "bg-mint-500" },
   sent: { label: "Sent", swatch: "bg-citron-500" },
   csvimport: { label: "CSV import", swatch: "bg-slate-300" },
+  payment: { label: "Payment", swatch: "bg-coral-500" },
   note: { label: "Note", swatch: "bg-slate-300" },
 }
 

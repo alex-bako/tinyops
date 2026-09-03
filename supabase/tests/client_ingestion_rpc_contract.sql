@@ -235,13 +235,13 @@ select pg_temp.assert_true(
 
 select pg_temp.assert_true(
   (
-    select body @> '{"text":"Could you resend the replay link?","blocks":[{"kind":"text","text":"Could you resend the replay link?"}]}'::jsonb
+    select body @> '{"text":"Updated body","blocks":[{"kind":"text","text":"Updated body"}]}'::jsonb
     from public.timeline_events
     where workspace_id = :'workspace_id'
       and source_id = :'source_id'
       and event_type = 'email_received'
   ),
-  'timeline events store structured body'
+  'timeline events store structured body and re-ingested records update it in place'
 );
 
 select pg_temp.assert_true(
@@ -303,6 +303,133 @@ select pg_temp.assert_true(
       and primary_email = 'client@example.com'
   ),
   'sensitive connector records update the client status'
+);
+
+-- Identities and event-less records (Stripe customers) ------------------------
+
+select public.ingest_client_connector_records(
+  jsonb_build_array(
+    jsonb_build_object(
+      'workspaceId', :'workspace_id',
+      'sourceId', :'source_id',
+      'sourceType', 'stripe',
+      'externalId', 'stripe:customer:cus_1',
+      'recordType', 'stripe_customer',
+      'eventType', null,
+      'occurredAt', '2026-05-01T08:00:00.000Z',
+      'body', jsonb_build_object('text', '', 'blocks', '[]'::jsonb),
+      'participants', jsonb_build_array(
+        jsonb_build_object('email', 'client@example.com', 'role', 'external')
+      ),
+      'identities', jsonb_build_array(
+        jsonb_build_object('type', 'external_id', 'value', 'cus_1'),
+        jsonb_build_object('type', 'phone', 'value', 'ignored')
+      ),
+      'metadata', '{}'::jsonb,
+      'attributes', jsonb_build_array(
+        jsonb_build_object('key', 'stripe_customer_id', 'value', 'cus_1', 'confidence', 1)
+      ),
+      'sensitivityLevel', 0
+    )
+  )
+) as customer_result \gset
+
+select pg_temp.assert_true(
+  :'customer_result'::jsonb @> '{"clients":1,"rawRecords":1,"timelineEvents":0}'::jsonb,
+  'event-less records persist without a timeline event'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 1
+    from public.client_identities identity
+    join public.clients client on client.id = identity.client_id
+    where identity.workspace_id = :'workspace_id'
+      and identity.identity_type = 'external_id'
+      and identity.identity_value = 'cus_1'
+      and client.primary_email = 'client@example.com'
+  ),
+  'external id identities are linked to the matched client'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 0
+    from public.client_identities
+    where workspace_id = :'workspace_id'
+      and identity_value = 'ignored'
+  ),
+  'unsupported identity types are ignored'
+);
+
+select public.ingest_client_connector_records(
+  jsonb_build_array(
+    jsonb_build_object(
+      'workspaceId', :'workspace_id',
+      'sourceId', :'source_id',
+      'sourceType', 'stripe',
+      'externalId', 'stripe:subscription:sub_1',
+      'recordType', 'stripe_subscription',
+      'eventType', 'payment',
+      'occurredAt', '2026-05-02T08:00:00.000Z',
+      'body', jsonb_build_object(
+        'text', 'Status: active',
+        'blocks', jsonb_build_array(
+          jsonb_build_object('kind', 'qa', 'question', 'Status', 'answer', 'active')
+        )
+      ),
+      'participants', jsonb_build_array(
+        jsonb_build_object('email', 'client@example.com', 'role', 'external')
+      ),
+      'metadata', jsonb_build_object('status', 'active'),
+      'attributes', '[]'::jsonb,
+      'sensitivityLevel', 0
+    )
+  )
+);
+
+select public.ingest_client_connector_records(
+  jsonb_build_array(
+    jsonb_build_object(
+      'workspaceId', :'workspace_id',
+      'sourceId', :'source_id',
+      'sourceType', 'stripe',
+      'externalId', 'stripe:subscription:sub_1',
+      'recordType', 'stripe_subscription',
+      'eventType', 'payment',
+      'occurredAt', '2026-05-09T08:00:00.000Z',
+      'body', jsonb_build_object(
+        'text', 'Status: canceled',
+        'blocks', jsonb_build_array(
+          jsonb_build_object('kind', 'qa', 'question', 'Status', 'answer', 'canceled')
+        )
+      ),
+      'participants', jsonb_build_array(
+        jsonb_build_object('email', 'client@example.com', 'role', 'external')
+      ),
+      'metadata', jsonb_build_object('status', 'canceled'),
+      'attributes', '[]'::jsonb,
+      'sensitivityLevel', 0
+    )
+  )
+) as update_result \gset
+
+select pg_temp.assert_true(
+  :'update_result'::jsonb @> '{"timelineEvents":0}'::jsonb,
+  're-ingesting a record does not count a new timeline event'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 1
+    from public.timeline_events event
+    join public.raw_source_records raw on raw.id = event.raw_record_id
+    where raw.external_id = 'stripe:subscription:sub_1'
+      and event.event_type = 'payment'
+      and event.metadata->>'status' = 'canceled'
+      and event.event_date = '2026-05-09T08:00:00.000Z'::timestamptz
+  ),
+  're-ingested payment events are updated in place'
 );
 
 select pg_temp.expect_error(

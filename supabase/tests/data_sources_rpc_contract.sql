@@ -840,8 +840,98 @@ select pg_temp.assert_true(
   'Google Forms CSV uploads are stored as upload batches'
 );
 
+-- Stripe ------------------------------------------------------------------
+
+select public.connect_stripe_data_source(
+  current_setting('tinyops.workspace_id')::uuid,
+  'Shop billing',
+  'acct_123',
+  'sk_live_topsecret',
+  '2026-01-01T00:00:00Z'::timestamptz
+) as stripe_source_id \gset
+
+select pg_temp.assert_true(
+  (
+    select source_type = 'stripe'
+      and status = 'connected'
+      and config->>'accountId' = 'acct_123'
+      and (config->>'livemode')::boolean
+      and (config->>'syncFrom')::timestamptz = '2026-01-01T00:00:00Z'::timestamptz
+    from public.data_sources
+    where id = :'stripe_source_id'::uuid
+  ),
+  'Stripe source stores account id, live mode, and sync start'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 1
+    from public.data_source_secrets
+    where source_id = :'stripe_source_id'::uuid
+      and purpose = 'stripe_api_key'
+      and masked_value = '****cret'
+      and replaced_at is null
+  ),
+  'Stripe secret key is stored through Vault with masked metadata'
+);
+
+select pg_temp.assert_true(
+  (
+    select status = 'queued' and cursor is null
+    from public.data_source_sync_states
+    where source_id = :'stripe_source_id'::uuid
+  ),
+  'Stripe source queues a full backfill on connect'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_stripe_data_source(%L::uuid, %L, %L, %L, %L::timestamptz)',
+    current_setting('tinyops.workspace_id'),
+    'Shop billing copy',
+    'acct_123',
+    'sk_live_other',
+    '2026-01-01T00:00:00Z'
+  ),
+  'duplicate_data_source_config',
+  'Stripe duplicate account is rejected'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.connect_stripe_data_source(%L::uuid, %L, %L, %L, %L::timestamptz)',
+    current_setting('tinyops.workspace_id'),
+    'Empty key',
+    'acct_456',
+    '',
+    '2026-01-01T00:00:00Z'
+  ),
+  'invalid_stripe_config',
+  'Stripe rejects an empty API key'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.read_stripe_data_source_api_key(%L::uuid, %L::uuid)',
+    current_setting('tinyops.workspace_id'),
+    :'stripe_source_id'
+  ),
+  'permission denied for function read_stripe_data_source_api_key',
+  'Stripe API key reader is not callable by authenticated users'
+);
+
 reset role;
 set role service_role;
+
+select pg_temp.assert_true(
+  (
+    select public.read_stripe_data_source_api_key(
+      current_setting('tinyops.workspace_id')::uuid,
+      :'stripe_source_id'::uuid
+    ) = 'sk_live_topsecret'
+  ),
+  'service role can read the Stripe API key for sync'
+);
 
 select pg_temp.assert_true(
   (

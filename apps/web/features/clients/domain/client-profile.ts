@@ -14,6 +14,7 @@ export type TimelineEventType =
   | "form"
   | "sent"
   | "csvimport"
+  | "payment"
   | "note"
 
 export type TimelineEventAuthor = {
@@ -197,6 +198,7 @@ const TIMELINE_EVENT_TYPE: Record<string, TimelineEventType> = {
   manual_note: "note",
   tinyops_email: "sent",
   system_event: "csvimport",
+  payment: "payment",
 }
 
 export function coerceClientStatus(
@@ -392,6 +394,7 @@ function timelineEventTitle({
   if (eventType === "manual_note") return "Manual note"
   if (eventType === "tinyops_email") return "TinyOps email"
   if (eventType === "system_event") return "System event"
+  if (eventType === "payment") return metadataText(metadata, "title") ?? "Payment"
   return "Timeline event"
 }
 

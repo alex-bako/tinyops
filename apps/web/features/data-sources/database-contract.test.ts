@@ -239,4 +239,38 @@ describe("data sources database contract", () => {
       /revoke execute on function public\.read_imap_thread_message_ids\(uuid, uuid\)\s+from anon, authenticated, public;/
     )
   })
+
+  it("connects Stripe sources with a Vault-stored secret key and a payment event type", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(
+      /function public\.connect_stripe_data_source\(\s*target_workspace_id uuid,\s*stripe_display_name text,\s*stripe_account_id text,\s*stripe_api_key text,\s*stripe_sync_from timestamptz\s*\)/
+    )
+    expect(migration).toMatch(/purpose in \('imap_password', 'stripe_api_key'\)/)
+    expect(migration).toMatch(/'system_event',\s*'payment'/)
+    expect(migration).toMatch(/data_sources_one_active_stripe_account/)
+    expect(migration).toMatch(/config->>'accountId'/)
+    expect(migration).toMatch(
+      /grant execute on function public\.connect_stripe_data_source\(\s*uuid,\s*text,\s*text,\s*text,\s*timestamptz\s*\) to authenticated;/
+    )
+    expect(migration).toMatch(
+      /revoke execute on function public\.connect_stripe_data_source\(\s*uuid,\s*text,\s*text,\s*text,\s*timestamptz\s*\) from anon, public;/
+    )
+    expect(migration).toMatch(
+      /grant execute on function public\.read_stripe_data_source_api_key\(uuid, uuid\)\s*to service_role;/
+    )
+    expect(migration).toMatch(
+      /revoke execute on function public\.read_stripe_data_source_api_key\(uuid, uuid\)\s*from anon, authenticated, public;/
+    )
+  })
+
+  it("ingests connector identities and event-less records", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(/v_item->'identities'/)
+    expect(migration).toMatch(/if v_record_event_type <> '' then/)
+    expect(migration).toMatch(
+      /on conflict \(client_id, raw_record_id, event_type\)\s*where raw_record_id is not null\s*do update/
+    )
+  })
 })

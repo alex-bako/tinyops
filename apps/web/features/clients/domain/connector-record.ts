@@ -27,12 +27,18 @@ export type NormalizedClientAttribute = {
   confidence?: number
 }
 
+export type NormalizedIdentity = {
+  type: "external_id"
+  value: string
+}
+
 export type NormalizedConnectorRecord = {
   workspaceId: string
   sourceId: string
   sourceType: ConnectorSourceType
   externalId: string
   recordType: string
+  /** `null` persists the raw record, client, identities and attributes without a timeline event. */
   eventType:
     | "email_received"
     | "email_sent"
@@ -41,11 +47,15 @@ export type NormalizedConnectorRecord = {
     | "manual_note"
     | "tinyops_email"
     | "system_event"
+    | "payment"
+    | null
   occurredAt: string
   body: TimelineEventBody
   participants: NormalizedParticipant[]
   metadata: Json
   attributes: NormalizedClientAttribute[]
+  /** Extra identities (e.g. a Stripe customer id) linked to the matched client. */
+  identities?: NormalizedIdentity[]
   sensitivityLevel: 0 | 1 | 2 | 3 | 4
 }
 
@@ -74,6 +84,9 @@ export function isValidNormalizedRecord(record: NormalizedConnectorRecord) {
     record.participants.every(validParticipant) &&
     Array.isArray(record.attributes) &&
     record.attributes.every((attribute) => nonEmpty(attribute.key)) &&
+    (record.identities ?? []).every(
+      (identity) => identity.type === "external_id" && nonEmpty(identity.value)
+    ) &&
     Number.isInteger(record.sensitivityLevel) &&
     record.sensitivityLevel >= 0 &&
     record.sensitivityLevel <= 4
@@ -92,8 +105,10 @@ function nonEmpty(value: string) {
   return value.trim().length > 0
 }
 
-function validEventType(value: string) {
+function validEventType(value: string | null) {
   return (
+    value === null ||
+    value === "payment" ||
     value === "email_received" ||
     value === "email_sent" ||
     value === "form_submission" ||

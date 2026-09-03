@@ -1264,6 +1264,16 @@ export type Database = {
         }
         Returns: string
       }
+      connect_stripe_data_source: {
+        Args: {
+          stripe_account_id: string
+          stripe_api_key: string
+          stripe_display_name: string
+          stripe_sync_from: string
+          target_workspace_id: string
+        }
+        Returns: string
+      }
       create_personal_workspace: {
         Args: {
           actor_email: string
@@ -1341,6 +1351,10 @@ export type Database = {
       read_imap_thread_message_ids: {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: string[]
+      }
+      read_stripe_data_source_api_key: {
+        Args: { target_source_id: string; target_workspace_id: string }
+        Returns: string
       }
       request_all_data_source_syncs: {
         Args: { target_workspace_id: string }
