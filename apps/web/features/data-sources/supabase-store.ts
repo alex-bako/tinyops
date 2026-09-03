@@ -9,6 +9,7 @@ import type {
   GoogleFormsDataSource,
   StripeDataSource,
   ImapDataSource,
+  MailerLiteDataSource,
 } from "@/features/data-sources/types"
 import type { Database } from "@/lib/database.types"
 
@@ -154,6 +155,17 @@ export function createSupabaseDataSourceStore({
     return source
   }
 
+  async function requireMailerLiteById(input: {
+    workspaceId: string
+    sourceId: string
+  }): Promise<MailerLiteDataSource> {
+    const source = await findByIdForWorkspace(input)
+    if (!source || source.type !== "mailerlite") {
+      throw new Error("source_not_found")
+    }
+    return source
+  }
+
   return {
     async listForWorkspace(workspaceId) {
       const { data, error } = await withRecentSyncRuns(
@@ -277,6 +289,24 @@ export function createSupabaseDataSourceStore({
       if (error) throwDataSourceStoreError(error, "Could not connect Stripe")
 
       return requireStripeById({
+        workspaceId: input.workspaceId,
+        sourceId: String(data),
+      })
+    },
+
+    async connectMailerLite(input) {
+      const { data, error } = await client.rpc("connect_mailerlite_data_source", {
+        target_workspace_id: input.workspaceId,
+        mailerlite_display_name: input.source.displayName,
+        mailerlite_account_id: input.source.accountId,
+        mailerlite_api_key: input.apiKey,
+        mailerlite_sync_from: input.source.syncFrom,
+        mailerlite_shops: input.source.shops,
+      })
+
+      if (error) throwDataSourceStoreError(error, "Could not connect MailerLite")
+
+      return requireMailerLiteById({
         workspaceId: input.workspaceId,
         sourceId: String(data),
       })

@@ -78,6 +78,7 @@ function deriveStatus(source: DataSource): SourceStatus {
       source.forms?.connections.find((connection) => connection.lastError)
         ?.lastError ??
       source.stripe?.lastError ??
+      source.mailerlite?.lastError ??
       undefined
     return {
       variant: "warn",
@@ -96,7 +97,7 @@ function deriveStatus(source: DataSource): SourceStatus {
 }
 
 function isConnectionFailure(lastError: string | undefined) {
-  return /^(imap_connection_failed|google_forms_access_failed|google_forms_not_configured|stripe_access_failed|invalid_stripe_config)/.test(
+  return /^(imap_connection_failed|google_forms_access_failed|google_forms_not_configured|stripe_access_failed|invalid_stripe_config|mailerlite_access_failed|invalid_mailerlite_config)/.test(
     lastError ?? ""
   )
 }
@@ -141,6 +142,7 @@ function syncAttempts(source: DataSource): SourceSyncAttempt[] {
   return [
     ...(source.imap?.syncRuns ?? []),
     ...(source.stripe?.syncRuns ?? []),
+    ...(source.mailerlite?.syncRuns ?? []),
     ...(source.forms?.connections.flatMap((connection) => connection.syncRuns ?? []) ??
       []),
   ]

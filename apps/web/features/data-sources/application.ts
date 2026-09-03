@@ -11,6 +11,8 @@ import {
   type GoogleFormsManualCsvConnectCommand,
   type GoogleFormsManualCsvUpdateCommand,
   type ImapCredentialReader,
+  type MailerLiteConnectCommand,
+  type MailerLiteInspection,
   type StripeAccountInspection,
   type StripeConnectCommand,
 } from "@/features/data-sources/use-cases"
@@ -26,6 +28,8 @@ import type {
   SourceLifecycleCommandPort,
   StripeApiPort,
   StripeSourceCommandPort,
+  MailerLiteApiPort,
+  MailerLiteSourceCommandPort,
 } from "@/features/data-sources/types"
 import type { Result, SyncFailure } from "@/features/data-sources/domain/sync"
 
@@ -54,6 +58,9 @@ export type DataSourceActionError =
   | "invalid_stripe_config"
   | "stripe_access_failed"
   | "stripe_api_failed"
+  | "invalid_mailerlite_config"
+  | "mailerlite_access_failed"
+  | "mailerlite_api_failed"
   | "invalid_data_source_name"
   | "duplicate_data_source_name"
   | "duplicate_data_source_config"
@@ -79,6 +86,8 @@ export type {
   GoogleFormsManualCsvUpdateCommand,
   StripeAccountInspection,
   StripeConnectCommand,
+  MailerLiteConnectCommand,
+  MailerLiteInspection,
 }
 
 export type { ImapConnectionSettingsCommand, ImapIntakeSettingsCommand }
@@ -124,11 +133,13 @@ export function createDataSourceCommandApplication({
   imapCommands = store,
   formsCommands = store,
   stripeCommands = store,
+  mailerliteCommands = store,
   lifecycleCommands = store,
   imapConnectionTester,
   imapCredentialReader,
   googleFormsApi = null,
   stripeApiFactory,
+  mailerliteApiFactory,
 }: {
   workspace: DataSourceWorkspace
   store?: DataSourceStore
@@ -136,17 +147,20 @@ export function createDataSourceCommandApplication({
   imapCommands?: ImapSourceCommandPort
   formsCommands?: GoogleFormsSourceCommandPort
   stripeCommands?: StripeSourceCommandPort
+  mailerliteCommands?: MailerLiteSourceCommandPort
   lifecycleCommands?: SourceLifecycleCommandPort
   imapConnectionTester: ImapConnectionTester
   imapCredentialReader: ImapCredentialReader
   googleFormsApi?: GoogleFormsApiPort | null
   stripeApiFactory?: (apiKey: string) => StripeApiPort
+  mailerliteApiFactory?: (apiKey: string) => MailerLiteApiPort
 }) {
   if (
     !queryPort ||
     !imapCommands ||
     !formsCommands ||
     !stripeCommands ||
+    !mailerliteCommands ||
     !lifecycleCommands
   ) {
     throw new Error("data_source_ports_required")
@@ -157,11 +171,13 @@ export function createDataSourceCommandApplication({
     imapCommands,
     formsCommands,
     stripeCommands,
+    mailerliteCommands,
     lifecycleCommands,
     imapConnectionTester,
     imapCredentialReader,
     googleFormsApi,
     ...(stripeApiFactory ? { stripeApiFactory } : {}),
+    ...(mailerliteApiFactory ? { mailerliteApiFactory } : {}),
   })
 
   async function runManaged<T>(
@@ -218,6 +234,14 @@ export function createDataSourceCommandApplication({
 
     async connectStripe(input: StripeConnectCommand) {
       return runManaged(() => useCases.connectStripe(input))
+    },
+
+    async inspectMailerLiteAccount(apiKey: string) {
+      return runManaged(() => useCases.inspectMailerLiteAccount(apiKey))
+    },
+
+    async connectMailerLite(input: MailerLiteConnectCommand) {
+      return runManaged(() => useCases.connectMailerLite(input))
     },
 
     async updateImapConnectionSettings(
@@ -293,6 +317,9 @@ function isDataSourceActionError(
     value === "invalid_stripe_config" ||
     value === "stripe_access_failed" ||
     value === "stripe_api_failed" ||
+    value === "invalid_mailerlite_config" ||
+    value === "mailerlite_access_failed" ||
+    value === "mailerlite_api_failed" ||
     value === "invalid_data_source_name" ||
     value === "duplicate_data_source_name" ||
     value === "duplicate_data_source_config" ||

@@ -22,6 +22,11 @@ import {
   createSupabaseStripeSecretReader,
   type SupabaseStripeSecretReaderClient,
 } from "@/features/data-sources/stripe-secret-reader"
+import { createMailerLiteSourceSyncAdapter } from "@/features/data-sources/adapters/mailerlite-source-sync-adapter"
+import {
+  createSupabaseMailerLiteSecretReader,
+  type SupabaseMailerLiteSecretReaderClient,
+} from "@/features/data-sources/mailerlite-secret-reader"
 import { createSupabaseDataSourceStore } from "@/features/data-sources/supabase-store"
 import {
   createSupabaseDataSourceSyncJobStore,
@@ -77,6 +82,12 @@ export function createDataSourceSyncRuntime() {
         dataSourceReader,
         secretReader: createSupabaseStripeSecretReader({
           client: client as unknown as SupabaseStripeSecretReaderClient,
+        }),
+      }),
+      createMailerLiteSourceSyncAdapter({
+        dataSourceReader,
+        secretReader: createSupabaseMailerLiteSecretReader({
+          client: client as unknown as SupabaseMailerLiteSecretReaderClient,
         }),
       }),
     ]),

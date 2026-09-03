@@ -16,6 +16,15 @@ import {
   parseGoogleFormsCsv,
   type GoogleFormsApiQuestion,
 } from "@/features/data-sources/google-forms"
+import {
+  buildMailerLiteSourceConfig,
+  type MailerLiteShop,
+} from "@/features/data-sources/mailerlite"
+import {
+  createMailerLiteApiClient,
+  isMailerLiteApiKey,
+  mailerLiteApiErrorStatus,
+} from "@/features/data-sources/mailerlite-api"
 import { buildStripeSourceConfig } from "@/features/data-sources/stripe"
 import {
   createStripeApiClient,
@@ -34,7 +43,21 @@ import type {
   StripeApiPort,
   StripeDataSource,
   StripeSourceCommandPort,
+  MailerLiteApiPort,
+  MailerLiteDataSource,
+  MailerLiteSourceCommandPort,
 } from "@/features/data-sources/types"
+
+export type MailerLiteConnectCommand = {
+  apiKey: string
+  displayName: string
+  /** ISO date; orders and campaigns before it are never imported. */
+  syncFrom: string
+}
+
+export type MailerLiteInspection = {
+  shops: MailerLiteShop[]
+}
 
 export type StripeConnectCommand = {
   apiKey: string
@@ -90,27 +113,57 @@ export function createDataSourceUseCases({
   imapCommands,
   formsCommands,
   stripeCommands,
+  mailerliteCommands,
   lifecycleCommands,
   imapConnectionTester,
   imapCredentialReader,
   googleFormsApi = null,
   stripeApiFactory = (apiKey) => createStripeApiClient({ apiKey }),
+  mailerliteApiFactory = (apiKey) => createMailerLiteApiClient({ apiKey }),
 }: {
   workspace: DataSourceWorkspace
   queryPort: DataSourceQueryPort
   imapCommands: ImapSourceCommandPort
   formsCommands: GoogleFormsSourceCommandPort
   stripeCommands: StripeSourceCommandPort
+  mailerliteCommands: MailerLiteSourceCommandPort
   lifecycleCommands: SourceLifecycleCommandPort
   imapConnectionTester: ImapConnectionTester
   imapCredentialReader: ImapCredentialReader
   googleFormsApi?: GoogleFormsApiPort | null
   stripeApiFactory?: (apiKey: string) => StripeApiPort
+  mailerliteApiFactory?: (apiKey: string) => MailerLiteApiPort
 }) {
   async function inspectStripe(apiKey: string): Promise<StripeAccountInspection> {
     if (!isStripeSecretKey(apiKey)) throw new Error("invalid_stripe_config")
     const account = await stripeApiFactory(apiKey.trim()).getAccount()
     return { accountId: account.id, name: account.name, livemode: account.livemode }
+  }
+
+  async function inspectMailerLite(apiKey: string): Promise<MailerLiteInspection> {
+    if (!isMailerLiteApiKey(apiKey)) throw new Error("invalid_mailerlite_config")
+    const api = mailerliteApiFactory(apiKey.trim())
+    // Proves the key first; the e-commerce endpoint 404s on plans without it.
+    await api.list("subscribers", { limit: 1 })
+    let shops: unknown[] = []
+    try {
+      shops = (await api.list("ecommerce/shops", { limit: 100 })).data
+    } catch (error) {
+      if (mailerLiteApiErrorStatus(error) !== 404) throw error
+    }
+    return {
+      shops: shops.flatMap((shop) => {
+        const raw = shop as { id?: unknown; name?: unknown; currency?: unknown }
+        if (!raw?.id) return []
+        return [
+          {
+            id: String(raw.id),
+            name: typeof raw.name === "string" ? raw.name : String(raw.id),
+            currency: typeof raw.currency === "string" ? raw.currency : "",
+          },
+        ]
+      }),
+    }
   }
 
   async function loadImapSource(sourceId: string) {
@@ -353,6 +406,25 @@ export function createDataSourceUseCases({
         source: buildStripeSourceConfig({
           displayName: input.displayName.trim() || account.name,
           accountId: account.accountId,
+          syncFrom: input.syncFrom,
+        }),
+      })
+    },
+
+    inspectMailerLiteAccount(apiKey: string) {
+      return inspectMailerLite(apiKey)
+    },
+
+    async connectMailerLite(
+      input: MailerLiteConnectCommand
+    ): Promise<MailerLiteDataSource> {
+      const { shops } = await inspectMailerLite(input.apiKey)
+      return mailerliteCommands.connectMailerLite({
+        workspaceId: workspace.id,
+        apiKey: input.apiKey.trim(),
+        source: buildMailerLiteSourceConfig({
+          displayName: input.displayName.trim() || "MailerLite",
+          shops,
           syncFrom: input.syncFrom,
         }),
       })

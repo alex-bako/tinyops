@@ -46,6 +46,9 @@ export type SyncFailureCode =
   | "invalid_stripe_config"
   | "stripe_access_failed"
   | "stripe_api_failed"
+  | "invalid_mailerlite_config"
+  | "mailerlite_access_failed"
+  | "mailerlite_api_failed"
   | "ingestion_failed"
   | "sync_failed"
 
@@ -95,6 +98,9 @@ export function isSyncFailureCode(value: string): value is SyncFailureCode {
     value === "invalid_stripe_config" ||
     value === "stripe_access_failed" ||
     value === "stripe_api_failed" ||
+    value === "invalid_mailerlite_config" ||
+    value === "mailerlite_access_failed" ||
+    value === "mailerlite_api_failed" ||
     value === "ingestion_failed" ||
     value === "sync_failed"
   )
@@ -116,6 +122,11 @@ export function syncFailureMessage(code: SyncFailureCode) {
     return "Stripe rejected the API key. Reconnect with a valid secret key"
   }
   if (code === "stripe_api_failed") return "Stripe API request failed"
+  if (code === "invalid_mailerlite_config") return "Invalid MailerLite configuration"
+  if (code === "mailerlite_access_failed") {
+    return "MailerLite rejected the API key. Reconnect with a valid key"
+  }
+  if (code === "mailerlite_api_failed") return "MailerLite API request failed"
   if (code === "ingestion_failed") return "Could not persist synced records"
   return "Sync failed"
 }

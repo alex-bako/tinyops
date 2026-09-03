@@ -8,6 +8,14 @@ import type {
   GoogleFormsManualCsvUploadRow,
   GoogleFormsSourceConfig,
 } from "@/features/data-sources/google-forms"
+import type {
+  MailerLiteListParams,
+  MailerLitePage,
+} from "@/features/data-sources/mailerlite-api"
+import type {
+  MailerLiteShop,
+  MailerLiteSourceConfig,
+} from "@/features/data-sources/mailerlite"
 import type { StripeListParams } from "@/features/data-sources/stripe-api"
 import type {
   StripeAccount,
@@ -25,7 +33,10 @@ export type DataSourceWorkspace = {
 export type DataSourceStatus = "connected" | "error" | "disconnected"
 export type DataSourceSyncStatus = "idle" | "queued" | "running" | "error"
 export type DataSourceSyncRunStatus = "running" | "succeeded" | "failed"
-export type DataSourceSecretPurpose = "imap_password" | "stripe_api_key"
+export type DataSourceSecretPurpose =
+  | "imap_password"
+  | "stripe_api_key"
+  | "mailerlite_api_key"
 
 export type ImapEncryption = "ssl" | "starttls" | "none"
 export type ImapHistoryWindow = "30d" | "90d" | "12mo" | "all"
@@ -162,14 +173,41 @@ export type StripeDataSource = {
   updatedAt: string
 }
 
+export type MailerLiteDataSource = {
+  id: string
+  workspaceId: string
+  type: Extract<SourceId, "mailerlite">
+  sourceSlug: string
+  displayName: string
+  status: DataSourceStatus
+  configVersion: 1
+  /** Connected shop ids, or a key hash when the account has no shop. */
+  accountId: string
+  /** ISO timestamp; orders and campaigns before it are never imported. */
+  syncFrom: string
+  shops: MailerLiteShop[]
+  secret: DataSourceSecret | null
+  sync: DataSourceSyncState
+  syncRuns?: DataSourceSyncRun[]
+  createdAt: string
+  updatedAt: string
+}
+
 export type WorkspaceDataSource =
   | ImapDataSource
   | GoogleFormsDataSource
   | StripeDataSource
+  | MailerLiteDataSource
 
 export type ConnectStripeInput = {
   workspaceId: string
   source: StripeSourceConfig
+  apiKey: string
+}
+
+export type ConnectMailerLiteInput = {
+  workspaceId: string
+  source: MailerLiteSourceConfig
   apiKey: string
 }
 
@@ -287,6 +325,15 @@ export type StripeApiPort = {
   getCustomer(customerId: string): Promise<StripeCustomer | null>
 }
 
+export type MailerLiteSourceCommandPort = {
+  connectMailerLite(input: ConnectMailerLiteInput): Promise<MailerLiteDataSource>
+}
+
+/** Read-only MailerLite API access with one workspace's API key. */
+export type MailerLiteApiPort = {
+  list(path: string, params?: MailerLiteListParams): Promise<MailerLitePage>
+}
+
 export type SourceLifecycleCommandPort = {
   disconnect(input: { workspaceId: string; sourceId: string }): Promise<void>
   requestSync(input: { workspaceId: string; sourceId: string }): Promise<void>
@@ -297,6 +344,7 @@ export type DataSourceStore = DataSourceQueryPort &
   ImapSourceCommandPort &
   GoogleFormsSourceCommandPort &
   StripeSourceCommandPort &
+  MailerLiteSourceCommandPort &
   SourceLifecycleCommandPort
 
 export type ImapConnectionTestInput = ImapConnectionConfig & {

@@ -16,6 +16,7 @@ export type {
   DataSourceHealth,
   DataSourceIcon,
   DataSourceImapSettings,
+  DataSourceMailerLiteSettings,
   DataSourceStat,
   DataSourceStatId,
   DataSourceStripeSettings,

@@ -264,6 +264,31 @@ describe("data sources database contract", () => {
     )
   })
 
+  it("connects MailerLite sources with a Vault-stored API key and an email_engagement event type", () => {
+    const migration = migrationSource()
+
+    expect(migration).toMatch(
+      /function public\.connect_mailerlite_data_source\(\s*target_workspace_id uuid,\s*mailerlite_display_name text,\s*mailerlite_account_id text,\s*mailerlite_api_key text,\s*mailerlite_sync_from timestamptz,\s*mailerlite_shops jsonb default '\[\]'::jsonb\s*\)/
+    )
+    expect(migration).toMatch(
+      /purpose in \('imap_password', 'stripe_api_key', 'mailerlite_api_key'\)/
+    )
+    expect(migration).toMatch(/'payment',\s*'email_engagement'/)
+    expect(migration).toMatch(/data_sources_one_active_mailerlite_account/)
+    expect(migration).toMatch(
+      /grant execute on function public\.connect_mailerlite_data_source\(\s*uuid,\s*text,\s*text,\s*text,\s*timestamptz,\s*jsonb\s*\) to authenticated;/
+    )
+    expect(migration).toMatch(
+      /revoke execute on function public\.connect_mailerlite_data_source\(\s*uuid,\s*text,\s*text,\s*text,\s*timestamptz,\s*jsonb\s*\) from anon, public;/
+    )
+    expect(migration).toMatch(
+      /grant execute on function public\.read_mailerlite_data_source_api_key\(uuid, uuid\)\s*to service_role;/
+    )
+    expect(migration).toMatch(
+      /revoke execute on function public\.read_mailerlite_data_source_api_key\(uuid, uuid\)\s*from anon, authenticated, public;/
+    )
+  })
+
   it("ingests connector identities and event-less records", () => {
     const migration = migrationSource()
 

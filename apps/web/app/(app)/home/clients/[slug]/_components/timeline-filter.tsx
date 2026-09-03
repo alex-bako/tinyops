@@ -21,6 +21,7 @@ const TYPE_META: Record<TimelineEventType, { label: string; swatch: string }> = 
   sent: { label: "Sent", swatch: "bg-citron-500" },
   csvimport: { label: "CSV import", swatch: "bg-slate-300" },
   payment: { label: "Payment", swatch: "bg-coral-500" },
+  engagement: { label: "Engagement", swatch: "bg-cobalt-300" },
   note: { label: "Note", swatch: "bg-slate-300" },
 }
 

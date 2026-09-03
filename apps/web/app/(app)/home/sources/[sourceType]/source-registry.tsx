@@ -11,6 +11,7 @@ import { FormsConnect } from "./_components/connection-blocks/forms-connect"
 import { ImapConfig } from "./_components/config-blocks/imap-config"
 import { ImapConnect } from "./_components/connection-blocks/imap-connect"
 import { MailerLiteConfig } from "./_components/config-blocks/mailerlite-config"
+import { MailerLiteConnect } from "./_components/connection-blocks/mailerlite-connect"
 import { OAuthConnect } from "./_components/connection-blocks/oauth-connect"
 import { StripeConfig } from "./_components/config-blocks/stripe-config"
 import { StripeConnect } from "./_components/connection-blocks/stripe-connect"
@@ -70,7 +71,7 @@ export const SOURCE_UI_REGISTRY: Record<SourceId, SourceUiRegistryEntry> = {
   },
   mailerlite: {
     id: "mailerlite",
-    Connection: ApiKeyConnect,
+    Connection: MailerLiteConnect,
     Config: MailerLiteConfig,
     logoClassName: "bg-[#18C964] text-[#0E1F0F]",
     activity: [],

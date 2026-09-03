@@ -11,6 +11,7 @@ import type {
   ImapSourceCommandPort,
   SourceLifecycleCommandPort,
   StripeSourceCommandPort,
+  MailerLiteSourceCommandPort,
   DataSourceStore,
   ImapConnectionTester,
   ImapDataSource,
@@ -126,6 +127,9 @@ function dataSourceStore(overrides: Partial<DataSourceStore> = {}): DataSourceSt
     async connectStripe() {
       throw new Error("unexpected stripe connect")
     },
+    async connectMailerLite() {
+      throw new Error("unexpected mailerlite connect")
+    },
     async connectGoogleFormsManualCsv() {
       throw new Error("unexpected Google Forms connect")
     },
@@ -219,6 +223,11 @@ describe("data source application", () => {
         throw new Error("unexpected stripe connect")
       },
     }
+    const mailerliteCommands: MailerLiteSourceCommandPort = {
+      async connectMailerLite() {
+        throw new Error("unexpected mailerlite connect")
+      },
+    }
     const lifecycleCommands: SourceLifecycleCommandPort = {
       disconnect: vi.fn(),
       requestSync: vi.fn(),
@@ -230,6 +239,7 @@ describe("data source application", () => {
       imapCommands,
       formsCommands,
       stripeCommands,
+      mailerliteCommands,
       lifecycleCommands,
       imapConnectionTester: successfulTester,
       imapCredentialReader: {

@@ -1264,6 +1264,17 @@ export type Database = {
         }
         Returns: string
       }
+      connect_mailerlite_data_source: {
+        Args: {
+          mailerlite_account_id: string
+          mailerlite_api_key: string
+          mailerlite_display_name: string
+          mailerlite_shops?: Json
+          mailerlite_sync_from: string
+          target_workspace_id: string
+        }
+        Returns: string
+      }
       connect_stripe_data_source: {
         Args: {
           stripe_account_id: string
@@ -1351,6 +1362,10 @@ export type Database = {
       read_imap_thread_message_ids: {
         Args: { target_source_id: string; target_workspace_id: string }
         Returns: string[]
+      }
+      read_mailerlite_data_source_api_key: {
+        Args: { target_source_id: string; target_workspace_id: string }
+        Returns: string
       }
       read_stripe_data_source_api_key: {
         Args: { target_source_id: string; target_workspace_id: string }
