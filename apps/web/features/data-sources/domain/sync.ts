@@ -43,6 +43,9 @@ export type SyncFailureCode =
   | "imap_connection_failed"
   | "google_forms_not_configured"
   | "google_forms_access_failed"
+  | "invalid_stripe_config"
+  | "stripe_access_failed"
+  | "stripe_api_failed"
   | "ingestion_failed"
   | "sync_failed"
 
@@ -89,6 +92,9 @@ export function isSyncFailureCode(value: string): value is SyncFailureCode {
     value === "imap_connection_failed" ||
     value === "google_forms_not_configured" ||
     value === "google_forms_access_failed" ||
+    value === "invalid_stripe_config" ||
+    value === "stripe_access_failed" ||
+    value === "stripe_api_failed" ||
     value === "ingestion_failed" ||
     value === "sync_failed"
   )
@@ -97,7 +103,7 @@ export function isSyncFailureCode(value: string): value is SyncFailureCode {
 export function syncFailureMessage(code: SyncFailureCode) {
   if (code === "source_not_found") return "Source not found"
   if (code === "invalid_imap_config") return "Invalid IMAP configuration"
-  if (code === "secret_read_failed") return "Could not read IMAP password"
+  if (code === "secret_read_failed") return "Could not read stored credential"
   if (code === "imap_connection_failed") return "IMAP connection failed"
   if (code === "google_forms_not_configured") {
     return "Google Forms live sync is not configured"
@@ -105,6 +111,11 @@ export function syncFailureMessage(code: SyncFailureCode) {
   if (code === "google_forms_access_failed") {
     return "Google Forms access failed. Share the form with the TinyOps service account"
   }
+  if (code === "invalid_stripe_config") return "Invalid Stripe configuration"
+  if (code === "stripe_access_failed") {
+    return "Stripe rejected the API key. Reconnect with a valid secret key"
+  }
+  if (code === "stripe_api_failed") return "Stripe API request failed"
   if (code === "ingestion_failed") return "Could not persist synced records"
   return "Sync failed"
 }
