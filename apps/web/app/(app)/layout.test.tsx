@@ -196,7 +196,9 @@ describe("AuthenticatedAppShell", () => {
 function clientStoreWithRows(rows: unknown[]) {
   return {
     from(table: string) {
-      if (table !== "clients") throw new Error(`unexpected table: ${table}`)
+      if (table !== "client_list_rows") {
+        throw new Error(`unexpected table: ${table}`)
+      }
       return {
         select() {
           return this
@@ -204,10 +206,8 @@ function clientStoreWithRows(rows: unknown[]) {
         eq() {
           return this
         },
-        order() {
-          return this
-        },
-        async limit() {
+        // The list query ends at `order`, so it resolves rather than chaining.
+        async order() {
           return { data: rows, error: null }
         },
       }

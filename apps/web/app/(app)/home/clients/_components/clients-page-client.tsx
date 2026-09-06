@@ -12,7 +12,7 @@ import {
   WorkspacePageSurface,
 } from "@/components/page-surface"
 import { ClientProfileRealtimeRefresh } from "@/features/clients/adapters/client-profile-realtime-refresh"
-import type { ClientDetail } from "@/features/clients/application/client-memory"
+import type { ClientListEntry } from "@/features/clients/application/client-memory"
 import { useActiveWorkspace } from "@/features/workspaces/context"
 
 import { ClientsTable } from "./clients-table"
@@ -22,7 +22,7 @@ import { getNewClientSlugs, useClientListView } from "../_view-model"
 export function ClientsPageClient({
   rows: sourceRows,
 }: {
-  rows: ClientDetail[]
+  rows: ClientListEntry[]
 }) {
   const activeWorkspace = useActiveWorkspace()
   const {
@@ -85,7 +85,7 @@ export function ClientsPageClient({
   )
 }
 
-function useNewlyInsertedSlugs(sourceRows: ClientDetail[]): Set<string> {
+function useNewlyInsertedSlugs(sourceRows: ClientListEntry[]): Set<string> {
   const seenSlugsRef = React.useRef(new Set(sourceRows.map((r) => r.slug)))
   const [fresh, setFresh] = React.useState<Set<string>>(
     () => new Set<string>()

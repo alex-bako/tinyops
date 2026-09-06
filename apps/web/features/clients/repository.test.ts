@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest"
 
 import { createWorkspaceClientMemoryRepository } from "@/features/clients/application/client-memory"
-import type { ClientProfile, ClientReaderPort } from "@/features/clients/domain/client-profile"
+import type {
+  ClientListRow,
+  ClientProfile,
+  ClientReaderPort,
+} from "@/features/clients/domain/client-profile"
 
 const profile: ClientProfile = {
   id: "client_1",
@@ -26,13 +30,29 @@ const profile: ClientProfile = {
   sourceIds: [],
 }
 
+const listRow: ClientListRow = {
+  id: profile.id,
+  primaryEmail: profile.primaryEmail,
+  displayName: profile.displayName,
+  slug: profile.slug,
+  status: profile.status,
+  tags: profile.tags,
+  lastSeenAt: profile.lastSeenAt,
+  lastContactedAt: profile.lastContactedAt,
+  updatedAt: profile.updatedAt,
+  doNotContact: profile.doNotContact,
+  sensitivityLevel: profile.sensitivityLevel,
+  sourceCount: 2,
+  maxTimelineSensitivity: 0,
+}
+
 describe("workspace client memory repository", () => {
   it("binds legacy client memory repository calls to the active workspace", async () => {
     const calls: unknown[] = []
     const reader: ClientReaderPort = {
       async listClients(workspaceId) {
         calls.push({ method: "listClients", workspaceId })
-        return [profile]
+        return [listRow]
       },
       async getRecentClients(workspaceId, limit) {
         calls.push({ method: "getRecentClients", workspaceId, limit })
@@ -56,6 +76,7 @@ describe("workspace client memory repository", () => {
       expect.objectContaining({
         email: "anna@example.com",
         lastContact: "May 7",
+        sources: 2,
       }),
     ])
     await repository.getRecentClients(3)

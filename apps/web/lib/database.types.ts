@@ -85,6 +85,13 @@ export type Database = {
             foreignKeyName: "client_ask_turns_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_ask_turns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -142,6 +149,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_attributes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_list_rows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_attributes_client_id_fkey"
             columns: ["client_id"]
@@ -208,6 +222,13 @@ export type Database = {
             foreignKeyName: "client_domain_events_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_domain_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -262,6 +283,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_identities_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_list_rows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_identities_client_id_fkey"
             columns: ["client_id"]
@@ -326,6 +354,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_properties_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_list_rows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_properties_client_id_fkey"
             columns: ["client_id"]
@@ -949,6 +984,13 @@ export type Database = {
             foreignKeyName: "timeline_events_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1173,7 +1215,71 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      client_list_rows: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          do_not_contact: boolean | null
+          first_seen_at: string | null
+          id: string | null
+          last_contacted_at: string | null
+          last_seen_at: string | null
+          max_timeline_sensitivity: number | null
+          primary_email: string | null
+          sensitivity_level: number | null
+          slug: string | null
+          source_count: number | null
+          status: string | null
+          tags: string[] | null
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          do_not_contact?: boolean | null
+          first_seen_at?: string | null
+          id?: string | null
+          last_contacted_at?: string | null
+          last_seen_at?: string | null
+          max_timeline_sensitivity?: never
+          primary_email?: string | null
+          sensitivity_level?: number | null
+          slug?: string | null
+          source_count?: never
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          do_not_contact?: boolean | null
+          first_seen_at?: string | null
+          id?: string | null
+          last_contacted_at?: string | null
+          last_seen_at?: string | null
+          max_timeline_sensitivity?: never
+          primary_email?: string | null
+          sensitivity_level?: number | null
+          slug?: string | null
+          source_count?: never
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_workspace_invitation: {

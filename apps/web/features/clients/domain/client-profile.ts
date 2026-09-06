@@ -179,6 +179,26 @@ export type ClientAttribute = {
   sourceName: string | null
 }
 
+/**
+ * Scalar row from the `client_list_rows` view. The list table renders eight
+ * columns; loading full profiles for it forced a 500-row cap.
+ */
+export type ClientListRow = {
+  id: string
+  primaryEmail: string
+  displayName: string
+  slug: string
+  status: string
+  tags: string[]
+  lastSeenAt: string | null
+  lastContactedAt: string | null
+  updatedAt: string
+  doNotContact: boolean
+  sensitivityLevel: number
+  sourceCount: number
+  maxTimelineSensitivity: number
+}
+
 export type ClientSearchResult = {
   id: string
   slug: string
@@ -189,7 +209,7 @@ export type ClientSearchResult = {
 }
 
 export type ClientReaderPort = {
-  listClients(workspaceId: string): Promise<ClientProfile[]>
+  listClients(workspaceId: string): Promise<ClientListRow[]>
   getRecentClients(workspaceId: string, limit?: number): Promise<ClientProfile[]>
   findClientBySlug(input: {
     workspaceId: string
