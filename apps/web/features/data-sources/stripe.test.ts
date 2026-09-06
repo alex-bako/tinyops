@@ -50,14 +50,15 @@ describe("Stripe records", () => {
     expect(record.body.text).toContain("Description: Coaching session")
   })
 
-  it("stores customers as identities and attributes without a timeline event", () => {
+  it("stores customers as identities, attributes and an import event", () => {
     const item: StripeObject = {
       kind: "customer",
       object: { id: "cus_1", email: "client@example.com", name: "Client", created: 1_700_000_000 },
     }
     const record = buildStripeRecord({ ...context, item, email: "client@example.com" })
     expect(isValidNormalizedRecord(record)).toBe(true)
-    expect(record.eventType).toBeNull()
+    expect(record.eventType).toBe("system_event")
+    expect(record.body.text).toContain("Email: client@example.com")
     expect(record.identities).toEqual([{ type: "external_id", value: "cus_1" }])
     expect(record.attributes.map((attribute) => attribute.key)).toEqual([
       "stripe_customer_id",
