@@ -8,6 +8,7 @@ import { SectionHead } from "@workspace/ui/components/section"
 import { Switch } from "@workspace/ui/components/switch"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { groupTimelineEvents } from "@/features/clients/application/timeline-presentation"
 import type { TimelineEventType } from "@/features/clients/domain/client-profile"
 
 import type { ClientTimelineEventView, TimelineEventNotesMap } from "../_view-model"
@@ -57,8 +58,10 @@ export function TimelineView({
 
   const countByType = React.useCallback(
     (type: TimelineEventType) =>
-      events.filter((event) => event.type === type).length,
-    [events]
+      groupTimelineEvents(events.filter((event) =>
+        event.type === type && !(hideSensitive && event.sensitive)
+      )).length,
+    [events, hideSensitive]
   )
 
   const visibleEvents = events.filter(
@@ -71,10 +74,12 @@ export function TimelineView({
     0
   )
 
+  const itemCount = groupTimelineEvents(events).length
+  const visibleItemCount = groupTimelineEvents(visibleEvents).length
   const countLabel = [
-    `${events.length} ${events.length === 1 ? "event" : "events"}`,
+    `${itemCount} timeline ${itemCount === 1 ? "item" : "items"}`,
     visibleEvents.length !== events.length
-      ? `${visibleEvents.length} shown`
+      ? `${visibleItemCount} shown`
       : null,
     eventNoteCount > 0
       ? `${eventNoteCount} ${eventNoteCount === 1 ? "note" : "notes"}`

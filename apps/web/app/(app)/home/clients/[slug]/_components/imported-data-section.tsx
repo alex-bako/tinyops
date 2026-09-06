@@ -61,7 +61,7 @@ export function ImportedDataSection({
       <dl className="-mx-1.5 flex flex-col">
         {attributes.map((attribute) => (
           <div
-            key={attribute.key}
+            key={attribute.id}
             className="flex gap-3 px-1.5 py-[5px] text-[13px]"
           >
             <dt

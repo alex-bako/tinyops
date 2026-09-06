@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  groupTimelineEvents,
   createNoteView,
   createTimelineEventView,
   createTimelineEventViews,
@@ -163,7 +164,7 @@ describe("timeline event presentation", () => {
   )
 
   it("uses persisted Timeline Event identity as the UI key", () => {
-    expect(createTimelineEventView(event()).eventKey).toBe("event_1")
+    expect(createTimelineEventView(event())).toMatchObject({ eventKey: "event_1", sourceId: "source_1" })
   })
 
   it("maps body blocks and sensitivity for inline rendering", () => {
@@ -274,5 +275,25 @@ describe("note view presentation", () => {
     )
 
     expect(view.author).toBeNull()
+  })
+})
+
+
+describe("timeline submission grouping", () => {
+  it("groups only identified Google Form submissions, preserving order and input", () => {
+    const views = createTimelineEventViews([
+      event({ id: "new" }),
+      event({ id: "payment", sourceType: "stripe", type: "payment" }),
+      event({ id: "old" }),
+      event({ id: "other-form", sourceId: "source_2" }),
+      event({ id: "unknown-1", sourceId: null }),
+      event({ id: "unknown-2", sourceId: null }),
+      event({ id: "generic-form", sourceType: null }),
+    ])
+    const original = structuredClone(views)
+    expect(groupTimelineEvents(views).map((group) => group.events.map((item) => item.eventKey)))
+      .toEqual([["new", "old"], ["payment"], ["other-form"], ["unknown-1"], ["unknown-2"], ["generic-form"]])
+    expect(views).toEqual(original)
+    expect(groupTimelineEvents([])).toEqual([])
   })
 })

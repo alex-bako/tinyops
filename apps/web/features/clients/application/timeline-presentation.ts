@@ -16,6 +16,7 @@ export type ClientTimelineBodyItem =
 
 export type ClientTimelineEventView = {
   eventKey: string
+  sourceId: string | null
   sourceType: string | null
   type: TimelineEventType
   date: string
@@ -25,6 +26,25 @@ export type ClientTimelineEventView = {
   sensitive: boolean
   tone: TimelineTone
   sourceLabel: string
+}
+
+export type ClientTimelineGroup = {
+  key: string
+  events: [ClientTimelineEventView, ...ClientTimelineEventView[]]
+}
+
+/** Input is newest-first. Grouping keeps each form at its latest submission. */
+export function groupTimelineEvents(events: ClientTimelineEventView[]): ClientTimelineGroup[] {
+  const groups = new Map<string, ClientTimelineGroup>()
+  for (const event of events) {
+    const key = event.sourceType === "forms" && event.type === "form" && event.sourceId
+      ? `form:${event.sourceId}`
+      : `event:${event.eventKey}`
+    const group = groups.get(key)
+    if (group) group.events.push(event)
+    else groups.set(key, { key, events: [event] })
+  }
+  return [...groups.values()]
 }
 
 export type ClientNoteAuthorView = {
@@ -101,6 +121,7 @@ export function createTimelineEventView(
   })
   return {
     eventKey: event.id,
+    sourceId: event.sourceId,
     sourceType: event.sourceType,
     type: event.type,
     date: date || "Unknown",
