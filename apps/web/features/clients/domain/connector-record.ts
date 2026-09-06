@@ -53,6 +53,7 @@ export type NormalizedConnectorRecord = {
     | "dispute"
     | "invoice"
     | "subscription"
+    | "contact_added"
     | null
   occurredAt: string
   body: TimelineEventBody
@@ -119,6 +120,7 @@ function validEventType(value: string | null) {
     value === "dispute" ||
     value === "invoice" ||
     value === "subscription" ||
+    value === "contact_added" ||
     value === "email_received" ||
     value === "email_sent" ||
     value === "form_submission" ||

@@ -20,6 +20,7 @@ export type TimelineEventType =
   | "invoice"
   | "subscription"
   | "engagement"
+  | "added"
   | "note"
 
 export type TimelineEventAuthor = {
@@ -240,6 +241,7 @@ const TIMELINE_EVENT_TYPE: Record<string, TimelineEventType> = {
   invoice: "invoice",
   subscription: "subscription",
   email_engagement: "engagement",
+  contact_added: "added",
 }
 
 export function coerceClientStatus(
@@ -414,6 +416,16 @@ export function sortTimelineEventsNewestFirst(
   )
 }
 
+const CONNECTOR_EVENT_TITLES: Record<string, string> = {
+  payment: "Payment",
+  refund: "Refund",
+  dispute: "Dispute",
+  invoice: "Invoice",
+  subscription: "Subscription",
+  email_engagement: "Campaign engagement",
+  contact_added: "Contact added",
+}
+
 function timelineEventTitle({
   eventType,
   metadata,
@@ -435,11 +447,9 @@ function timelineEventTitle({
   if (eventType === "manual_note") return "Manual note"
   if (eventType === "tinyops_email") return "TinyOps email"
   if (eventType === "system_event") return "System event"
-  if (eventType === "payment") return metadataText(metadata, "title") ?? "Payment"
-  if (eventType === "email_engagement") {
-    return metadataText(metadata, "title") ?? "Campaign engagement"
-  }
-  return "Timeline event"
+  // Every connector event carries its own headline in `metadata.title`; the
+  // fallback only matters for a record that predates that convention.
+  return metadataText(metadata, "title") ?? CONNECTOR_EVENT_TITLES[eventType] ?? "Timeline event"
 }
 
 function timelineEventSummary(body: TimelineEventBody): string {

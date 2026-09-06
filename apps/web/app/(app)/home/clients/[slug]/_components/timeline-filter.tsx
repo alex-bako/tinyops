@@ -26,6 +26,7 @@ const TYPE_META: Record<TimelineEventType, { label: string; swatch: string }> = 
   invoice: { label: "Invoice", swatch: "bg-slate-500" },
   subscription: { label: "Subscription", swatch: "bg-mint-700" },
   engagement: { label: "Engagement", swatch: "bg-cobalt-300" },
+  added: { label: "Contact added", swatch: "bg-slate-300" },
   note: { label: "Note", swatch: "bg-slate-300" },
 }
 

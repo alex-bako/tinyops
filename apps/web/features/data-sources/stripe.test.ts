@@ -57,7 +57,7 @@ describe("Stripe records", () => {
     }
     const record = buildStripeRecord({ ...context, item, email: "client@example.com" })
     expect(isValidNormalizedRecord(record)).toBe(true)
-    expect(record.eventType).toBe("system_event")
+    expect(record.eventType).toBe("contact_added")
     expect(record.body.text).toContain("Email: client@example.com")
     expect(record.identities).toEqual([{ type: "external_id", value: "cus_1" }])
     expect(record.attributes.map((attribute) => attribute.key)).toEqual([
@@ -68,7 +68,7 @@ describe("Stripe records", () => {
 
   it("gives each Stripe object its own timeline event type", () => {
     const kinds = [
-      ["customer", "system_event"],
+      ["customer", "contact_added"],
       ["charge", "payment"],
       ["refund", "refund"],
       ["dispute", "dispute"],

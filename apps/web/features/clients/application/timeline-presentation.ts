@@ -48,6 +48,7 @@ const TONE_OF: Record<TimelineEventType, TimelineTone> = {
   invoice: "neutral",
   subscription: "positive",
   engagement: "brand",
+  added: "neutral",
   note: "neutral",
 }
 
@@ -62,6 +63,7 @@ const LABEL_OF: Record<TimelineEventType, string> = {
   invoice: "invoice",
   subscription: "subscription",
   engagement: "engagement",
+  added: "contact added",
   note: "note",
 }
 
