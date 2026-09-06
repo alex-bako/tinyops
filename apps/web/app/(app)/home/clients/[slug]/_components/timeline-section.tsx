@@ -1,6 +1,6 @@
 "use client"
 
-import { StickyNoteIcon } from "lucide-react"
+import { CalendarIcon, StickyNoteIcon } from "lucide-react"
 import { SourceIcon } from "@/components/source-icon"
 import {
   getConnectorMetadata,
@@ -48,14 +48,19 @@ export function TimelineSection({
           : null
         return (
           <TimelineEvent key={e.eventKey} tone={e.tone} sensitive={e.sensitive}>
-            <TimelineHead>
-              <TimelineSrc>{e.sourceLabel}</TimelineSrc>
+            <TimelineHead className="items-center gap-y-1.5">
+              {e.title ? (
+                <TimelineTitle className="mt-0 min-w-0 break-words">{e.title}</TimelineTitle>
+              ) : (
+                <TimelineSrc>{e.sourceLabel}</TimelineSrc>
+              )}
               {e.sourceType ? (
                 <Badge variant="neutral" className="gap-1 text-[11px] [&>svg]:size-3.5">
                   <SourceIcon icon={source?.icon ?? "plug"} className="size-3.5" />
                   {source?.title ?? "Unknown source"}
                 </Badge>
               ) : null}
+              {e.title && e.sensitive ? <TimelineSrc>sensitive</TimelineSrc> : null}
               {!notesOnEvents && notes.length > 0 ? (
                 <button
                   type="button"
@@ -66,14 +71,16 @@ export function TimelineSection({
                   <StickyNoteIcon className="size-2.5" /> {notes.length}
                 </button>
               ) : null}
-              <TimelineDate>{e.date}</TimelineDate>
+              <TimelineDate className="inline-flex items-center gap-1.5">
+                <CalendarIcon aria-hidden="true" className="size-3.5 shrink-0" />
+                {e.date}
+              </TimelineDate>
             </TimelineHead>
-            {e.title ? <TimelineTitle>{e.title}</TimelineTitle> : null}
             {hasBody ? (
               <TimelineBody event={e} />
-            ) : (
+            ) : e.summary ? (
               <TimelineSummary>{e.summary}</TimelineSummary>
-            )}
+            ) : null}
             {notesOnEvents ? (
               <EventNotes
                 clientId={clientId}

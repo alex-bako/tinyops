@@ -9,7 +9,7 @@ const events: ClientTimelineEventView[] = [
     eventKey: "event_email",
     sourceType: "imap",
     type: "email",
-    date: "Mar 8",
+    date: "Mar 8, 2026, 08:00 UTC",
     title: "Replay access",
     summary: "Latest reply.",
     bodyItems: [{ kind: "text", text: "Latest reply." }],
@@ -21,7 +21,7 @@ const events: ClientTimelineEventView[] = [
     eventKey: "event_form",
     sourceType: "forms",
     type: "form",
-    date: "Mar 3",
+    date: "Mar 3, 2026, 08:00 UTC",
     title: "Intake form",
     summary: "Goal: More confidence",
     bodyItems: [
@@ -44,13 +44,18 @@ describe("TimelineSection", () => {
     ["imap", "IMAP mailbox"],
     ["csv", "CSV upload"],
     ["future-connector", "Unknown source"],
-  ])("shows a provider badge for %s without replacing the event type", (sourceType, label) => {
+  ])("shows the title, provider badge for %s, sensitivity, and full date in one header", (sourceType, label) => {
     render(<TimelineSection events={[{ ...events[1]!, sourceType }]} />)
     const badge = screen.getByText(label)
     expect(badge).toHaveAttribute("data-slot", "badge")
     expect(badge.querySelector("img, svg")).toHaveAttribute("aria-hidden", "true")
-    expect(screen.getByText("form · sensitive")).toBeInTheDocument()
-    expect(screen.getByText("Mar 3")).toBeInTheDocument()
+    expect(screen.getByText("sensitive")).toBeInTheDocument()
+    expect(screen.queryByText("form · sensitive")).not.toBeInTheDocument()
+    const header = badge.closest('[data-slot="timeline-head"]')
+    expect(header).toContainElement(screen.getByText("Intake form"))
+    const date = screen.getByText("Mar 3, 2026, 08:00 UTC")
+    expect(header).toContainElement(date)
+    expect(date.querySelector("svg")).toHaveAttribute("aria-hidden", "true")
     expect(badge.closest('[data-slot="timeline-event"]')).toHaveAttribute("data-tone", "positive")
     expect(badge.closest('[data-slot="timeline-event"]')).toHaveAttribute("data-sensitive", "true")
   })
@@ -60,6 +65,18 @@ describe("TimelineSection", () => {
       <TimelineSection events={[{ ...events[0]!, type, sourceType: null }]} />
     )
     expect(container.querySelector('[data-slot="timeline-head"] [data-slot="badge"]')).toBeNull()
+  })
+
+  it("uses the event label when no title exists, including sensitivity", () => {
+    render(<TimelineSection events={[{ ...events[1]!, title: "" }]} />)
+    expect(screen.getByText("form · sensitive")).toBeInTheDocument()
+  })
+
+  it("renders no summary element when the body and summary are empty", () => {
+    const { container } = render(
+      <TimelineSection events={[{ ...events[0]!, bodyItems: [], summary: "" }]} />
+    )
+    expect(container.querySelector('[data-slot="timeline-summary"]')).toBeNull()
   })
 
   it("renders a tags block as one chip per value", () => {

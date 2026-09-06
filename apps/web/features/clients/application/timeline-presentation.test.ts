@@ -40,7 +40,7 @@ describe("timeline event presentation", () => {
     }
   )
 
-  it("formats timestamp answers without changing persisted data, prose, tags, or headers", () => {
+  it("formats timestamp answers without changing persisted data, prose, or tags", () => {
     const timestamp = "2026-09-06T04:37:26.000Z"
     const source = event({
       occurredAt: timestamp,
@@ -60,7 +60,7 @@ describe("timeline event presentation", () => {
     const original = structuredClone(source)
     const view = createTimelineEventView(source)
 
-    expect(view.date).toBe("Sep 6")
+    expect(view.date).toBe("Sep 6, 2026, 04:37 UTC")
     expect(view.bodyItems).toEqual([
       { kind: "qa", question: "Subscribed", answer: "Sep 6, 2026, 04:37 UTC" },
       { kind: "qa", question: "Offset", answer: "Sep 5, 2026, 22:37 UTC" },
@@ -68,6 +68,99 @@ describe("timeline event presentation", () => {
     ])
     expect(source).toEqual(original)
   })
+
+  it.each(["2026-09-06T14:21:26.000Z", "2026-09-06T16:21:26+02:00"])(
+    "removes redundant MailerLite fields for %s while preserving groups and source data",
+    (subscribedAt) => {
+      const groups = { kind: "tags" as const, label: "Groups", values: ["Webinar", "Newsletter"] }
+      const source = event({
+        sourceType: "mailerlite",
+        type: "added",
+        occurredAt: "2026-09-06T14:21:26.000Z",
+        body: {
+          text: "Status: active",
+          blocks: [
+            { kind: "qa", question: "Status", answer: "active" },
+            { kind: "qa", question: "Subscribed", answer: subscribedAt },
+            groups,
+          ],
+        },
+      })
+      const original = structuredClone(source)
+      expect(createTimelineEventView(source)).toMatchObject({
+        date: "Sep 6, 2026, 14:21 UTC",
+        bodyItems: [groups],
+      })
+      expect(source).toEqual(original)
+    }
+  )
+
+  it("preserves meaningful statuses, distinct dates, and invalid timestamps", () => {
+    const source = event({
+      sourceType: "mailerlite",
+      type: "added",
+      occurredAt: "2026-03-02T14:21:26Z",
+      body: createQaTimelineEventBody([
+        { question: "Status", answer: "unsubscribed" },
+        { question: "Subscribed", answer: "2026-03-02T14:21:27Z" },
+        { question: "Subscribed", answer: "2026-02-30T14:21:26Z" },
+        { question: "Subscribed", answer: "invalid" },
+      ]),
+    })
+    expect(createTimelineEventView(source).bodyItems).toEqual([
+      { kind: "qa", question: "Status", answer: "unsubscribed" },
+      { kind: "qa", question: "Subscribed", answer: "Mar 2, 2026, 14:21 UTC" },
+      ...source.body.blocks.slice(2),
+    ])
+  })
+
+  it.each([
+    ["mailerlite", "payment"],
+    ["forms", "added"],
+  ] as const)("retains status and date details for %s %s", (sourceType, type) => {
+    const view = createTimelineEventView(event({
+      sourceType,
+      type,
+      body: createQaTimelineEventBody([
+        { question: "Status", answer: "active" },
+        { question: "Subscribed", answer: "2026-05-07T08:00:00Z" },
+      ]),
+    }))
+    expect(view.bodyItems).toEqual([
+      { kind: "qa", question: "Status", answer: "active" },
+      { kind: "qa", question: "Subscribed", answer: "May 7, 2026, 08:00 UTC" },
+    ])
+  })
+
+  it("does not restore removed fields through the empty-body summary", () => {
+    const view = createTimelineEventView(event({
+      sourceType: "mailerlite",
+      type: "added",
+      body: createQaTimelineEventBody([
+        { question: "Status", answer: "active" },
+        { question: "Subscribed", answer: "2026-05-07T08:00:00Z" },
+      ]),
+      display: { title: "Subscribed to MailerLite", summary: "Status: active" },
+    }))
+    expect(view.bodyItems).toEqual([])
+    expect(view.summary).toBe("")
+  })
+
+  it.each(["invalid", "2026-02-30T08:00:00Z", ""])(
+    "preserves invalid header dates and does not deduplicate against them: %s",
+    (occurredAt) => {
+      const view = createTimelineEventView(event({
+        sourceType: "mailerlite",
+        type: "added",
+        occurredAt,
+        body: createQaTimelineEventBody([
+          { question: "Subscribed", answer: "2026-03-02T08:00:00Z" },
+        ]),
+      }))
+      expect(view.date).toBe(occurredAt || "Unknown")
+      expect(view.bodyItems).toHaveLength(1)
+    }
+  )
 
   it("uses persisted Timeline Event identity as the UI key", () => {
     expect(createTimelineEventView(event()).eventKey).toBe("event_1")
@@ -144,7 +237,7 @@ describe("timeline event presentation", () => {
 
   it("formats domain event dates only at the presentation seam", () => {
     expect(createTimelineEventViews([event()])).toMatchObject([
-      { date: "May 7" },
+      { date: "May 7, 2026, 08:00 UTC" },
     ])
   })
 })
