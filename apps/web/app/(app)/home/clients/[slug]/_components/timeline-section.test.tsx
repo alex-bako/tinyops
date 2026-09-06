@@ -33,6 +33,30 @@ const events: ClientTimelineEventView[] = [
 ]
 
 describe("TimelineSection", () => {
+  it("renders a tags block as one chip per value", () => {
+    render(
+      <TimelineSection
+        events={[
+          {
+            ...events[0]!,
+            eventKey: "event_added",
+            bodyItems: [
+              {
+                kind: "tags",
+                label: "Groups",
+                values: ["Paid · annual", "Webinar July"],
+              },
+            ],
+          },
+        ]}
+      />
+    )
+
+    expect(screen.getByText("Groups")).toBeInTheDocument()
+    expect(screen.getByText("Paid · annual")).toBeInTheDocument()
+    expect(screen.getByText("Webinar July")).toBeInTheDocument()
+  })
+
   it("always renders bodies inline without any reveal toggle", () => {
     render(<TimelineSection events={events} />)
 

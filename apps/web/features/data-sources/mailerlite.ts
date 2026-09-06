@@ -4,6 +4,8 @@ import type {
 } from "@/features/clients/domain/connector-record"
 import {
   createQaTimelineEventBody,
+  createTimelineEventBody,
+  type TimelineEventBodyBlock,
 } from "@/features/clients/domain/timeline-event-body"
 import type { Json } from "@/lib/database.types"
 
@@ -132,13 +134,17 @@ export function buildMailerLiteSubscriberRecord(
       subscribedAt ??
       mailerLiteDate(subscriber.created_at) ??
       new Date(0).toISOString(),
-    body: createQaTimelineEventBody(
-      pairs([
+    body: createTimelineEventBody([
+      ...qaBlocks([
         ["Status", status],
-        ["Groups", groups.join("\n")],
         ["Subscribed", subscribedAt],
-      ])
-    ),
+      ]),
+      // Group names are their own values, not a sentence; chips keep them
+      // readable for an account with a dozen segments.
+      ...(groups.length > 0
+        ? [{ kind: "tags" as const, label: "Groups", values: groups }]
+        : []),
+    ]),
     participants: [{ email, name: subscriberName(subscriber), role: "external" }],
     metadata: { title: subscriberTitle(status), status },
     attributes: [
@@ -315,4 +321,10 @@ function pairs(
   return entries.flatMap(([question, answer]) =>
     answer?.trim() ? [{ question, answer: answer.trim() }] : []
   )
+}
+
+function qaBlocks(
+  entries: Array<[string, string | null | undefined]>
+): TimelineEventBodyBlock[] {
+  return pairs(entries).map((pair) => ({ kind: "qa", ...pair }))
 }

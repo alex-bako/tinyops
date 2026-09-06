@@ -3,6 +3,8 @@ import type { Json } from "@/lib/database.types"
 export type TimelineEventBodyBlock =
   | { kind: "text"; text: string }
   | { kind: "qa"; question: string; answer: string }
+  /** A labelled set of short values, rendered as chips rather than prose. */
+  | { kind: "tags"; label: string; values: string[] }
 
 export type TimelineEventBody = {
   text: string
@@ -43,6 +45,13 @@ export function createQaTimelineEventBody(
     text: timelineEventBodyToText({ text: "", blocks }),
     blocks,
   }
+}
+
+/** Body from blocks a connector built itself, with `text` derived to match. */
+export function createTimelineEventBody(
+  blocks: TimelineEventBodyBlock[]
+): TimelineEventBody {
+  return normalizeTimelineEventBody({ text: "", blocks }) ?? EMPTY_TIMELINE_EVENT_BODY
 }
 
 export function normalizeTimelineEventBody(
@@ -98,10 +107,20 @@ function normalizeTimelineEventBodyBlock(
     const answer = block.answer.trim()
     return question && answer ? { kind: "qa", question, answer } : null
   }
+  if (block.kind === "tags" && typeof block.label === "string") {
+    const label = block.label.trim()
+    const values = Array.isArray(block.values)
+      ? block.values.flatMap((value) =>
+          typeof value === "string" && value.trim() ? [value.trim()] : []
+        )
+      : []
+    return label && values.length > 0 ? { kind: "tags", label, values } : null
+  }
   return null
 }
 
 function timelineEventBodyBlockToText(block: TimelineEventBodyBlock): string {
   if (block.kind === "text") return block.text
+  if (block.kind === "tags") return `${block.label}: ${block.values.join(", ")}`
   return `${block.question}: ${block.answer}`
 }
