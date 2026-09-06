@@ -7,6 +7,7 @@ import type { ClientTimelineEventView } from "../_view-model"
 const events: ClientTimelineEventView[] = [
   {
     eventKey: "event_email",
+    sourceType: "imap",
     type: "email",
     date: "Mar 8",
     title: "Replay access",
@@ -18,6 +19,7 @@ const events: ClientTimelineEventView[] = [
   },
   {
     eventKey: "event_form",
+    sourceType: "forms",
     type: "form",
     date: "Mar 3",
     title: "Intake form",
@@ -33,6 +35,33 @@ const events: ClientTimelineEventView[] = [
 ]
 
 describe("TimelineSection", () => {
+  it.each([
+    ["stripe", "Stripe"],
+    ["mailerlite", "MailerLite"],
+    ["forms", "Google Forms"],
+    ["calendly", "Calendly"],
+    ["teachable", "Teachable"],
+    ["imap", "IMAP mailbox"],
+    ["csv", "CSV upload"],
+    ["future-connector", "Unknown source"],
+  ])("shows a provider badge for %s without replacing the event type", (sourceType, label) => {
+    render(<TimelineSection events={[{ ...events[1]!, sourceType }]} />)
+    const badge = screen.getByText(label)
+    expect(badge).toHaveAttribute("data-slot", "badge")
+    expect(badge.querySelector("img, svg")).toHaveAttribute("aria-hidden", "true")
+    expect(screen.getByText("form · sensitive")).toBeInTheDocument()
+    expect(screen.getByText("Mar 3")).toBeInTheDocument()
+    expect(badge.closest('[data-slot="timeline-event"]')).toHaveAttribute("data-tone", "positive")
+    expect(badge.closest('[data-slot="timeline-event"]')).toHaveAttribute("data-sensitive", "true")
+  })
+
+  it.each(["note", "email"] as const)("omits the badge for a %s without a source", (type) => {
+    const { container } = render(
+      <TimelineSection events={[{ ...events[0]!, type, sourceType: null }]} />
+    )
+    expect(container.querySelector('[data-slot="timeline-head"] [data-slot="badge"]')).toBeNull()
+  })
+
   it("renders a tags block as one chip per value", () => {
     render(
       <TimelineSection
@@ -90,6 +119,7 @@ describe("TimelineSection", () => {
         events={[
           {
             eventKey: "event_empty",
+            sourceType: null,
             type: "email",
             date: "Mar 1",
             title: "Replay access",

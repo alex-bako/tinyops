@@ -1,6 +1,11 @@
 "use client"
 
 import { StickyNoteIcon } from "lucide-react"
+import { SourceIcon } from "@/components/source-icon"
+import {
+  getConnectorMetadata,
+  isConnectorId,
+} from "@/features/data-sources/connector-metadata"
 
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -38,10 +43,19 @@ export function TimelineSection({
       {events.map((e) => {
         const hasBody = e.bodyItems.length > 0
         const notes = eventNotes[e.eventKey] ?? []
+        const source = e.sourceType && isConnectorId(e.sourceType)
+          ? getConnectorMetadata(e.sourceType)
+          : null
         return (
           <TimelineEvent key={e.eventKey} tone={e.tone} sensitive={e.sensitive}>
             <TimelineHead>
               <TimelineSrc>{e.sourceLabel}</TimelineSrc>
+              {e.sourceType ? (
+                <Badge variant="neutral" className="gap-1 text-[11px] [&>svg]:size-3.5">
+                  <SourceIcon icon={source?.icon ?? "plug"} className="size-3.5" />
+                  {source?.title ?? "Unknown source"}
+                </Badge>
+              ) : null}
               {!notesOnEvents && notes.length > 0 ? (
                 <button
                   type="button"

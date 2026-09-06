@@ -15,11 +15,12 @@ export const CONNECTOR_IDS: ConnectorId[] = [...CONNECTOR_ID_VALUES]
 export type DataSourceIcon =
   | "mail"
   | "file-text"
-  | "clipboard-list"
-  | "credit-card"
-  | "calendar"
-  | "graduation-cap"
-  | "send"
+  | "forms"
+  | "stripe"
+  | "calendly"
+  | "teachable"
+  | "mailerlite"
+  | "plug"
 
 export type DataSourceAuth = "oauth" | "apikey" | "imap" | "csv" | "multi"
 
@@ -52,7 +53,7 @@ export const CONNECTOR_METADATA: ConnectorMetadata[] = [
   },
   {
     id: "forms",
-    icon: "clipboard-list",
+    icon: "forms",
     title: "Google Forms",
     sub: "Import intake and feedback responses",
     category: "Forms",
@@ -60,7 +61,7 @@ export const CONNECTOR_METADATA: ConnectorMetadata[] = [
   },
   {
     id: "stripe",
-    icon: "credit-card",
+    icon: "stripe",
     title: "Stripe",
     sub: "Payments, subscriptions, refunds",
     category: "Billing",
@@ -68,7 +69,7 @@ export const CONNECTOR_METADATA: ConnectorMetadata[] = [
   },
   {
     id: "mailerlite",
-    icon: "send",
+    icon: "mailerlite",
     title: "MailerLite",
     sub: "Email marketing & automations",
     category: "Marketing",
@@ -77,7 +78,7 @@ export const CONNECTOR_METADATA: ConnectorMetadata[] = [
   },
   {
     id: "calendly",
-    icon: "calendar",
+    icon: "calendly",
     title: "Calendly",
     sub: "Bookings, no-shows, reschedules",
     category: "Scheduling",
@@ -85,7 +86,7 @@ export const CONNECTOR_METADATA: ConnectorMetadata[] = [
   },
   {
     id: "teachable",
-    icon: "graduation-cap",
+    icon: "teachable",
     title: "Teachable",
     sub: "Course enrollments & progress",
     category: "Learning",
