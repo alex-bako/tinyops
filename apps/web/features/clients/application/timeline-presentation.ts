@@ -7,6 +7,7 @@ import {
 } from "@/features/clients/domain/client-profile"
 import { stripQuotedReplyChain } from "@/features/clients/domain/timeline-event-body-quotes"
 import { timelineEventBodyToText } from "@/features/clients/domain/timeline-event-body"
+import { formatImportedDate } from "@/features/clients/application/format-imported-date"
 
 export type ClientTimelineBodyItem =
   | { kind: "text"; text: string }
@@ -120,6 +121,9 @@ function toBodyItem(
 ): ClientTimelineBodyItem {
   if (block.kind === "text") {
     return { kind: "text", text: stripQuotedReplyChain(block.text) }
+  }
+  if (block.kind === "qa") {
+    return { ...block, answer: formatImportedDate(block.answer) }
   }
   return { ...block }
 }
