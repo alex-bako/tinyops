@@ -89,11 +89,13 @@ describe("MailerLite connector", () => {
     expect(result.records[0]).toMatchObject({
       externalId: "mailerlite:subscriber:sub_1",
       recordType: "mailerlite_subscriber",
-      eventType: null,
+      eventType: "system_event",
       occurredAt: "2026-02-01T10:00:00.000Z",
       participants: [{ email: "ann@example.com", name: "Ann Lee", role: "external" }],
       identities: [{ type: "external_id", value: "sub_1" }],
+      metadata: { title: "Subscribed to MailerLite", status: "active" },
     })
+    expect(result.records[0]?.body.text).toContain("Paid · annual")
     expect(result.records[0]?.attributes).toEqual([
       { key: "mailerlite_subscriber_id", value: "sub_1", confidence: 1 },
       { key: "mailerlite_status", value: "active", confidence: 1 },

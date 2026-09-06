@@ -4,7 +4,6 @@ import type {
 } from "@/features/clients/domain/connector-record"
 import {
   createQaTimelineEventBody,
-  EMPTY_TIMELINE_EVENT_BODY,
 } from "@/features/clients/domain/timeline-event-body"
 import type { Json } from "@/lib/database.types"
 
@@ -96,6 +95,18 @@ export function buildMailerLiteSourceConfig({
 
 type RecordScope = { workspaceId: string; sourceId: string }
 
+/** MailerLite statuses that read better than "Subscribed to MailerLite". */
+const SUBSCRIBER_TITLES: Record<string, string> = {
+  unsubscribed: "Unsubscribed from MailerLite",
+  unconfirmed: "Subscribed to MailerLite (unconfirmed)",
+  bounced: "MailerLite email bounced",
+  junk: "Marked as junk in MailerLite",
+}
+
+function subscriberTitle(status: string | null): string {
+  return (status && SUBSCRIBER_TITLES[status]) || "Subscribed to MailerLite"
+}
+
 export function buildMailerLiteSubscriberRecord(
   scope: RecordScope,
   subscriber: MailerLiteSubscriber
@@ -113,14 +124,23 @@ export function buildMailerLiteSubscriberRecord(
     sourceType: "mailerlite",
     externalId: `mailerlite:subscriber:${subscriber.id}`,
     recordType: "mailerlite_subscriber",
-    eventType: null,
+    // A subscriber is the only record type that exists for an account without
+    // e-commerce or sent campaigns. Without an event the profile renders empty,
+    // so the import itself is the timeline entry.
+    eventType: "system_event",
     occurredAt:
       subscribedAt ??
       mailerLiteDate(subscriber.created_at) ??
       new Date(0).toISOString(),
-    body: EMPTY_TIMELINE_EVENT_BODY,
+    body: createQaTimelineEventBody(
+      pairs([
+        ["Status", status],
+        ["Groups", groups.join(", ")],
+        ["Subscribed", subscribedAt],
+      ])
+    ),
     participants: [{ email, name: subscriberName(subscriber), role: "external" }],
-    metadata: { title: "MailerLite subscriber", status },
+    metadata: { title: subscriberTitle(status), status },
     attributes: [
       { key: "mailerlite_subscriber_id", value: subscriber.id, confidence: 1 },
       ...(status ? [{ key: "mailerlite_status", value: status, confidence: 1 }] : []),
