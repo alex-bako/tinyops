@@ -95,12 +95,14 @@ describe("MailerLite connector", () => {
       identities: [{ type: "external_id", value: "sub_1" }],
       metadata: { title: "Subscribed to MailerLite", status: "active" },
     })
-    // One group per line: a comma-joined run is unreadable past two or three.
+    // Groups are chips, not prose: their own block kind, one value each.
     expect(
-      result.records[0]?.body.blocks.find(
-        (block) => block.kind === "qa" && block.question === "Groups"
-      )
-    ).toMatchObject({ answer: "Paid · annual\nWebinar July" })
+      result.records[0]?.body.blocks.find((block) => block.kind === "tags")
+    ).toEqual({
+      kind: "tags",
+      label: "Groups",
+      values: ["Paid · annual", "Webinar July"],
+    })
     expect(result.records[0]?.attributes).toEqual([
       { key: "mailerlite_subscriber_id", value: "sub_1", confidence: 1 },
       { key: "mailerlite_status", value: "active", confidence: 1 },

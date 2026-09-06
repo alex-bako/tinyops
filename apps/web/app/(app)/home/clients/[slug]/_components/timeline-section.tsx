@@ -2,6 +2,7 @@
 
 import { StickyNoteIcon } from "lucide-react"
 
+import { Badge } from "@workspace/ui/components/badge"
 import {
   Timeline,
   TimelineDate,
@@ -87,6 +88,21 @@ function TimelineBody({ event }: { event: ClientTimelineEventView }) {
             >
               {block.text}
             </p>
+          )
+        }
+
+        if (block.kind === "tags") {
+          return (
+            <div key={`${event.eventKey}-tags-${index}`} className="space-y-1">
+              <p className="m-0 font-medium text-foreground">{block.label}</p>
+              <div className="flex flex-wrap gap-1">
+                {block.values.map((value) => (
+                  <Badge key={value} variant="tag" className="whitespace-normal">
+                    {value}
+                  </Badge>
+                ))}
+              </div>
+            </div>
           )
         }
 

@@ -11,6 +11,7 @@ import { timelineEventBodyToText } from "@/features/clients/domain/timeline-even
 export type ClientTimelineBodyItem =
   | { kind: "text"; text: string }
   | { kind: "qa"; question: string; answer: string }
+  | { kind: "tags"; label: string; values: string[] }
 
 export type ClientTimelineEventView = {
   eventKey: string
