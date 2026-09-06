@@ -243,6 +243,25 @@ export function stripeRecordExternalId(item: StripeObject) {
   return `stripe:${item.kind}:${item.object.id}`
 }
 
+/**
+ * One timeline event type per Stripe object, so a refund and a dispute can be
+ * filtered apart rather than all reading as "payment".
+ *
+ * A customer carries `system_event` because the import itself is the only
+ * entry a customer with no billing activity in the sync window would get.
+ */
+const STRIPE_EVENT_TYPE: Record<
+  StripeObject["kind"],
+  NormalizedConnectorRecord["eventType"]
+> = {
+  customer: "system_event",
+  charge: "payment",
+  refund: "refund",
+  dispute: "dispute",
+  invoice: "invoice",
+  subscription: "subscription",
+}
+
 export function buildStripeRecord({
   workspaceId,
   sourceId,
@@ -264,9 +283,7 @@ export function buildStripeRecord({
     sourceType: "stripe",
     externalId: stripeRecordExternalId(item),
     recordType: `stripe_${item.kind}`,
-    // A customer with no charge or invoice in the sync window would otherwise
-    // land with an empty timeline, so the import itself is the entry.
-    eventType: item.kind === "customer" ? "system_event" : "payment",
+    eventType: STRIPE_EVENT_TYPE[item.kind],
     occurredAt: new Date(detail.occurredAt * 1000).toISOString(),
     body:
       detail.pairs.length > 0

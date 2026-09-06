@@ -43,6 +43,10 @@ const TONE_OF: Record<TimelineEventType, TimelineTone> = {
   sent: "attention",
   csvimport: "neutral",
   payment: "positive",
+  refund: "attention",
+  dispute: "attention",
+  invoice: "neutral",
+  subscription: "positive",
   engagement: "brand",
   note: "neutral",
 }
@@ -53,6 +57,10 @@ const LABEL_OF: Record<TimelineEventType, string> = {
   sent: "sent",
   csvimport: "csv import",
   payment: "payment",
+  refund: "refund",
+  dispute: "dispute",
+  invoice: "invoice",
+  subscription: "subscription",
   engagement: "engagement",
   note: "note",
 }

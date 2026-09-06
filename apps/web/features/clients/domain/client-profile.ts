@@ -15,6 +15,10 @@ export type TimelineEventType =
   | "sent"
   | "csvimport"
   | "payment"
+  | "refund"
+  | "dispute"
+  | "invoice"
+  | "subscription"
   | "engagement"
   | "note"
 
@@ -231,6 +235,10 @@ const TIMELINE_EVENT_TYPE: Record<string, TimelineEventType> = {
   tinyops_email: "sent",
   system_event: "csvimport",
   payment: "payment",
+  refund: "refund",
+  dispute: "dispute",
+  invoice: "invoice",
+  subscription: "subscription",
   email_engagement: "engagement",
 }
 
