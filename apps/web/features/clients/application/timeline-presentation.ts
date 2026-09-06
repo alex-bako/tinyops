@@ -16,6 +16,7 @@ export type ClientTimelineBodyItem =
 
 export type ClientTimelineEventView = {
   eventKey: string
+  sourceType: string | null
   type: TimelineEventType
   date: string
   title: string
@@ -87,6 +88,7 @@ export function createTimelineEventView(
   const sensitive = isSensitiveLevel(event.sensitivityLevel)
   return {
     eventKey: event.id,
+    sourceType: event.sourceType,
     type: event.type,
     date: formatTimelineDate(event.occurredAt),
     // Notes carry no subject line; the body is the content, so we suppress the

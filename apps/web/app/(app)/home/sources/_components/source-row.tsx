@@ -20,7 +20,6 @@ import {
   SourceListStats,
   SourceListTitle,
 } from "@workspace/ui/components/source-list"
-import { cn } from "@workspace/ui/lib/utils"
 
 import { SourceIcon } from "@/components/source-icon"
 import { requestDataSourceSyncAction } from "@/features/data-sources/actions"
@@ -47,14 +46,7 @@ function SourceRow({ source }: { source: SourcesPageRow }) {
         className="absolute inset-0 z-[1] rounded-sm focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
       />
 
-      <SourceListIcon
-        className={cn(
-          "pointer-events-none relative z-[2]",
-          source.connected
-            ? "bg-cobalt-500/10 text-cobalt-700"
-            : "bg-[var(--tint-hover)] text-muted-foreground/80"
-        )}
-      >
+      <SourceListIcon className="pointer-events-none relative z-[2] bg-[var(--tint-hover)] text-muted-foreground">
         <SourceIcon icon={source.icon} className="size-4" />
       </SourceListIcon>
 

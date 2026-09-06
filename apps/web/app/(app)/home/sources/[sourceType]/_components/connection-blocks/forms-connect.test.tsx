@@ -48,7 +48,7 @@ function source(): DataSource {
   return {
     id: "forms",
     kind: "connector_type",
-    icon: "clipboard-list",
+    icon: "forms",
     title: "Google Forms",
     sub: "Import intake and feedback responses",
     category: "Forms",

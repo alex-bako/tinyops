@@ -24,6 +24,7 @@ function eventView(
 ): ClientTimelineEventView {
   return {
     eventKey: "e_email",
+    sourceType: "imap",
     type: "email",
     date: "Mar 8",
     title: "Replay access",
@@ -38,6 +39,7 @@ function eventView(
 
 const SENSITIVE_FORM = eventView({
   eventKey: "e_form",
+  sourceType: "forms",
   type: "form",
   title: "Intake form",
   bodyItems: [{ kind: "text", text: "Form body" }],

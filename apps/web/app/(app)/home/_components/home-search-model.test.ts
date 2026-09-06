@@ -46,7 +46,7 @@ function source(overrides: Partial<HomeSourceRow> = {}): HomeSourceRow {
 
 const sources = [
   source(),
-  source({ id: "forms", icon: "clipboard-list", title: "Intake form", sub: "203 submissions", connected: false }),
+  source({ id: "forms", icon: "forms", title: "Intake form", sub: "203 submissions", connected: false }),
 ]
 
 describe("buildSearchModel — empty query (focused)", () => {

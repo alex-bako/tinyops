@@ -33,6 +33,13 @@ const event = (
 })
 
 describe("timeline event presentation", () => {
+  it.each(["stripe", "mailerlite", "forms", "imap", "csv", "unknown", null])(
+    "preserves source identity %s for rendering",
+    (sourceType) => {
+      expect(createTimelineEventView(event({ sourceType })).sourceType).toBe(sourceType)
+    }
+  )
+
   it("formats timestamp answers without changing persisted data, prose, tags, or headers", () => {
     const timestamp = "2026-09-06T04:37:26.000Z"
     const source = event({

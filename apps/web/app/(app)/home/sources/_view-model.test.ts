@@ -59,7 +59,7 @@ describe("sources page view", () => {
     const view = createSourcesPageView([
       {
         id: "forms",
-        icon: "clipboard-list",
+        icon: "forms",
         title: "Google Forms",
         sub: "2 forms connected",
         category: "Forms",

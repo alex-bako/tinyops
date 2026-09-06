@@ -24,7 +24,7 @@ function source(): DataSource {
   return {
     id: "forms",
     kind: "data_source",
-    icon: "clipboard-list",
+    icon: "forms",
     title: "Google Forms",
     sub: "2 forms connected",
     category: "Forms",
