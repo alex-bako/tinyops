@@ -1,3 +1,4 @@
+import type { ImapRecipientLookup } from "@/features/data-sources/imap-recipient-lookup"
 import { simpleParser } from "mailparser"
 
 import type {
@@ -40,7 +41,11 @@ export type ImapSyncClient = {
     uids: number[],
     query: { uid: true; source: true; envelope: true; internalDate: true },
     options: { uid: true }
-  ): AsyncIterable<{ uid: number; source?: Buffer; internalDate?: Date | string }>
+  ): AsyncIterable<{
+    uid: number
+    source?: Buffer
+    internalDate?: Date | string
+  }>
   logout(): Promise<void>
   close(): void
 }
@@ -70,6 +75,7 @@ export function createImapThreadedSync({
   ownerEmails,
   manualReviewKeywords,
   threadIndexReader,
+  recipientLookup,
   now,
   logger,
 }: {
@@ -78,6 +84,7 @@ export function createImapThreadedSync({
   ownerEmails: Set<string>
   manualReviewKeywords: string[]
   threadIndexReader?: ImapThreadIndexReader
+  recipientLookup?: ImapRecipientLookup
   now: Date
   logger: LoggerPort
 }) {
@@ -90,6 +97,7 @@ export function createImapThreadedSync({
         ownerEmails,
         manualReviewKeywords,
         threadIndexReader,
+        recipientLookup,
         now,
         preview: true,
         logger,
@@ -103,6 +111,7 @@ export function createImapThreadedSync({
         ownerEmails,
         manualReviewKeywords,
         threadIndexReader,
+        recipientLookup,
         now,
         preview: false,
         logger,
@@ -118,6 +127,7 @@ async function collectFromFolders({
   ownerEmails,
   manualReviewKeywords,
   threadIndexReader,
+  recipientLookup,
   now,
   preview,
   logger,
@@ -128,6 +138,7 @@ async function collectFromFolders({
   ownerEmails: Set<string>
   manualReviewKeywords: string[]
   threadIndexReader?: ImapThreadIndexReader
+  recipientLookup?: ImapRecipientLookup
   now: Date
   preview: boolean
   logger: LoggerPort
@@ -136,7 +147,9 @@ async function collectFromFolders({
   const cursor = readCursor(preview ? null : source.sync.cursor)
   let nextCursor: ImapCursor = { folders: { ...(cursor.folders ?? {}) } }
   const sentFolders = detectSentFolders(source.folderSnapshot.availableFolders)
-  let diagnostics: ImapSyncDiagnostics = createImapSyncDiagnostics({ sentFolders })
+  let diagnostics: ImapSyncDiagnostics = createImapSyncDiagnostics({
+    sentFolders,
+  })
   const threadSeed = await threadIndexReader?.read({
     workspaceId: input.workspaceId,
     sourceId: input.sourceId,
@@ -147,6 +160,11 @@ async function collectFromFolders({
   let truncated = false
 
   for (const item of planImapFolderSync({ source, sentFolders, preview })) {
+    // Persist watched messages first so Sent recipient matching sees their clients.
+    if (item.role === "sent" && (records.length > 0 || truncated)) {
+      truncated = true
+      break
+    }
     const remaining = limit - records.length
     if (remaining <= 0) {
       truncated = true
@@ -159,6 +177,7 @@ async function collectFromFolders({
       cursor,
       seenExternalIds,
       threadIndex,
+      recipientLookup,
       ownerEmails,
       manualReviewKeywords,
       now,
@@ -202,6 +221,7 @@ async function scanFolder({
   cursor,
   seenExternalIds,
   threadIndex,
+  recipientLookup,
   ownerEmails,
   manualReviewKeywords,
   now,
@@ -215,6 +235,7 @@ async function scanFolder({
   source: ImapDataSource
   cursor: ImapCursor
   seenExternalIds: Set<string>
+  recipientLookup?: ImapRecipientLookup
   threadIndex: ReturnType<typeof createImapThreadIndex>
   ownerEmails: Set<string>
   manualReviewKeywords: string[]
@@ -229,7 +250,7 @@ async function scanFolder({
   const uidValidity = String(mailbox.uidValidity ?? "")
   const folderCursor = cursor.folders?.[folder]
   const hasUsableCursor = folderCursor?.uidValidity === uidValidity
-  const lastUid = hasUsableCursor ? folderCursor.lastUid ?? 0 : 0
+  const lastUid = hasUsableCursor ? (folderCursor.lastUid ?? 0) : 0
   const uids = await searchFolderUids({
     client,
     source,
@@ -237,9 +258,8 @@ async function scanFolder({
     now,
     preview,
   })
-  const seedSentCursor = role === "sent" && !hasUsableCursor
-  const batchUids = seedSentCursor ? [] : uids.slice(0, limit)
-  let lastProcessedUid = seedSentCursor ? (uids.at(-1) ?? lastUid) : lastUid
+  const batchUids = uids.slice(0, limit)
+  let lastProcessedUid = lastUid
   let folderDiagnostics: ImapFolderDiagnostics = {
     path: folder,
     uidValidity,
@@ -297,6 +317,28 @@ async function scanFolder({
         continue
       }
 
+      const facts = factsResult.facts
+      if (facts.eventType === "email_sent") {
+        if (!recipientLookup) throw new Error("imap_recipient_lookup_missing")
+        const recipients = new Set([
+          ...facts.toEmails,
+          ...facts.ccEmails,
+          ...facts.bccEmails,
+        ])
+        const candidates = facts.participants.filter((person) =>
+          recipients.has(person.email)
+        )
+        const known = new Set(
+          await recipientLookup({
+            workspaceId: source.workspaceId,
+            emails: candidates.map((person) => person.email),
+          })
+        )
+        facts.participants = candidates.filter((person) =>
+          known.has(person.email)
+        )
+      }
+
       const decision = decideImapThreadImport({
         source,
         facts: factsResult.facts,
@@ -335,8 +377,7 @@ async function scanFolder({
   }
 
   const fullyProcessedBatch = lastProcessedUid === (batchUids.at(-1) ?? lastUid)
-  const folderExhausted =
-    seedSentCursor || (fullyProcessedBatch && uids.length <= batchUids.length)
+  const folderExhausted = fullyProcessedBatch && uids.length <= batchUids.length
   folderDiagnostics = {
     ...folderDiagnostics,
     truncated: !folderExhausted,
@@ -382,15 +423,14 @@ async function searchFolderUids({
   now: Date
   preview: boolean
 }) {
-  const since = preview ? historySince(source.intake.historyWindow, now) : undefined
-  const found = await client.search(
-    since ? { since } : { all: true },
-    { uid: true }
-  )
+  const since = preview
+    ? historySince(source.intake.historyWindow, now)
+    : undefined
+  const found = await client.search(since ? { since } : { all: true }, {
+    uid: true,
+  })
   if (!found) return []
-  return found
-    .filter((uid) => uid > lastUid)
-    .sort((a, b) => a - b)
+  return found.filter((uid) => uid > lastUid).sort((a, b) => a - b)
 }
 
 function readCursor(value: unknown): ImapCursor {

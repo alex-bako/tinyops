@@ -9,9 +9,14 @@ import type { ImapDataSource } from "@/features/data-sources/types"
 
 export type ImapThreadImportDecision =
   | { import: true; reason: "filter_anchor"; anchored: true }
-  | { import: true; reason: "thread_member" | "thread_reply"; anchored: false }
-  | { import: false; reason: "filter_rejected" | "unlinked_sent_message" }
+  | {
+      import: true
+      reason: "thread_member" | "thread_reply" | "known_recipient"
+      anchored: false
+    }
+  | { import: false; reason: "filter_rejected" | "no_known_recipient" }
 
+/** Outgoing facts must contain only recipients resolved to known workspace clients. */
 export function decideImapThreadImport({
   source,
   facts,
@@ -23,9 +28,14 @@ export function decideImapThreadImport({
 }): ImapThreadImportDecision {
   const linked = threadIndex.isLinked(facts.headers)
   if (facts.eventType === "email_sent") {
-    return linked
-      ? { import: true, reason: "thread_reply", anchored: false }
-      : { import: false, reason: "unlinked_sent_message" }
+    if (facts.participants.length === 0) {
+      return { import: false, reason: "no_known_recipient" }
+    }
+    return {
+      import: true,
+      reason: linked ? "thread_reply" : "known_recipient",
+      anchored: false,
+    }
   }
   if (matchesIntakeFilters(source, facts)) {
     return { import: true, reason: "filter_anchor", anchored: true }

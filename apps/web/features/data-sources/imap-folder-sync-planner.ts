@@ -16,17 +16,14 @@ export function planImapFolderSync({
   sentFolders: string[]
   preview: boolean
 }): ImapFolderSyncPlanItem[] {
-  const watched = source.intake.watchedFolders.map((path) => ({
-    path,
-    role: "watched" as const,
-  }))
+  const sentPaths = new Set(sentFolders)
+  const watched = source.intake.watchedFolders.flatMap((path) =>
+    !preview && sentPaths.has(path) ? [] : [{ path, role: "watched" as const }]
+  )
   if (preview) return watched
 
-  const watchedPaths = new Set(source.intake.watchedFolders)
   return [
     ...watched,
-    ...sentFolders.flatMap((path) =>
-      watchedPaths.has(path) ? [] : [{ path, role: "sent" as const }]
-    ),
+    ...sentFolders.map((path) => ({ path, role: "sent" as const })),
   ]
 }

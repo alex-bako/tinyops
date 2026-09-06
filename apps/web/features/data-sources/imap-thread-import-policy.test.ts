@@ -107,7 +107,7 @@ describe("IMAP thread import policy", () => {
     ).toEqual({ import: true, reason: "thread_member", anchored: false })
   })
 
-  it("imports only linked owner-sent replies", () => {
+  it("imports known recipients with or without reply headers", () => {
     const dataSource = source()
     const index = createImapThreadIndex(["<root@example.com>"])
 
@@ -130,6 +130,15 @@ describe("IMAP thread import policy", () => {
         }),
         threadIndex: index,
       })
-    ).toEqual({ import: false, reason: "unlinked_sent_message" })
+    ).toEqual({ import: true, reason: "known_recipient", anchored: false })
+  })
+  it("rejects outgoing messages without known recipients even in linked threads", () => {
+    expect(
+      decideImapThreadImport({
+        source: source(),
+        facts: facts({ eventType: "email_sent", participants: [] }),
+        threadIndex: createImapThreadIndex(["<root@example.com>"]),
+      })
+    ).toEqual({ import: false, reason: "no_known_recipient" })
   })
 })
