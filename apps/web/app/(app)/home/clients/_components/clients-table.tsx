@@ -20,8 +20,9 @@ import {
   ClientFlagBadges,
   ClientStatusBadge,
 } from "@/components/client-state-badge"
-import type { ClientDetail } from "@/features/clients/application/client-memory"
+import type { ClientListEntry } from "@/features/clients/application/client-memory"
 import { useNavigationProgress } from "@/lib/navigation-progress/context"
+import { useVisibleWindow } from "./use-visible-window"
 import {
   clientProfileHref,
   clientProfileViewTransitionName,
@@ -33,12 +34,13 @@ export function ClientsTable({
   onClear,
   newlyInsertedSlugs,
 }: {
-  rows: ClientDetail[]
+  rows: ClientListEntry[]
   emptyMessage: string
   onClear: () => void
   newlyInsertedSlugs?: ReadonlySet<string>
 }) {
   const { navigate } = useNavigationProgress()
+  const { visibleRows, hasMore, sentinelRef } = useVisibleWindow(rows)
   return (
     <Table className="mt-0">
       <TableHeader>
@@ -72,13 +74,15 @@ export function ClientsTable({
             </td>
           </tr>
         ) : (
-          rows.map((c) => {
+          visibleRows.map((c) => {
             const href = clientProfileHref(c.slug)
             const justInserted = newlyInsertedSlugs?.has(c.slug)
             return (
             <TableRow
               key={c.slug}
               interactive
+              // Offscreen rows keep their box but skip layout and paint.
+              style={{ contentVisibility: "auto", containIntrinsicSize: "auto 45px" }}
               data-just-inserted={justInserted ? "" : undefined}
               className="cursor-pointer"
               onClick={(e) => {
@@ -146,6 +150,15 @@ export function ClientsTable({
           })
         )}
       </TableBody>
+      {hasMore ? (
+        <tfoot>
+          <tr>
+            <td colSpan={8}>
+              <div ref={sentinelRef} className="h-8" aria-hidden />
+            </td>
+          </tr>
+        </tfoot>
+      ) : null}
     </Table>
   )
 }

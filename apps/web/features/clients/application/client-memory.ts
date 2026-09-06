@@ -4,6 +4,7 @@ import {
   sortTimelineEventsNewestFirst,
   type ClientFlag,
   type ClientAttribute,
+  type ClientListRow,
   type ClientProfile,
   type ClientProperty,
   type ClientPropertyValue,
@@ -46,6 +47,35 @@ export type ClientMemory = {
   lastGenerated: string
 }
 
+/** What the clients list renders: `Client` plus what it takes to link a row. */
+export type ClientListEntry = Client & {
+  id: string
+  slug: string
+}
+
+export function createClientListEntry(row: ClientListRow): ClientListEntry {
+  const status = coerceClientStatus(row.status, row.doNotContact)
+  const lastSeen = row.lastContactedAt ?? row.lastSeenAt ?? row.updatedAt
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.displayName.trim() || row.primaryEmail,
+    email: row.primaryEmail,
+    cohort:
+      row.tags.find((tag) => tag.toLowerCase().includes("cohort")) ?? "Imported",
+    status,
+    sources: row.sourceCount,
+    lastContact: formatDate(lastSeen),
+    lastEvent: formatDate(lastSeen),
+    flags: clientFlagsFor({
+      status,
+      doNotContact: row.doNotContact,
+      profileSensitivityLevel: row.sensitivityLevel,
+      timelineSensitivityLevels: [row.maxTimelineSensitivity],
+    }),
+  }
+}
+
 export type ClientDetail = Client & {
   id: string
   slug: string
@@ -58,7 +88,7 @@ export type ClientDetail = Client & {
 }
 
 export type ClientMemoryRepositoryPort = {
-  listClients(): Promise<ClientDetail[]>
+  listClients(): Promise<ClientListEntry[]>
   getRecentClients(limit?: number): Promise<ClientDetail[]>
   findClientBySlug(slug: string): Promise<ClientDetail | null>
 }
@@ -89,7 +119,7 @@ export function createWorkspaceClientMemoryRepository({
 }): ClientMemoryRepositoryPort {
   return {
     async listClients() {
-      return (await reader.listClients(workspaceId)).map(createClientDetail)
+      return (await reader.listClients(workspaceId)).map(createClientListEntry)
     },
     async getRecentClients(limit) {
       return (await reader.getRecentClients(workspaceId, limit)).map(

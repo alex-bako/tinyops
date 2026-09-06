@@ -4,7 +4,7 @@ import * as React from "react"
 
 import {
   COHORTS,
-  type ClientDetail,
+  type ClientListEntry,
   type CohortFilter,
 } from "@/features/clients/application/client-memory"
 
@@ -34,22 +34,22 @@ function applyClientListFilterPatch(
   return { ...current, ...patch }
 }
 
-function buildClientListCounts(rows: ClientDetail[]): ClientListCounts {
+function buildClientListCounts(rows: ClientListEntry[]): ClientListCounts {
   return Object.fromEntries(
     FILTER_TABS.map((t) => [t.id, countFor(rows, t.id)])
   ) as ClientListCounts
 }
 
-function clientMatchesQuery(c: ClientDetail, query: string): boolean {
+function clientMatchesQuery(c: ClientListEntry, query: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true
   return c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
 }
 
 function filterClientRows(
-  rows: ClientDetail[],
+  rows: ClientListEntry[],
   filters: ClientListFilters
-): ClientDetail[] {
+): ClientListEntry[] {
   return rows.filter((c) => {
     if (!matchesFilter(c, filters.filter)) return false
     if (filters.cohort !== "All cohorts" && c.cohort !== filters.cohort) {
@@ -60,7 +60,7 @@ function filterClientRows(
 }
 
 function createClientListView(
-  sourceRows: ClientDetail[],
+  sourceRows: ClientListEntry[],
   filters: ClientListFilters = DEFAULT_CLIENT_LIST_FILTERS
 ) {
   const rows = filterClientRows(sourceRows, filters)
@@ -76,7 +76,7 @@ function createClientListView(
 
 function getNewClientSlugs(
   previousSlugs: ReadonlySet<string>,
-  nextRows: ClientDetail[]
+  nextRows: ClientListEntry[]
 ): Set<string> {
   const fresh = new Set<string>()
   for (const row of nextRows) {
@@ -85,7 +85,7 @@ function getNewClientSlugs(
   return fresh
 }
 
-function useClientListView(sourceRows: ClientDetail[]) {
+function useClientListView(sourceRows: ClientListEntry[]) {
   const [filters, setFilters] = React.useState<ClientListFilters>(
     DEFAULT_CLIENT_LIST_FILTERS
   )

@@ -1,5 +1,6 @@
 import { createClientSearchResult } from "@/features/clients/application/client-memory"
 import type {
+  ClientListRow,
   ClientProfile,
   ClientProperty,
   ClientReaderPort,
@@ -80,6 +81,62 @@ type ClientAttributeRow = {
   attribute_value: unknown
   source_id: string | null
   source?: { display_name: string | null } | null
+}
+
+const CLIENT_LIST_COLUMNS = `
+  id,
+  primary_email,
+  display_name,
+  slug,
+  status,
+  tags,
+  last_seen_at,
+  last_contacted_at,
+  updated_at,
+  do_not_contact,
+  sensitivity_level,
+  source_count,
+  max_timeline_sensitivity
+`
+
+type ClientListRowShape = {
+  id: string
+  primary_email: string
+  display_name: string
+  slug: string
+  status: string
+  tags: string[] | null
+  last_seen_at: string | null
+  last_contacted_at: string | null
+  updated_at: string
+  do_not_contact: boolean
+  sensitivity_level: number
+  source_count: number | null
+  max_timeline_sensitivity: number | null
+}
+
+type ClientListRowQuery = {
+  select(columns: string): ClientListRowQuery
+  eq(column: string, value: unknown): ClientListRowQuery
+  order(column: string, options?: unknown): QueryResult<ClientListRowShape[]>
+}
+
+function mapClientListRow(row: ClientListRowShape): ClientListRow {
+  return {
+    id: row.id,
+    primaryEmail: row.primary_email,
+    displayName: row.display_name,
+    slug: row.slug,
+    status: row.status,
+    tags: row.tags ?? [],
+    lastSeenAt: row.last_seen_at,
+    lastContactedAt: row.last_contacted_at,
+    updatedAt: row.updated_at,
+    doNotContact: row.do_not_contact,
+    sensitivityLevel: row.sensitivity_level,
+    sourceCount: row.source_count ?? 0,
+    maxTimelineSensitivity: row.max_timeline_sensitivity ?? 0,
+  }
 }
 
 type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
@@ -169,13 +226,17 @@ export function createSupabaseClientReader({
 }): ClientReaderPort {
   return {
     async listClients(workspaceId) {
-      const { data, error } = await baseClientQuery(client)
+      // The list reads the scalar view, not the profile projection: embedding
+      // every client's events and attributes is what forced the old 500 cap.
+      const { data, error } = await (
+        client.from("client_list_rows") as ClientListRowQuery
+      )
+        .select(CLIENT_LIST_COLUMNS)
         .eq("workspace_id", workspaceId)
         .order("last_seen_at", { ascending: false, nullsFirst: false })
-        .limit(500)
 
       if (error) throw new Error("Could not load clients", { cause: error })
-      return ((data ?? []) as ClientRow[]).map(mapClientRowToProfile)
+      return (data ?? []).map(mapClientListRow)
     },
 
     async getRecentClients(workspaceId, limit = 5) {

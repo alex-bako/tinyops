@@ -22,6 +22,22 @@ const clientRow = {
   timeline_events: [],
 }
 
+const listRow = {
+  id: "client_1",
+  primary_email: "anna@example.com",
+  display_name: "Anna Smith",
+  slug: "anna-smith",
+  status: "active",
+  tags: ["March cohort"],
+  last_seen_at: "2026-05-07T08:00:00.000Z",
+  last_contacted_at: "2026-05-07T08:00:00.000Z",
+  updated_at: "2026-05-07T08:00:00.000Z",
+  do_not_contact: false,
+  sensitivity_level: 0,
+  source_count: 3,
+  max_timeline_sensitivity: 0,
+}
+
 function queryChain(
   table: string,
   calls: unknown[],
@@ -58,6 +74,10 @@ function queryChain(
       calls.push({ table, method: "maybeSingle" })
       return Promise.resolve(result)
     },
+    // `listClients` ends its chain at `order`, so the chain itself is awaitable.
+    then(...args: Parameters<Promise<unknown>["then"]>) {
+      return Promise.resolve(result).then(...args)
+    },
   }
   return api
 }
@@ -68,7 +88,7 @@ describe("supabase client store", () => {
     const store = createSupabaseClientReader({
       client: {
         from(table: string) {
-          return queryChain(table, calls, { data: [clientRow], error: null })
+          return queryChain(table, calls, { data: [listRow], error: null })
         },
       } as never,
     })
@@ -79,16 +99,17 @@ describe("supabase client store", () => {
         primaryEmail: "anna@example.com",
         displayName: "Anna Smith",
         lastSeenAt: "2026-05-07T08:00:00.000Z",
+        sourceCount: 3,
       },
     ])
     expect(calls).toContainEqual({
-      table: "clients",
+      table: "client_list_rows",
       method: "eq",
       column: "workspace_id",
       value: "workspace_1",
     })
     expect(calls).toContainEqual({
-      table: "clients",
+      table: "client_list_rows",
       method: "order",
       column: "last_seen_at",
       options: { ascending: false, nullsFirst: false },
