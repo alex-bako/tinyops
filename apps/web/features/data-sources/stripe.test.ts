@@ -66,6 +66,31 @@ describe("Stripe records", () => {
     ])
   })
 
+  it("gives each Stripe object its own timeline event type", () => {
+    const kinds = [
+      ["customer", "system_event"],
+      ["charge", "payment"],
+      ["refund", "refund"],
+      ["dispute", "dispute"],
+      ["invoice", "invoice"],
+      ["subscription", "subscription"],
+    ] as const
+    for (const [kind, eventType] of kinds) {
+      const item = {
+        kind,
+        object: {
+          id: `x_${kind}`,
+          created: 1_700_000_000,
+          amount: 1000,
+          currency: "eur",
+        },
+      } as StripeObject
+      const record = buildStripeRecord({ ...context, item, email: "client@example.com" })
+      expect(record.eventType, kind).toBe(eventType)
+      expect(isValidNormalizedRecord(record), kind).toBe(true)
+    }
+  })
+
   it("resolves refunds and disputes through the expanded charge", () => {
     const refund: StripeObject = {
       kind: "refund",
