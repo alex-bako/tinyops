@@ -247,14 +247,14 @@ export function stripeRecordExternalId(item: StripeObject) {
  * One timeline event type per Stripe object, so a refund and a dispute can be
  * filtered apart rather than all reading as "payment".
  *
- * A customer carries `system_event` because the import itself is the only
+ * A customer carries `contact_added` because the import itself is the only
  * entry a customer with no billing activity in the sync window would get.
  */
 const STRIPE_EVENT_TYPE: Record<
   StripeObject["kind"],
   NormalizedConnectorRecord["eventType"]
 > = {
-  customer: "system_event",
+  customer: "contact_added",
   charge: "payment",
   refund: "refund",
   dispute: "dispute",

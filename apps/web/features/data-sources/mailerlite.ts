@@ -127,7 +127,7 @@ export function buildMailerLiteSubscriberRecord(
     // A subscriber is the only record type that exists for an account without
     // e-commerce or sent campaigns. Without an event the profile renders empty,
     // so the import itself is the timeline entry.
-    eventType: "system_event",
+    eventType: "contact_added",
     occurredAt:
       subscribedAt ??
       mailerLiteDate(subscriber.created_at) ??
@@ -135,7 +135,7 @@ export function buildMailerLiteSubscriberRecord(
     body: createQaTimelineEventBody(
       pairs([
         ["Status", status],
-        ["Groups", groups.join(", ")],
+        ["Groups", groups.join("\n")],
         ["Subscribed", subscribedAt],
       ])
     ),

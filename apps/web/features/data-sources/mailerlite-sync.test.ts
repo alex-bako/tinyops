@@ -71,7 +71,7 @@ describe("MailerLite connector", () => {
                 status: "active",
                 subscribed_at: "2026-02-01 10:00:00",
                 fields: { name: "Ann", last_name: "Lee", company: "Acme", city: null, plan_tier: "" },
-                groups: [{ id: "g1", name: "Paid · annual" }],
+                groups: [{ id: "g1", name: "Paid · annual" }, { id: "g2", name: "Webinar July" }],
               },
               { id: "sub_2", email: "not-an-email" },
             ],
@@ -89,17 +89,22 @@ describe("MailerLite connector", () => {
     expect(result.records[0]).toMatchObject({
       externalId: "mailerlite:subscriber:sub_1",
       recordType: "mailerlite_subscriber",
-      eventType: "system_event",
+      eventType: "contact_added",
       occurredAt: "2026-02-01T10:00:00.000Z",
       participants: [{ email: "ann@example.com", name: "Ann Lee", role: "external" }],
       identities: [{ type: "external_id", value: "sub_1" }],
       metadata: { title: "Subscribed to MailerLite", status: "active" },
     })
-    expect(result.records[0]?.body.text).toContain("Paid · annual")
+    // One group per line: a comma-joined run is unreadable past two or three.
+    expect(
+      result.records[0]?.body.blocks.find(
+        (block) => block.kind === "qa" && block.question === "Groups"
+      )
+    ).toMatchObject({ answer: "Paid · annual\nWebinar July" })
     expect(result.records[0]?.attributes).toEqual([
       { key: "mailerlite_subscriber_id", value: "sub_1", confidence: 1 },
       { key: "mailerlite_status", value: "active", confidence: 1 },
-      { key: "mailerlite_groups", value: ["Paid · annual"], confidence: 1 },
+      { key: "mailerlite_groups", value: ["Paid · annual", "Webinar July"], confidence: 1 },
       { key: "mailerlite_subscribed_at", value: "2026-02-01T10:00:00.000Z", confidence: 1 },
       { key: "mailerlite_field_company", value: "Acme", confidence: 1 },
     ])
