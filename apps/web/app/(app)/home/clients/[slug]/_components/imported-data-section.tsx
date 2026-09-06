@@ -1,3 +1,4 @@
+import { Badge } from "@workspace/ui/components/badge"
 import { Section, SectionHead } from "@workspace/ui/components/section"
 
 import type { ClientAttribute } from "@/features/clients/application/client-memory"
@@ -14,6 +15,26 @@ function formatValue(value: unknown): string {
 function formatKey(key: string): string {
   const words = key.replace(/[_-]+/g, " ").trim()
   return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
+/** An array value is a set of names, not a sentence; chips beat a comma run. */
+function AttributeValue({ value }: { value: unknown }) {
+  if (!Array.isArray(value) || value.length === 0) {
+    return <>{formatValue(value)}</>
+  }
+  return (
+    <span className="flex flex-wrap gap-1">
+      {value.map((item, index) => (
+        <Badge
+          key={`${formatValue(item)}-${index}`}
+          variant="tag"
+          className="whitespace-normal"
+        >
+          {formatValue(item)}
+        </Badge>
+      ))}
+    </span>
+  )
 }
 
 /**
@@ -46,7 +67,9 @@ export function ImportedDataSection({
             >
               {formatKey(attribute.key)}
             </dt>
-            <dd className="min-w-0 break-words">{formatValue(attribute.value)}</dd>
+            <dd className="min-w-0 break-words">
+              <AttributeValue value={attribute.value} />
+            </dd>
           </div>
         ))}
       </dl>
