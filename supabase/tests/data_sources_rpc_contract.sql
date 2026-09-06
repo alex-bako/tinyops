@@ -569,6 +569,100 @@ select pg_temp.assert_true(
   'claim owner can complete sync and clear the lease'
 );
 
+-- A failing source must not starve the queue: it used to keep the oldest
+-- requested_at, win every claim, and burn the whole cron batch.
+update public.data_source_sync_states
+set status = 'queued',
+    requested_at = '-infinity'::timestamptz,
+    sync_error_count = 0
+where source_id = current_setting('tinyops.source_id')::uuid;
+
+select lease_token as backoff_lease_token
+from public.claim_next_data_source_sync('worker_backoff', 120) \gset
+
+select public.fail_data_source_sync(
+  current_setting('tinyops.source_id')::uuid,
+  :'backoff_lease_token',
+  'imap_connection_failed'
+);
+
+select pg_temp.assert_true(
+  (
+    select status = 'error'
+      and sync_error_count = 1
+      and requested_at > now()
+    from public.data_source_sync_states
+    where source_id = current_setting('tinyops.source_id')::uuid
+  ),
+  'failing a sync defers the next attempt instead of keeping its queue slot'
+);
+
+-- Even sorted first by requested_at, a backed-off source stays unclaimable.
+select pg_temp.assert_true(
+  coalesce(
+    (
+      select source_id
+      from public.claim_next_data_source_sync('worker_backoff_2', 120)
+    ) <> current_setting('tinyops.source_id')::uuid,
+    true
+  ),
+  'a source inside its failure backoff is not claimed'
+);
+
+update public.data_source_sync_states
+set requested_at = '-infinity'::timestamptz
+where source_id = current_setting('tinyops.source_id')::uuid;
+
+select source_id as retried_source_id,
+       lease_token as retried_lease_token
+from public.claim_next_data_source_sync('worker_backoff_3', 120) \gset
+
+select pg_temp.assert_true(
+  :'retried_source_id'::uuid = current_setting('tinyops.source_id')::uuid,
+  'a source is claimed again once its backoff is due'
+);
+
+select public.complete_data_source_sync(
+  current_setting('tinyops.source_id')::uuid,
+  :'retried_lease_token',
+  '{"folders":{"INBOX":{"lastUid":11}}}'::jsonb,
+  false
+);
+
+select pg_temp.assert_true(
+  (
+    select sync_error_count = 0
+    from public.data_source_sync_states
+    where source_id = current_setting('tinyops.source_id')::uuid
+  ),
+  'a successful sync clears the failure backoff'
+);
+
+-- A worker that crashed mid-run leaves status 'running'; the expired lease must
+-- be reclaimable rather than stuck forever.
+update public.data_source_sync_states
+set status = 'running',
+    requested_at = '-infinity'::timestamptz,
+    lease_owner = 'dead_worker',
+    lease_token = 'dead-lease-token',
+    lease_expires_at = now() - interval '1 minute'
+where source_id = current_setting('tinyops.source_id')::uuid;
+
+select source_id as reclaimed_source_id
+from public.claim_next_data_source_sync('worker_reclaim', 120) \gset
+
+select pg_temp.assert_true(
+  :'reclaimed_source_id'::uuid = current_setting('tinyops.source_id')::uuid,
+  'an expired running lease is reclaimed from a crashed worker'
+);
+
+update public.data_source_sync_states
+set status = 'idle',
+    lease_owner = null,
+    lease_token = null,
+    lease_expires_at = null
+where source_id = current_setting('tinyops.source_id')::uuid;
+
 reset role;
 select pg_temp.as_user(
   '00000000-0000-4000-8000-000000000203',
