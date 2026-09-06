@@ -1,3 +1,4 @@
+import { createSupabaseImapRecipientLookup } from "@/features/data-sources/imap-recipient-lookup"
 import {
   createSupabaseClientIngestionWriter,
   type SupabaseClientIngestionWriterClient,
@@ -66,6 +67,7 @@ export function createDataSourceSyncRuntime() {
       createImapSourceSyncAdapter({
         dataSourceReader,
         imapCredentialReader,
+        recipientLookup: createSupabaseImapRecipientLookup({ client }),
         imapThreadIndexReader: createSupabaseImapThreadIndexReader({
           client: threadIndexClient,
         }),

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest"
+import type { ImapRecipientLookup } from "./imap-recipient-lookup"
+import { describe, expect, it, vi } from "vitest"
 
 import { createImapConnector } from "@/features/data-sources/imap-sync"
 import type { ImapDataSource } from "@/features/data-sources/types"
@@ -212,6 +213,7 @@ describe("IMAP sync connector", () => {
     const connector = createImapConnector({
       source: source(),
       password: "top-secret",
+      recipientLookup: async () => [],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: ["trauma"],
       ImapFlow: fakeImapFlow({
@@ -255,6 +257,7 @@ describe("IMAP sync connector", () => {
         },
       }),
       password: "top-secret",
+      recipientLookup: async () => [],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: ["trauma"],
       ImapFlow: fakeImapFlow({
@@ -291,6 +294,7 @@ describe("IMAP sync connector", () => {
     const connector = createImapConnector({
       source: source(),
       password: "top-secret",
+      recipientLookup: async () => [],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: [],
       ImapFlow: fakeImapFlow({
@@ -324,7 +328,7 @@ describe("IMAP sync connector", () => {
       ],
       skips: {
         skip_sender: 1,
-        unlinked_sent_message: 1,
+        no_known_recipient: 1,
       },
     })
     expect(JSON.stringify(result.diagnostics)).not.toContain("anna@example.com")
@@ -353,6 +357,7 @@ describe("IMAP sync connector", () => {
         },
       }),
       password: "top-secret",
+      recipientLookup: async () => ["anna@example.com", "priya@example.com"],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: [],
       ImapFlow: fakeImapFlowByFolder({
@@ -398,6 +403,7 @@ describe("IMAP sync connector", () => {
     const connector = createImapConnector({
       source: source(),
       password: "top-secret",
+      recipientLookup: async () => [],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: [],
       ImapFlow: fakeImapFlow({
@@ -450,6 +456,7 @@ describe("IMAP sync connector", () => {
         },
       }),
       password: "top-secret",
+      recipientLookup: async () => ["anna@example.com", "priya@example.com"],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: [],
       threadIndexReader: {
@@ -490,7 +497,7 @@ describe("IMAP sync connector", () => {
     })
   })
 
-  it("seeds an auto-detected Sent cursor without historical backfill", async () => {
+  it("imports historical Sent messages on a fresh connection", async () => {
     const connector = createImapConnector({
       source: source({
         folderSnapshot: {
@@ -501,6 +508,7 @@ describe("IMAP sync connector", () => {
         },
       }),
       password: "top-secret",
+      recipientLookup: async () => ["anna@example.com", "priya@example.com"],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: [],
       threadIndexReader: {
@@ -521,7 +529,8 @@ describe("IMAP sync connector", () => {
       limit: 10,
     })
 
-    expect(result.records).toEqual([])
+    expect(result.records).toHaveLength(1)
+    expect(result.records[0]?.eventType).toBe("email_sent")
     expect(result.cursor).toMatchObject({
       folders: {
         Sent: {
@@ -534,13 +543,13 @@ describe("IMAP sync connector", () => {
     expect(result.diagnostics).toMatchObject({
       folders: [
         expect.objectContaining({ path: "INBOX" }),
-        expect.objectContaining({ path: "Sent", accepted: 0, skipped: 0 }),
+        expect.objectContaining({ path: "Sent", accepted: 1, skipped: 0 }),
       ],
       sentFolders: ["Sent"],
     })
   })
 
-  it("does not import owner Sent messages by subject fallback", async () => {
+  it("imports new conversations to known clients without reply headers", async () => {
     const connector = createImapConnector({
       source: source({
         folderSnapshot: {
@@ -560,6 +569,7 @@ describe("IMAP sync connector", () => {
         },
       }),
       password: "top-secret",
+      recipientLookup: async () => ["anna@example.com", "priya@example.com"],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: [],
       threadIndexReader: {
@@ -580,9 +590,13 @@ describe("IMAP sync connector", () => {
       limit: 10,
     })
 
-    expect(result.records).toEqual([])
+    expect(result.records).toHaveLength(1)
+    expect(result.records[0]).toMatchObject({
+      eventType: "email_sent",
+      metadata: { imapThread: { importReason: "known_recipient" } },
+    })
     expect(result.diagnostics).toMatchObject({
-      skips: { unlinked_sent_message: 1 },
+      skips: {},
     })
   })
 
@@ -608,6 +622,7 @@ describe("IMAP sync connector", () => {
         },
       }),
       password: "top-secret",
+      recipientLookup: async () => ["anna@example.com", "priya@example.com"],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: ["trauma"],
       threadIndexReader: {
@@ -671,6 +686,7 @@ describe("IMAP sync connector", () => {
         },
       }),
       password: "top-secret",
+      recipientLookup: async () => [],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: [],
       ImapFlow: FakeImapFlow,
@@ -721,6 +737,7 @@ describe("IMAP sync connector", () => {
     const connector = createImapConnector({
       source: source(),
       password: "top-secret",
+      recipientLookup: async () => [],
       ownerEmails: ["owner@example.com"],
       manualReviewKeywords: [],
       ImapFlow: FailingImapFlow,
@@ -734,5 +751,212 @@ describe("IMAP sync connector", () => {
       })
     ).rejects.toThrow("imap_connection_failed")
     expect(calls).toEqual(["connect", "close"])
+  })
+})
+
+describe("incoming and outgoing IMAP messages", () => {
+  const input = { workspaceId: "workspace_1", sourceId: "source_1", limit: 10 }
+  function mailSource() {
+    return source({
+      intake: { ...source().intake, watchedFolders: ["Sent", "INBOX"] },
+      folderSnapshot: {
+        availableFolders: [
+          { path: "INBOX", messages: 1 },
+          { path: "Sent", messages: 3, specialUse: "\\Sent" },
+        ],
+      },
+    })
+  }
+  const messages = {
+    INBOX: { 11: rawThreadAnchorEmail },
+    Sent: {
+      21: rawOwnerThreadReplyEmail.replace(
+        "Subject: Re: Replay access",
+        "Subject: Replay access"
+      ),
+      22: rawOwnerUnlinkedSameSubjectEmail.replace(
+        "Subject: Re: Replay access",
+        "Subject: Replay access"
+      ),
+    },
+  }
+  function connector(
+    dataSource: ImapDataSource,
+    recipientLookup: ImapRecipientLookup = async () => ["anna@example.com"],
+    folders: Record<string, Record<number, string>> = messages
+  ) {
+    return createImapConnector({
+      source: dataSource,
+      password: "synthetic-password",
+      ownerEmails: ["owner@example.com"],
+      manualReviewKeywords: [],
+      recipientLookup,
+      ImapFlow: fakeImapFlowByFolder(folders),
+    })
+  }
+
+  it("persists watched history before Sent, then imports distinct replies and new conversations", async () => {
+    const dataSource = mailSource()
+    const original = structuredClone(dataSource)
+    const lookup = vi.fn(async () => ["anna@example.com"])
+    const incoming = await connector(dataSource, lookup).sync(input)
+    expect(incoming.records.map((record) => record.eventType)).toEqual([
+      "email_received",
+    ])
+    expect(incoming.truncated).toBe(true)
+    expect(lookup).not.toHaveBeenCalled()
+    expect(incoming.cursor).not.toHaveProperty("folders.Sent")
+    const nextSource = {
+      ...dataSource,
+      sync: {
+        ...dataSource.sync,
+        cursor: incoming.cursor as Record<string, unknown>,
+      },
+    }
+    const outgoing = await connector(nextSource, lookup).sync(input)
+    expect(outgoing.records.map((record) => record.eventType)).toEqual([
+      "email_sent",
+      "email_sent",
+    ])
+    expect(outgoing.records.map((record) => record.externalId)).toEqual([
+      "message:<owner-reply@example.com>",
+      "message:<owner-unlinked@example.com>",
+    ])
+    expect(outgoing.records.map((record) => record.occurredAt)).toEqual([
+      "2026-05-07T10:00:00.000Z",
+      "2026-05-07T11:00:00.000Z",
+    ])
+    expect(outgoing.records.map((record) => record.body.text)).toEqual([
+      "I resent the replay library link.",
+      "Same subject but no thread headers.",
+    ])
+    expect(lookup).toHaveBeenCalledWith({
+      workspaceId: "workspace_1",
+      emails: ["anna@example.com"],
+    })
+    const incremental = await connector({
+      ...dataSource,
+      sync: {
+        ...dataSource.sync,
+        cursor: outgoing.cursor as Record<string, unknown>,
+      },
+    }).sync(input)
+    expect(incremental.records).toEqual([])
+    expect(dataSource).toEqual(original)
+  })
+
+  it("does not reach Sent while a watched batch still has filtered-out history", async () => {
+    const result = await connector(mailSource(), undefined, {
+      ...messages,
+      INBOX: { 11: rawNoreplyEmail, 12: rawThreadAnchorEmail },
+    }).sync({ ...input, limit: 1 })
+    expect(result.records).toEqual([])
+    expect(result.truncated).toBe(true)
+    expect(result.cursor).not.toHaveProperty("folders.Sent")
+  })
+
+  it("retains only known To/Cc/Bcc recipients and excludes the owner", async () => {
+    const lookup = vi.fn(async () => [
+      "anna@example.com",
+      "cc@example.com",
+      "bcc@example.com",
+      "owner@example.com",
+    ])
+    const email = rawOwnerThreadReplyEmail.replace(
+      "To: Anna Smith <anna@example.com>",
+      "To: Anna <ANNA@example.com>, Unknown <unknown@example.com>, Owner <owner@example.com>\r\nCc: cc@example.com\r\nBcc: bcc@example.com"
+    )
+    const result = await connector(mailSource(), lookup, {
+      INBOX: {},
+      Sent: { 21: email },
+    }).sync(input)
+    expect(
+      result.records[0]?.participants.map((person) => person.email)
+    ).toEqual(["anna@example.com", "cc@example.com", "bcc@example.com"])
+    expect(lookup).toHaveBeenCalledWith({
+      workspaceId: "workspace_1",
+      emails: [
+        "anna@example.com",
+        "unknown@example.com",
+        "cc@example.com",
+        "bcc@example.com",
+      ],
+    })
+  })
+
+  it("skips unknown recipients, including linked replies, and advances bounded batches", async () => {
+    const dataSource = mailSource()
+    const first = await connector(dataSource, async () => [], {
+      ...messages,
+      INBOX: {},
+    }).sync({ ...input, limit: 1 })
+    expect(first.records).toEqual([])
+    expect(first.diagnostics).toMatchObject({
+      skips: { no_known_recipient: 1 },
+    })
+    expect(first.cursor).toMatchObject({ folders: { Sent: { lastUid: 21 } } })
+    expect(first.truncated).toBe(true)
+    const second = await connector(
+      {
+        ...dataSource,
+        sync: {
+          ...dataSource.sync,
+          cursor: first.cursor as Record<string, unknown>,
+        },
+      },
+      async () => [],
+      { ...messages, INBOX: {} }
+    ).sync(input)
+    expect(second.records).toEqual([])
+    expect(second.truncated).toBe(false)
+  })
+
+  it("preserves cursors on lookup failure and can retry the same message", async () => {
+    const dataSource = mailSource()
+    dataSource.sync.cursor = {
+      folders: {
+        INBOX: { uidValidity: "42", lastUid: 11 },
+        Sent: { uidValidity: "84", lastUid: 21 },
+      },
+    }
+    const original = structuredClone(dataSource)
+    await expect(
+      connector(dataSource, async () => {
+        throw new Error("lookup_failed")
+      }).sync(input)
+    ).rejects.toThrow("lookup_failed")
+    expect(dataSource).toEqual(original)
+    const retried = await connector(dataSource).sync(input)
+    expect(retried.records.map((record) => record.externalId)).toEqual([
+      "message:<owner-unlinked@example.com>",
+    ])
+  })
+
+  it("deduplicates repeated message IDs while keeping different same-subject messages", async () => {
+    const result = await connector(mailSource(), undefined, {
+      INBOX: {},
+      Sent: { 21: rawOwnerThreadReplyEmail, 22: rawOwnerThreadReplyEmail, 23: rawOwnerUnlinkedSameSubjectEmail },
+    }).sync(input)
+    expect(result.records.map((record) => record.externalId)).toEqual(["message:<owner-reply@example.com>", "message:<owner-unlinked@example.com>"])
+    expect(result.diagnostics).toMatchObject({ skips: { duplicate_message: 1 } })
+    expect(result.cursor).toMatchObject({ folders: { Sent: { lastUid: 23 } } })
+  })
+
+  it("rescans changed UID validity using stable message IDs for ingestion deduplication", async () => {
+    const dataSource = mailSource()
+    dataSource.sync.cursor = {
+      folders: {
+        INBOX: { uidValidity: "42", lastUid: 11 },
+        Sent: { uidValidity: "old", lastUid: 900 },
+      },
+    }
+    const result = await connector(dataSource).sync(input)
+    expect(result.records.map((record) => record.externalId)).toEqual([
+      "message:<owner-reply@example.com>",
+      "message:<owner-unlinked@example.com>",
+    ])
+    expect(result.cursor).toMatchObject({
+      folders: { Sent: { uidValidity: "84", lastUid: 22 } },
+    })
   })
 })

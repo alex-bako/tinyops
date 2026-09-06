@@ -4,6 +4,7 @@ import type {
   ConnectorIngestionInput,
   ConnectorIngestionPort,
 } from "@/features/clients/application/connector-ingestion"
+import type { ImapRecipientLookup } from "@/features/data-sources/imap-recipient-lookup"
 import { ownerEmailSet } from "@/features/data-sources/imap-message-facts"
 import {
   createImapThreadedSync,
@@ -28,6 +29,7 @@ export function createImapConnector({
   ownerEmails,
   manualReviewKeywords,
   threadIndexReader,
+  recipientLookup,
   ImapFlow: ImapFlowClient = ImapFlow as ImapFlowConstructor,
   now = new Date(),
   logger = createNoopLogger(),
@@ -37,6 +39,7 @@ export function createImapConnector({
   ownerEmails: string[]
   manualReviewKeywords: string[]
   threadIndexReader?: ImapThreadIndexReader
+  recipientLookup?: ImapRecipientLookup
   ImapFlow?: ImapFlowConstructor
   now?: Date
   logger?: LoggerPort
@@ -71,6 +74,7 @@ export function createImapConnector({
         ownerEmails: ownerEmailSet(source.connection.username, ownerEmails),
         manualReviewKeywords,
         threadIndexReader,
+        recipientLookup,
         now,
         logger: syncLogger,
       })

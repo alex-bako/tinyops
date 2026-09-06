@@ -194,6 +194,9 @@ function TimelineEventHeader({
           {source?.title ?? "Unknown source"}
         </Badge>
       ) : null}
+      {e.sourceType === "imap" && (e.type === "email" || e.type === "sent") ? (
+        <TimelineSrc className="normal-case">{e.type === "sent" ? "Sent" : "Received"}</TimelineSrc>
+      ) : null}
       {e.title && e.sensitive ? <TimelineSrc>sensitive</TimelineSrc> : null}
       {!notesOnEvents && noteCount > 0 ? (
         <button

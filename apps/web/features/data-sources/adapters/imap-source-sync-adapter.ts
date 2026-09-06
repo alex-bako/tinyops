@@ -1,3 +1,4 @@
+import type { ImapRecipientLookup } from "@/features/data-sources/imap-recipient-lookup"
 import type {
   ConnectorIngestionPort,
 } from "@/features/clients/application/connector-ingestion"
@@ -28,6 +29,7 @@ export function createImapSourceSyncAdapter({
   imapCredentialReader,
   connectorFactory,
   imapThreadIndexReader,
+  recipientLookup,
   manualReviewKeywordsForWorkspace = async () => [],
   logger = createNoopLogger(),
 }: {
@@ -35,6 +37,7 @@ export function createImapSourceSyncAdapter({
   imapCredentialReader: ImapSyncCredentialReader
   connectorFactory?: (input: ConnectorFactoryInput) => ConnectorIngestionPort
   imapThreadIndexReader?: ImapThreadIndexReader
+  recipientLookup?: ImapRecipientLookup
   manualReviewKeywordsForWorkspace?: (workspaceId: string) => Promise<string[]>
   logger?: LoggerPort
 }): SourceSyncAdapter {
@@ -47,6 +50,7 @@ export function createImapSourceSyncAdapter({
         ownerEmails: [source.connection.username],
         manualReviewKeywords,
         threadIndexReader: imapThreadIndexReader,
+        recipientLookup,
         logger: logger.child({
           component: "imap_source_sync_adapter",
           sourceId: source.id,

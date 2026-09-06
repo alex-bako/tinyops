@@ -1,8 +1,11 @@
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { imapTimelineFixture } from "@/features/clients/application/imap-timeline.fixtures"
+import { render, screen, within } from "@testing-library/react"
+import { describe, expect, it, vi } from "vitest"
 
 import { TimelineSection } from "./timeline-section"
 import type { ClientTimelineEventView } from "../_view-model"
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 
 const events: ClientTimelineEventView[] = [
   {
@@ -37,6 +40,37 @@ const events: ClientTimelineEventView[] = [
 ]
 
 describe("TimelineSection", () => {
+  it("keeps incoming messages and same-subject replies in separate cards with their own notes", () => {
+    const original = structuredClone(imapTimelineFixture)
+    const eventNotes = Object.fromEntries(imapTimelineFixture.map((event) => [event.eventKey, [{
+      id: `note-${event.eventKey}`,
+      text: `Note for ${event.eventKey}`,
+      dateLabel: "May 8",
+      occurredAt: "2026-05-08T08:00:00.000Z",
+      parentEventId: event.eventKey,
+      author: { name: "Test owner" },
+    }]]))
+    const { container } = render(<TimelineSection events={imapTimelineFixture} eventNotes={eventNotes} notesOnEvents />)
+    const cards = container.querySelectorAll('[data-slot="timeline-event"]')
+    expect(cards).toHaveLength(3)
+    imapTimelineFixture.forEach((event, index) => {
+      const card = within(cards[index] as HTMLElement)
+      expect(card.getByText(event.title)).toBeInTheDocument()
+      expect(card.getByText(event.date)).toBeInTheDocument()
+      for (const block of event.bodyItems) {
+        if (block.kind === "text") expect(card.getByText(block.text)).toBeInTheDocument()
+      }
+      expect(card.getByText(event.type === "sent" ? "Sent" : "Received")).toBeInTheDocument()
+      expect(card.getByText("IMAP mailbox")).toBeInTheDocument()
+      expect(card.getByText(`Note for ${event.eventKey}`)).toBeInTheDocument()
+      for (const other of imapTimelineFixture.filter((item) => item !== event)) {
+        expect(card.queryByText(`Note for ${other.eventKey}`)).not.toBeInTheDocument()
+      }
+    })
+    expect(screen.queryByText(/Submission \d/)).not.toBeInTheDocument()
+    expect(imapTimelineFixture).toEqual(original)
+  })
+
   it.each([
     ["stripe", "Stripe"],
     ["mailerlite", "MailerLite"],

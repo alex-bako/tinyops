@@ -3,7 +3,7 @@ export type ImapSkipReason =
   | "skip_sender"
   | "no_external_participant"
   | "filter_rejected"
-  | "unlinked_sent_message"
+  | "no_known_recipient"
   | "duplicate_message"
 
 export type ImapFolderDiagnostics = {

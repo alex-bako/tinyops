@@ -19,7 +19,7 @@ export {
 type ImapRecordThreadContext = {
   headers?: ImapThreadHeaders
   folderRole: "watched" | "sent"
-  importReason: "filter_anchor" | "thread_member" | "thread_reply"
+  importReason: "filter_anchor" | "thread_member" | "thread_reply" | "known_recipient"
   anchored: boolean
 }
 
