@@ -77,6 +77,7 @@ export type ClientRow = {
 }
 
 type ClientAttributeRow = {
+  id: string
   attribute_key: string
   attribute_value: unknown
   source_id: string | null
@@ -207,6 +208,7 @@ const CLIENT_COLUMNS = `
     position
   ),
   client_attributes (
+    id,
     attribute_key,
     attribute_value,
     source_id,
@@ -313,6 +315,7 @@ export function mapClientRowToProfile(row: ClientRow): ClientProfile {
       .map(mapClientPropertyRow)
       .sort((a, b) => a.position - b.position),
     attributes: (row.client_attributes ?? []).map((attribute) => ({
+      id: attribute.id,
       key: attribute.attribute_key,
       value: attribute.attribute_value,
       sourceName: attribute.source?.display_name ?? null,

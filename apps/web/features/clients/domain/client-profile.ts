@@ -179,6 +179,7 @@ export type ClientProfile = {
 
 /** A fact a connector wrote about a client (`client_attributes`). */
 export type ClientAttribute = {
+  id: string
   key: string
   value: unknown
   sourceName: string | null

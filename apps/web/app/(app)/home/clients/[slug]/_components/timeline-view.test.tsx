@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type {
@@ -6,6 +6,7 @@ import type {
   ClientTimelineEventView,
   TimelineEventNotesMap,
 } from "../_view-model"
+import { createNoteAction } from "../actions"
 import { TimelineView } from "./timeline-view"
 
 // EventNotes (rendered when "Notes on events" is on) reaches for these.
@@ -24,6 +25,7 @@ function eventView(
 ): ClientTimelineEventView {
   return {
     eventKey: "e_email",
+    sourceId: "source_1",
     sourceType: "imap",
     type: "email",
     date: "Mar 8",
@@ -76,7 +78,89 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
+const formSubmissions = [3, 2, 1].map((number) => eventView({
+  eventKey: `form_${number}`,
+  sourceType: "forms",
+  sourceId: "form_source",
+  type: "form",
+  title: `Form title ${number}`,
+  date: `Aug 25, 2026, 09:3${number} UTC`,
+  bodyItems: [{ kind: "qa", question: "Goal", answer: `Answer ${number}` }],
+  sensitive: number === 2,
+}))
+
 describe("TimelineView", () => {
+  it("browses grouped submissions without moving the card and defaults to a new submission", () => {
+    const input = [formSubmissions[0]!, eventView(), ...formSubmissions.slice(1)]
+    const { container, rerender } = renderView(input)
+    const card = screen.getByText("Form title 3").closest('[data-slot="timeline-event"]')
+    expect(container.querySelectorAll('[data-slot="timeline-event"]')).toHaveLength(2)
+    expect(screen.getByText("2 timeline items")).toBeInTheDocument()
+    expect(screen.getByRole("status")).toHaveTextContent("Submission 3 of 3 · Latest")
+    expect(screen.getByRole("button", { name: "Next submission" })).toBeDisabled()
+    fireEvent.click(screen.getByRole("button", { name: "Previous submission" }))
+    expect(screen.getByText("Answer 2")).toBeVisible()
+    expect(screen.getByText("Aug 25, 2026, 09:32 UTC")).toBeVisible()
+    expect(card).toHaveAttribute("data-sensitive", "true")
+    expect(container.querySelector('[data-slot="timeline-event"]')).toBe(card)
+    fireEvent.click(screen.getByRole("button", { name: "Previous submission" }))
+    expect(screen.getByRole("status")).toHaveTextContent("Submission 1 of 3")
+    expect(screen.getByRole("button", { name: "Previous submission" })).toBeDisabled()
+    expect(screen.getByText("Answer 1")).toBeVisible()
+    expect(card).not.toHaveAttribute("data-sensitive")
+    fireEvent.click(screen.getByRole("button", { name: "Next submission" }))
+    expect(screen.getByText("Answer 2")).toBeVisible()
+    const newest = { ...formSubmissions[0]!, eventKey: "form_4", title: "New submission" }
+    rerender(<TimelineView events={[newest, ...input]} eventNotes={{}} clientId="client_1" canManageNotes currentUserName="Jamie Park" />)
+    expect(screen.getByText("New submission")).toBeVisible()
+    expect(screen.getByRole("status")).toHaveTextContent("Submission 4 of 4 · Latest")
+    expect(container.querySelector('[data-slot="timeline-event"]')).toBe(card)
+  })
+
+  it("filters sensitive submissions before grouping and counts forms as one item", () => {
+    renderView(formSubmissions)
+    fireEvent.click(screen.getByRole("button", { name: /Hide sensitive/ }))
+    expect(screen.getByRole("status")).toHaveTextContent("Submission 2 of 2 · Latest")
+    fireEvent.click(screen.getByRole("button", { name: "Previous submission" }))
+    expect(screen.getByText("Answer 1")).toBeVisible()
+    expect(screen.queryByText("Answer 2")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Previous submission" })).toBeDisabled()
+    fireEvent.click(screen.getByRole("button", { name: /^Filter/ }))
+    const menu = screen.getByRole("dialog")
+    expect(within(menu).getByText("1")).toBeInTheDocument()
+    fireEvent.click(within(menu).getByRole("checkbox", { name: /Form/ }))
+    expect(screen.getByText("No events match the current filter.")).toBeVisible()
+  })
+
+  it("keeps note drafts, pending saves, and ownership isolated while stepping", async () => {
+    let finish!: (result: Awaited<ReturnType<typeof createNoteAction>>) => void
+    vi.mocked(createNoteAction).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve }))
+    renderView(formSubmissions, {
+      form_3: [{ ...pinnedNote, parentEventId: "form_3", text: "Newest note" }],
+      form_2: [{ ...pinnedNote, id: "n2", parentEventId: "form_2", text: "Older note" }],
+    })
+    fireEvent.click(screen.getByLabelText("Notes on events"))
+    expect(screen.getByText("Newest note")).toBeVisible()
+    expect(screen.getByText("Older note")).not.toBeVisible()
+    fireEvent.click(screen.getByRole("button", { name: "Add note to this event" }))
+    fireEvent.change(screen.getByRole("textbox", { name: "Add a note to this event" }), { target: { value: "Newest draft" } })
+    fireEvent.click(screen.getByRole("button", { name: "Previous submission" }))
+    expect(screen.getByText("Older note")).toBeVisible()
+    fireEvent.click(screen.getByRole("button", { name: "Add note to this event" }))
+    fireEvent.change(screen.getByRole("textbox", { name: "Add a note to this event" }), { target: { value: "Older draft" } })
+    fireEvent.click(screen.getByRole("button", { name: "Next submission" }))
+    expect(screen.getByRole("textbox", { name: "Add a note to this event" })).toHaveValue("Newest draft")
+    fireEvent.click(screen.getByRole("button", { name: "Save note" }))
+    expect(createNoteAction).toHaveBeenCalledWith({ clientId: "client_1", parentEventId: "form_3", text: "Newest draft" })
+    fireEvent.click(screen.getByRole("button", { name: "Previous submission" }))
+    expect(screen.getByRole("textbox", { name: "Add a note to this event" })).toHaveValue("Older draft")
+    expect(screen.getByText("Newest draft")).not.toBeVisible()
+    await act(async () => { finish({ data: { id: "saved-note", occurredAt: "2026-09-06T10:00:00Z" } }) })
+    fireEvent.click(screen.getByRole("button", { name: "Next submission" }))
+    expect(screen.getByText("Newest draft")).toBeVisible()
+    expect(createNoteAction).toHaveBeenCalledTimes(1)
+  })
+
   it("hides sensitive events when the eye toggle is engaged", () => {
     renderView([eventView(), SENSITIVE_FORM])
 

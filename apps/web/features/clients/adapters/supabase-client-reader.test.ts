@@ -19,6 +19,10 @@ const clientRow = {
   sensitivity_level: 0,
   created_at: "2026-02-10T00:00:00.000Z",
   updated_at: "2026-05-07T08:00:00.000Z",
+  client_attributes: [
+    { id: "attr_1", attribute_key: "Goal", attribute_value: "First", source_id: "source_1" },
+    { id: "attr_2", attribute_key: "Goal", attribute_value: "Second", source_id: "source_1" },
+  ],
   timeline_events: [
     {
       id: "event_newer",
@@ -84,6 +88,10 @@ describe("supabase client reader adapter", () => {
       reader.findClientBySlug({ workspaceId: "workspace_1", slug: "anna-smith" })
     ).resolves.toMatchObject({
       id: "client_1",
+      attributes: [
+        { id: "attr_1", key: "Goal", value: "First" },
+        { id: "attr_2", key: "Goal", value: "Second" },
+      ],
       timeline: [
         {
           id: "event_newer",
@@ -102,7 +110,7 @@ describe("supabase client reader adapter", () => {
         },
       ],
     })
-    expect(calls[0]).toMatchObject({ method: "select" })
+    expect(calls[0]).toMatchObject({ method: "select", columns: expect.stringMatching(/client_attributes\s*\(\s*id,/) })
     expect(JSON.stringify(calls[0])).toContain("timeline_events")
     expect(JSON.stringify(calls[0])).toContain("body")
     expect(JSON.stringify(calls[0])).toContain("source:data_sources")
