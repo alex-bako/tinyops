@@ -166,6 +166,17 @@ export type ClientProfile = {
   updatedAt: string
   timeline: ClientTimelineEvent[]
   properties: ClientProperty[]
+  /** Connector-ingested facts. Read-only, unlike the user-authored `properties`. */
+  attributes: ClientAttribute[]
+  /** Every data source this client came from, whether or not it produced events. */
+  sourceIds: string[]
+}
+
+/** A fact a connector wrote about a client (`client_attributes`). */
+export type ClientAttribute = {
+  key: string
+  value: unknown
+  sourceName: string | null
 }
 
 export type ClientSearchResult = {

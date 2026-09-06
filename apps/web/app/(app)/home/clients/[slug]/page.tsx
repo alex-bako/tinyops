@@ -17,6 +17,7 @@ import { clientProfileViewTransitionName } from "../_profile-routing"
 
 import { ClientAsk } from "./_components/client-ask"
 import { ClientHeader } from "./_components/client-header"
+import { ImportedDataSection } from "./_components/imported-data-section"
 import { MemoryCallout } from "./_components/memory-callout"
 import { NotesComposerProvider } from "./_components/notes-focus-context"
 import { NotesSurface } from "./_components/notes-section"
@@ -90,6 +91,8 @@ export default async function ClientDetailPage({
           initialProperties={view.properties}
           canManage={canManageProperties}
         />
+
+        <ImportedDataSection attributes={view.attributes} />
 
         <Section divider>
           <TimelineView

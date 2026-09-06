@@ -55,6 +55,8 @@ function profile(overrides: Partial<ClientProfile> = {}): ClientProfile {
     updatedAt: "2026-01-01T00:00:00.000Z",
     timeline: [event()],
     properties: [],
+    attributes: [],
+    sourceIds: [],
     ...overrides,
   }
 }
