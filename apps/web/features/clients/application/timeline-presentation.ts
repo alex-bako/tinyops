@@ -86,16 +86,29 @@ export function createTimelineEventView(
   event: ClientTimelineEvent
 ): ClientTimelineEventView {
   const sensitive = isSensitiveLevel(event.sensitivityLevel)
+  const date = formatImportedDate(event.occurredAt)
+  const blocks = event.body.blocks.filter((block) => {
+    if (event.sourceType !== "mailerlite" || event.type !== "added" || block.kind !== "qa") {
+      return true
+    }
+    if (block.question === "Status" && block.answer === "active") return false
+    return !(
+      block.question === "Subscribed" &&
+      date !== event.occurredAt &&
+      formatImportedDate(block.answer) !== block.answer &&
+      Date.parse(block.answer) === Date.parse(event.occurredAt)
+    )
+  })
   return {
     eventKey: event.id,
     sourceType: event.sourceType,
     type: event.type,
-    date: formatTimelineDate(event.occurredAt),
+    date: date || "Unknown",
     // Notes carry no subject line; the body is the content, so we suppress the
     // redundant "Manual note" heading and let the label distinguish them.
     title: event.type === "note" ? "" : event.display.title,
-    summary: event.display.summary,
-    bodyItems: event.body.blocks.map(toBodyItem),
+    summary: blocks.length < event.body.blocks.length ? "" : event.display.summary,
+    bodyItems: blocks.map(toBodyItem),
     sensitive,
     tone: TONE_OF[event.type],
     sourceLabel: `${LABEL_OF[event.type]}${sensitive ? " · sensitive" : ""}`,
