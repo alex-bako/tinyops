@@ -264,7 +264,9 @@ export function buildStripeRecord({
     sourceType: "stripe",
     externalId: stripeRecordExternalId(item),
     recordType: `stripe_${item.kind}`,
-    eventType: item.kind === "customer" ? null : "payment",
+    // A customer with no charge or invoice in the sync window would otherwise
+    // land with an empty timeline, so the import itself is the entry.
+    eventType: item.kind === "customer" ? "system_event" : "payment",
     occurredAt: new Date(detail.occurredAt * 1000).toISOString(),
     body:
       detail.pairs.length > 0
@@ -301,13 +303,22 @@ function describeStripeObject(item: StripeObject): StripeObjectDetail {
   const { kind, object } = item
   if (kind === "customer") {
     return {
-      title: "Stripe customer",
+      title: "Added as a Stripe customer",
       status: null,
       amount: null,
       currency: null,
       occurredAt: object.created ?? 0,
       name: object.name?.trim() || null,
-      pairs: [],
+      pairs: pairs([
+        ["Name", object.name],
+        ["Email", object.email],
+        [
+          "Customer since",
+          object.created
+            ? new Date(object.created * 1000).toISOString()
+            : null,
+        ],
+      ]),
       attributes: [
         { key: "stripe_customer_id", value: object.id, confidence: 1 },
         ...(object.created
