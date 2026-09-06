@@ -22,6 +22,8 @@ describe("source UI registry", () => {
 
   it("keeps source-specific visual facts in the UI registry", () => {
     expect(getSourceUi("imap").activity).toEqual([])
-    expect(getSourceUi("stripe").logoClassName).toContain("#635BFF")
+    expect(getSourceUi("stripe").logoClassName).toBe(
+      "bg-[var(--tint-hover)] text-foreground"
+    )
   })
 })
