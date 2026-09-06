@@ -56,6 +56,7 @@ const ANNA_DETAIL: Omit<ClientDetail, keyof Client | "slug" | "id"> = {
     confidence: 0.78,
     lastGenerated: "Generated 2h ago, from 9 events",
   },
+  attributes: [],
   properties: mockProps([
     {
       name: "Status",
@@ -303,6 +304,7 @@ function defaultDetail(c: Client): Omit<ClientDetail, keyof Client | "slug" | "i
       confidence: c.status === "active" ? 0.62 : 0.41,
       lastGenerated: `Generated 1d ago, from ${c.sources * 2 + 1} events`,
     },
+    attributes: [],
     properties: props,
     timeline: [
       {

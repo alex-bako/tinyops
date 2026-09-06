@@ -71,6 +71,15 @@ export type ClientRow = {
   updated_at: string
   timeline_events?: ClientTimelineEventRow[] | null
   client_properties?: ClientPropertyRow[] | null
+  client_attributes?: ClientAttributeRow[] | null
+  client_identities?: { source_id: string | null }[] | null
+}
+
+type ClientAttributeRow = {
+  attribute_key: string
+  attribute_value: unknown
+  source_id: string | null
+  source?: { display_name: string | null } | null
 }
 
 type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
@@ -139,6 +148,17 @@ const CLIENT_COLUMNS = `
     type,
     value,
     position
+  ),
+  client_attributes (
+    attribute_key,
+    attribute_value,
+    source_id,
+    source:data_sources (
+      display_name
+    )
+  ),
+  client_identities (
+    source_id
   )
 `
 
@@ -231,6 +251,21 @@ export function mapClientRowToProfile(row: ClientRow): ClientProfile {
     properties: (row.client_properties ?? [])
       .map(mapClientPropertyRow)
       .sort((a, b) => a.position - b.position),
+    attributes: (row.client_attributes ?? []).map((attribute) => ({
+      key: attribute.attribute_key,
+      value: attribute.attribute_value,
+      sourceName: attribute.source?.display_name ?? null,
+    })),
+    // Identities carry the source link for every client, including the ones a
+    // connector imported without emitting a timeline event.
+    sourceIds: [
+      ...new Set(
+        [
+          ...(row.client_identities ?? []).map((identity) => identity.source_id),
+          ...(row.client_attributes ?? []).map((attribute) => attribute.source_id),
+        ].filter((sourceId): sourceId is string => Boolean(sourceId))
+      ),
+    ],
   }
 }
 

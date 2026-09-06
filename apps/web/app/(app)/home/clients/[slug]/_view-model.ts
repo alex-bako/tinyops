@@ -6,6 +6,7 @@ import {
 } from "@/lib/client-state"
 import { partitionTimeline } from "@/features/clients/domain/timeline-grouping"
 import type {
+  ClientAttribute,
   ClientDetail,
   ClientMemory,
   ClientProperty,
@@ -39,6 +40,7 @@ type ClientDetailView = {
   header: ClientDetailHeaderView
   memory: ClientMemoryView
   properties: ClientProperty[]
+  attributes: ClientAttribute[]
   timeline: ClientTimelineEventView[]
   timelineCount: string
   notes: ClientNoteView[]
@@ -81,6 +83,7 @@ function createClientDetailView(client: ClientDetail): ClientDetailView {
     },
     memory: createMemoryView(client.memory),
     properties: client.properties,
+    attributes: client.attributes,
     timeline: createTimelineEventViews(sourceEvents),
     timelineCount: `${sourceEvents.length} events`,
     notes: standaloneNotes.map(createNoteView),

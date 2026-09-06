@@ -3,6 +3,7 @@ import {
   coerceClientStatus,
   sortTimelineEventsNewestFirst,
   type ClientFlag,
+  type ClientAttribute,
   type ClientProfile,
   type ClientProperty,
   type ClientPropertyValue,
@@ -20,6 +21,7 @@ export { type ClientFlag, type ClientSearchResult, type ClientStatus }
 // Property types live in the domain; re-exported here so existing UI imports
 // from `@/features/clients/application/client-memory` keep resolving.
 export type {
+  ClientAttribute,
   ClientProperty,
   ClientPropertyValue,
   PropertyIcon,
@@ -51,6 +53,7 @@ export type ClientDetail = Client & {
   location: string
   memory: ClientMemory
   properties: ClientProperty[]
+  attributes: ClientAttribute[]
   timeline: ClientTimelineEvent[]
 }
 
@@ -100,13 +103,20 @@ export function createWorkspaceClientMemoryRepository({
   }
 }
 
+/**
+ * Sources a client came from. Timeline events are not enough: a connector can
+ * import a client (identities, attributes) without emitting any event, and the
+ * list used to show 0 sources for every such client.
+ */
+function clientSourceCount(profile: ClientProfile): number {
+  return new Set([
+    ...profile.sourceIds,
+    ...profile.timeline.flatMap((event) => (event.sourceId ? [event.sourceId] : [])),
+  ]).size
+}
+
 export function createClientDetail(profile: ClientProfile): ClientDetail {
   const timeline = sortTimelineEventsNewestFirst(profile.timeline)
-  const sourceIds = new Set(
-    profile.timeline.flatMap((event) =>
-      event.sourceId ? [event.sourceId] : []
-    )
-  )
   const status = coerceClientStatus(profile.status, profile.doNotContact)
   const flags = clientFlagsFor({
     status,
@@ -129,7 +139,7 @@ export function createClientDetail(profile: ClientProfile): ClientDetail {
     email: profile.primaryEmail,
     cohort,
     status,
-    sources: sourceIds.size,
+    sources: clientSourceCount(profile),
     lastContact: formatDate(lastSeen),
     lastEvent: formatDate(lastSeen),
     flags,
@@ -148,6 +158,7 @@ export function createClientDetail(profile: ClientProfile): ClientDetail {
           : "Not generated yet",
     },
     properties: profile.properties,
+    attributes: profile.attributes,
     timeline,
   }
 }
@@ -155,18 +166,13 @@ export function createClientDetail(profile: ClientProfile): ClientDetail {
 export function createClientSearchResult(
   profile: ClientProfile
 ): ClientSearchResult {
-  const sourceIds = new Set(
-    profile.timeline.flatMap((event) =>
-      event.sourceId ? [event.sourceId] : []
-    )
-  )
   return {
     id: profile.id,
     slug: profile.slug,
     name: profile.displayName.trim() || profile.primaryEmail,
     email: profile.primaryEmail,
     lastInteractionAt: profile.lastContactedAt ?? profile.lastSeenAt,
-    sourceCount: sourceIds.size,
+    sourceCount: clientSourceCount(profile),
   }
 }
 
