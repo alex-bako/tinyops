@@ -33,6 +33,35 @@ const event = (
 })
 
 describe("timeline event presentation", () => {
+  it("formats timestamp answers without changing persisted data, prose, tags, or headers", () => {
+    const timestamp = "2026-09-06T04:37:26.000Z"
+    const source = event({
+      occurredAt: timestamp,
+      body: {
+        text: `Subscribed: ${timestamp}`,
+        blocks: [
+          { kind: "qa", question: "Subscribed", answer: timestamp },
+          { kind: "qa", question: "Offset", answer: "2026-09-06T00:37:26+02:00" },
+          { kind: "qa", question: "Invalid", answer: "2026-02-30T04:37:26.000Z" },
+          { kind: "qa", question: "ID", answer: "197834253867680809" },
+          { kind: "qa", question: "Phone", answer: "06702316693" },
+          { kind: "text", text: timestamp },
+          { kind: "tags", label: "Groups", values: [timestamp] },
+        ],
+      },
+    })
+    const original = structuredClone(source)
+    const view = createTimelineEventView(source)
+
+    expect(view.date).toBe("Sep 6")
+    expect(view.bodyItems).toEqual([
+      { kind: "qa", question: "Subscribed", answer: "Sep 6, 2026, 04:37 UTC" },
+      { kind: "qa", question: "Offset", answer: "Sep 5, 2026, 22:37 UTC" },
+      ...source.body.blocks.slice(2),
+    ])
+    expect(source).toEqual(original)
+  })
+
   it("uses persisted Timeline Event identity as the UI key", () => {
     expect(createTimelineEventView(event()).eventKey).toBe("event_1")
   })

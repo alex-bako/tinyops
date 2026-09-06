@@ -2,6 +2,7 @@ import { Badge } from "@workspace/ui/components/badge"
 import { Section, SectionHead } from "@workspace/ui/components/section"
 
 import type { ClientAttribute } from "@/features/clients/application/client-memory"
+import { formatImportedDate } from "@/features/clients/application/format-imported-date"
 
 /** Renders a jsonb attribute value; connectors store strings, numbers and arrays. */
 function formatValue(value: unknown): string {
@@ -20,7 +21,9 @@ function formatKey(key: string): string {
 /** An array value is a set of names, not a sentence; chips beat a comma run. */
 function AttributeValue({ value }: { value: unknown }) {
   if (!Array.isArray(value) || value.length === 0) {
-    return <>{formatValue(value)}</>
+    return (
+      <>{typeof value === "string" ? formatImportedDate(value) : formatValue(value)}</>
+    )
   }
   return (
     <span className="flex flex-wrap gap-1">
