@@ -70,6 +70,8 @@ function createClientListView(
     rows,
     total: sourceRows.length,
     empty: rows.length === 0,
+    // A workspace with no clients at all is a starting state, not a failed filter.
+    workspaceEmpty: sourceRows.length === 0,
     emptyMessage: CLIENT_LIST_EMPTY_MESSAGE,
   }
 }

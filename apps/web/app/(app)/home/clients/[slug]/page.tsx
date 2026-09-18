@@ -61,7 +61,7 @@ export default async function ClientDetailPage({
     <WorkspacePageSurface>
       <div className="mb-[18px]">
         <Button asChild variant="tertiary" size="sm">
-          <Link href="/home/clients">
+          <Link href="/home">
             <ArrowLeftIcon />
             Back to all clients
           </Link>

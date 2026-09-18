@@ -1,7 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { ChevronRightIcon, SearchXIcon } from "lucide-react"
+import {
+  ChevronRightIcon,
+  SearchXIcon,
+  UploadIcon,
+  UserPlusIcon,
+} from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -32,11 +37,13 @@ export function ClientsTable({
   rows,
   emptyMessage,
   onClear,
+  workspaceEmpty,
   newlyInsertedSlugs,
 }: {
   rows: ClientListEntry[]
   emptyMessage: string
   onClear: () => void
+  workspaceEmpty?: boolean
   newlyInsertedSlugs?: ReadonlySet<string>
 }) {
   const { navigate } = useNavigationProgress()
@@ -65,11 +72,27 @@ export function ClientsTable({
                   "flex items-center justify-center gap-2.5 px-3 py-9 text-[13px] text-muted-foreground"
                 )}
               >
-                <SearchXIcon className="size-4 text-muted-foreground/60" />
-                <span>{emptyMessage}</span>
-                <Button variant="tertiary" size="sm" onClick={onClear}>
-                  Clear filters
-                </Button>
+                {workspaceEmpty ? (
+                  <>
+                    <span>No clients yet.</span>
+                    <Button variant="secondary" size="sm">
+                      <UploadIcon />
+                      Import
+                    </Button>
+                    <Button variant="primary" size="sm">
+                      <UserPlusIcon />
+                      New client
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <SearchXIcon className="size-4 text-muted-foreground/60" />
+                    <span>{emptyMessage}</span>
+                    <Button variant="tertiary" size="sm" onClick={onClear}>
+                      Clear filters
+                    </Button>
+                  </>
+                )}
               </div>
             </td>
           </tr>
