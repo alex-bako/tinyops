@@ -1,4 +1,8 @@
-# Roadmap — workspace invites
+# Roadmap
+
+Two active threads. Each has its own feature PRD; the domain vocabulary is shared ([domain](../domain/DOMAIN.md)).
+
+## Workspace invites
 
 Direction: make inviting a real person into an existing workspace work end to end, reusing the invitation storage and RPCs that already exist. Source documents: [feature PRD](../product/workspace-invites.md), [domain vocabulary](../domain/DOMAIN.md).
 
@@ -21,3 +25,21 @@ Slice order inside M2:
 1. `M2.T1` Workspace list means memberships only — fixes the routing defect C1 and re-verifies INV-3.
 
 M2 depends on M1 (it corrects M1.T1's policy side effect). INV-13 is accepted by a manual check in the M2 exit gate; no code slice is planned for it because the switcher entry, form and RPC already exist (D2).
+
+## Onboarding input reliability
+
+Direction: make the first two minutes in the product work — derived fields that keep up with typing, and validation that reaches the person at the field instead of as one sentence on the last screen. Source documents: [feature PRD](../product/onboarding-input-reliability.md), [domain vocabulary](../domain/DOMAIN.md).
+
+| ID | Milestone | User outcome | Status | Depends on | Requirements |
+|----|-----------|--------------|--------|------------|--------------|
+| M3 | [Onboarding fields that keep up and speak up](milestones/M3.md) | A founder types a name and sees it filled in correctly, learns at the field that a handle is too short or already taken, and never meets an unexplained failure on the final screen. An invited member gets the same behavior when she creates her own workspace. | planned | none (M2's D2 path is the reason M3.T5 exists) | OBI-1 … OBI-12; OBI-11 and OBI-13 preserved as invariants |
+
+Slice order inside M3 (see the milestone document for gates and details):
+
+1. `M3.T1` Derived fields track their source — first slice; fixes the reported defect on its own.
+2. `M3.T2` One normalization rule and handle field errors.
+3. `M3.T3` Live availability check and suggestion.
+4. `M3.T4` Server validation failures reach their field.
+5. `M3.T5` Create-workspace form shares the same behavior.
+
+Dependencies are acyclic: T1 → none; T2 → none; T3 → T2; T4 → T2; T5 → T2, T3, T4. M3 exit needs all five.
