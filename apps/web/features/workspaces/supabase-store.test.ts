@@ -102,6 +102,54 @@ describe("supabase workspace store", () => {
     })
   })
 
+  it("drops workspaces the actor can read but is not a member of", async () => {
+    const row = (id: string, memberships: unknown[]) => ({
+      id,
+      name: id,
+      handle: id,
+      description: null,
+      icon_kind: "mark",
+      icon_letter: null,
+      icon_tone: "cobalt",
+      accent: "cobalt",
+      plan_tier: "Team",
+      plan_price: "$0 / alpha",
+      plan_seats: 5,
+      sensitivity_mode: "strict",
+      auto_send_threshold: "low-only",
+      manual_review_keywords: [],
+      exclude_from_outbound: false,
+      workspace_memberships: memberships,
+      workspace_invitations: [],
+    })
+    const client = {
+      from(table: string) {
+        return chain(table, [], {
+          data: [
+            row("mine", [
+              { id: "m1", user_id: "user_1", role: "operator", joined_at: null, last_active_at: null, profiles: null },
+            ]),
+            // Visible only through the invitee policy: no membership rows.
+            row("invited", []),
+          ],
+          error: null,
+        })
+      },
+      rpc() {
+        throw new Error("unexpected rpc call")
+      },
+    }
+
+    const store = createSupabaseWorkspaceStore({
+      client: client as never,
+      actorUserId: "user_1",
+    })
+
+    await expect(store.listWorkspaces()).resolves.toMatchObject([
+      { id: "mine", role: "operator" },
+    ])
+  })
+
   it("uses RPC for workspace lifecycle mutations", async () => {
     const calls: unknown[] = []
     const client = {
