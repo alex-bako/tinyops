@@ -1,4 +1,5 @@
 import { normalizeEmail } from "@/lib/auth/email"
+import { workspaceHandleForStore } from "@/features/workspaces/handle"
 import { resolveActiveWorkspaceId } from "@/features/workspaces/active-workspace"
 import {
   canChangeMemberRole,
@@ -224,7 +225,7 @@ export async function updateWorkspaceProfileForUser(
     patch.name = name
   }
   if (input.patch.handle !== undefined) {
-    patch.handle = slugify(input.patch.handle)
+    patch.handle = workspaceHandleForStore(input.patch.handle)
   }
   if (input.patch.description !== undefined) {
     patch.description = input.patch.description.trim()
@@ -315,16 +316,6 @@ export async function revokeWorkspaceInvitationForUser(
   }
 
   await store.revokeWorkspaceInvite(input.invitationId)
-}
-
-export function slugify(value: string) {
-  const slug = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-
-  return slug || "workspace"
 }
 
 function sanitizeSensitivityPatch(

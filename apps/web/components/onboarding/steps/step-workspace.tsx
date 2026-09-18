@@ -6,6 +6,11 @@ import { AVATAR_TONES, type AvatarTone } from "@workspace/ui/components/tonal-av
 import { WorkspaceIcon } from "@workspace/ui/components/workspace-icon"
 import { cn } from "@workspace/ui/lib/utils"
 
+import {
+  WORKSPACE_HANDLE_MESSAGES,
+  workspaceHandleIssue,
+} from "@/features/workspaces/handle"
+
 import type { StepProps } from "../types"
 
 const inputClass =
@@ -25,6 +30,14 @@ export function StepWorkspace({ data, set }: StepProps) {
     data.workspaceName[0] ||
     "T"
   ).toUpperCase()
+
+  // An untouched step says nothing. Once there is a name to derive from, an empty handle
+  // is a real dead end - Continue is unavailable and only this can say why.
+  const issue =
+    data.handle || data.workspaceName
+      ? workspaceHandleIssue(data.handle)
+      : null
+  const blocking = issue !== null && issue !== "at_max_length"
 
   return (
     <div className="flex w-full max-w-[520px] flex-col gap-6">
@@ -69,16 +82,26 @@ export function StepWorkspace({ data, set }: StepProps) {
             <input
               id="ob-handle"
               value={data.handle}
-              onChange={(e) =>
-                set({ handle: e.target.value.replace(/[^a-z0-9-]/g, "") })
-              }
+              onChange={(e) => set({ handle: e.target.value })}
+              aria-invalid={blocking || undefined}
+              aria-describedby="ob-handle-hint"
               placeholder="park-therapy"
               className="flex-1 border-0 bg-transparent px-3 py-2 font-mono text-[12.5px] text-foreground outline-none"
             />
           </div>
-          <span className="text-[12px] leading-[1.5] text-[rgba(15,23,42,0.55)]">
-            Used for shared links and SSO. Lowercase letters, numbers and
-            dashes only.
+          {/* One live region, always mounted: a role appearing together with the text it
+              carries is not reliably announced. */}
+          <span
+            id="ob-handle-hint"
+            role="status"
+            className={cn(
+              "text-[12px] leading-[1.5]",
+              blocking ? "text-coral-700" : "text-[rgba(15,23,42,0.55)]"
+            )}
+          >
+            {issue
+              ? WORKSPACE_HANDLE_MESSAGES[issue]
+              : "Used for shared links and SSO. Lowercase letters, numbers and dashes only."}
           </span>
         </div>
 

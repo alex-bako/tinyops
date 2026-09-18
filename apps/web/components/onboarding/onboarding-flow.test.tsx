@@ -290,4 +290,121 @@ describe("OnboardingFlow", () => {
     )
     expect(replace).toHaveBeenCalledWith("/home")
   })
+
+  // M3.T2 -----------------------------------------------------------------
+  // The handle field is the one place these rules are visible, so each case drives it
+  // the way a person does and reads back both the value and the message.
+
+  it("lowercases a typed handle instead of eating the capital", async () => {
+    render(<OnboardingFlow />)
+    await reachWorkspaceStep()
+
+    // The reported defect: the field's own `replace(/[^a-z0-9-]/g, "")` deleted `P`.
+    type(screen.getByLabelText("URL handle"), "Park")
+
+    expect(screen.getByLabelText("URL handle")).toHaveValue("park")
+  })
+
+  it("reports a too-short handle at its own field and holds Continue", async () => {
+    render(<OnboardingFlow />)
+    await reachWorkspaceStep()
+
+    type(screen.getByLabelText("Workspace name"), "Pa")
+
+    expect(screen.getByLabelText("URL handle")).toHaveValue("pa")
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "A handle needs at least 3 characters."
+    )
+    expect(screen.getByLabelText("URL handle")).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    )
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled()
+
+    // The name is not what is wrong, so nothing may appear on it.
+    expect(screen.getAllByRole("status")).toHaveLength(1)
+    expect(screen.getByRole("status")).toHaveAttribute("id", "ob-handle-hint")
+    expect(screen.getByLabelText("Workspace name")).not.toHaveAttribute(
+      "aria-invalid"
+    )
+  })
+
+  it("reports a trailing dash while it is being typed and holds Continue", async () => {
+    render(<OnboardingFlow />)
+    await reachWorkspaceStep()
+
+    // A name that is itself fine, so only the handle can be what blocks Continue.
+    type(screen.getByLabelText("Workspace name"), "Park Therapy")
+    type(screen.getByLabelText("URL handle"), "park-")
+
+    expect(screen.getByLabelText("URL handle")).toHaveValue("park-")
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "A handle cannot end with a dash."
+    )
+    expect(screen.getByLabelText("URL handle")).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    )
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled()
+
+    // ...and typing past it clears both, which is why the dash is kept at all.
+    type(screen.getByLabelText("URL handle"), "park-clinic")
+    expect(screen.getByLabelText("URL handle")).not.toHaveAttribute(
+      "aria-invalid"
+    )
+    expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+  })
+
+  it("caps a long name's handle and says so without blocking", async () => {
+    render(<OnboardingFlow />)
+    await reachWorkspaceStep()
+
+    type(screen.getByLabelText("Workspace name"), "x".repeat(70))
+
+    expect(screen.getByLabelText("URL handle")).toHaveValue("x".repeat(63))
+    expect(
+      screen.getByText("A handle is capped at 63 characters.")
+    ).toBeInTheDocument()
+    // Advisory, not an error: the handle is storable, so Continue stays available.
+    expect(screen.getByLabelText("URL handle")).not.toHaveAttribute(
+      "aria-invalid"
+    )
+    expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+  })
+
+  it("derives a clean handle from a name wrapped in dashes", async () => {
+    render(<OnboardingFlow />)
+    await reachWorkspaceStep()
+
+    // Derived, not typed: no dash may survive at either end (M3.T2 acceptance).
+    type(screen.getByLabelText("Workspace name"), "--park--")
+
+    expect(screen.getByLabelText("URL handle")).toHaveValue("park")
+    expect(screen.getByLabelText("URL handle")).not.toHaveAttribute(
+      "aria-invalid"
+    )
+    expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+  })
+
+  it("says a handle is required and keeps following the name after it is emptied", async () => {
+    render(<OnboardingFlow />)
+    await reachWorkspaceStep()
+
+    type(screen.getByLabelText("Workspace name"), "Park Therapy")
+    expect(screen.getByLabelText("URL handle")).toHaveValue("park-therapy")
+
+    // A lone dash sanitizes away to nothing. The field looks identical to a backspaced
+    // one, so it must behave identically: still empty, still explained, still derived.
+    fireEvent.change(screen.getByLabelText("URL handle"), {
+      target: { value: "-" },
+    })
+
+    expect(screen.getByLabelText("URL handle")).toHaveValue("")
+    expect(screen.getByRole("status")).toHaveTextContent("A handle is required.")
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled()
+
+    type(screen.getByLabelText("Workspace name"), "Park Clinic")
+    expect(screen.getByLabelText("URL handle")).toHaveValue("park-clinic")
+    expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+  })
 })

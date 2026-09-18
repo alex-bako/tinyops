@@ -11,7 +11,13 @@ import { completeOnboarding } from "@/app/onboarding/actions"
 import type { OnboardingCommand } from "@/features/onboarding/application"
 import { DEFAULT_SIGNED_IN_PATH } from "@/lib/auth/route-policy"
 
-import { INITIAL_DATA, QUOTES, VERTICALS, buildSteps, slugify } from "./data"
+import {
+  deriveWorkspaceHandle,
+  isValidWorkspaceHandle,
+  sanitizeWorkspaceHandleInput,
+} from "@/features/workspaces/handle"
+
+import { INITIAL_DATA, QUOTES, VERTICALS, buildSteps } from "./data"
 import { Quote } from "./quote"
 import { Stepper } from "./stepper"
 import { StepDone } from "./steps/step-done"
@@ -86,7 +92,8 @@ export function OnboardingFlow() {
         return !!data.vertical
       case "workspace":
         return (
-          data.workspaceName.trim().length > 0 && data.handle.trim().length > 0
+          data.workspaceName.trim().length > 0 &&
+          isValidWorkspaceHandle(data.handle)
         )
       case "sensitivity":
         return !!data.sensitivity
@@ -289,12 +296,20 @@ function onboardingFlowReducer(
     case "patch_data": {
       const data = { ...state.data, ...action.patch }
       const edited = { ...state.edited }
+      // The handle obeys the same rule wherever it comes from, so it is sanitized
+      // here rather than in the field - the field only reports what it holds.
+      if (typeof action.patch.handle === "string") {
+        data.handle = sanitizeWorkspaceHandleInput(action.patch.handle)
+      }
       // ponytail: derive here rather than in an effect. An effect that guards on the
       // field it writes ("only fill it while it is empty") fires exactly once - the
       // first keystroke. A field the person typed into stops following its source;
       // emptying it hands it back.
+      // Read the *sanitized* value, not the keystroke: typing "-" into an emptied handle
+      // field leaves the field empty, and marking it edited would strand it there with
+      // nothing to explain why the workspace name no longer fills it in.
       for (const key of Object.keys(action.patch) as (keyof OnboardingData)[]) {
-        edited[key] = action.patch[key] !== ""
+        edited[key] = data[key] !== ""
       }
       if (
         !edited.senderName &&
@@ -303,7 +318,9 @@ function onboardingFlowReducer(
         data.senderName = `${data.firstName} ${data.lastName}`.trim()
       }
       if ("workspaceName" in action.patch) {
-        if (!edited.handle) data.handle = slugify(data.workspaceName)
+        if (!edited.handle) {
+          data.handle = deriveWorkspaceHandle(data.workspaceName)
+        }
         if (!edited.iconLetter) {
           data.iconLetter = (data.workspaceName.trim()[0] ?? "").toUpperCase()
         }

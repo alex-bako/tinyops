@@ -11,7 +11,7 @@ import {
   buildImapConnectionConfig,
   buildImapFolderSnapshot,
 } from "@/features/data-sources/imap"
-import { slugify } from "@/features/workspaces/use-cases"
+import { normalizeWorkspaceHandle } from "@/features/workspaces/handle"
 import type {
   AutoSendThreshold,
   SensitivityMode,
@@ -260,8 +260,10 @@ function normalizeCommand({
   const workspaceName = command.workspaceName.trim()
   if (!workspaceName) return { error: "workspace_name_required" }
 
-  const handle = slugify(command.workspaceHandle || workspaceName)
-  if (handle.length < 3) return { error: "workspace_handle_required" }
+  const handle = normalizeWorkspaceHandle(
+    command.workspaceHandle || workspaceName
+  )
+  if (!handle) return { error: "workspace_handle_required" }
 
   if (!VERTICALS.has(command.vertical)) return { error: "invalid_vertical" }
   if (!SENSITIVITIES.has(command.sensitivity)) {

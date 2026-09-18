@@ -9,7 +9,6 @@ import {
   inviteWorkspaceMember,
   removeWorkspaceMemberForUser,
   revokeWorkspaceInvitationForUser,
-  slugify,
   updateWorkspaceProfileForUser,
   updateWorkspaceSensitivityForUser,
   type WorkspaceJoinProfile,
@@ -17,6 +16,9 @@ import {
   type WorkspaceActor,
   type WorkspaceStore,
 } from "@/features/workspaces/use-cases"
+import {
+  workspaceHandleForStore,
+} from "@/features/workspaces/handle"
 import type {
   WorkspaceFeatureData,
   WorkspaceRole,
@@ -145,7 +147,7 @@ export function createWorkspaceApplication({
 
       try {
         const name = input.name.trim()
-        const handle = slugify(input.handle || name)
+        const handle = workspaceHandleForStore(input.handle || name)
         const created = await store.createWorkspace({
           email: actor.email ?? "",
           name,
