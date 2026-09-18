@@ -50,7 +50,7 @@ export function StepInvite({ data, set }: StepProps) {
       <div className="flex flex-col gap-2">
         {data.invites.map((inv, i) => (
           <div
-            key={`${inv.email}:${inv.role}`}
+            key={i}
             className="grid grid-cols-[1fr_140px_28px] items-center gap-2"
           >
             <Input
