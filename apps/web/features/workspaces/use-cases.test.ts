@@ -408,18 +408,21 @@ describe("workspace use cases", () => {
     ])
   })
 
-  it("lets a too-short handle reach the database instead of renaming the workspace", async () => {
+  // M3.T5: a rename the database would refuse is refused here, by name. Neither of the
+  // two old answers was one a person could act on: a raw constraint violation, or - when
+  // nothing was left of the input at all - a live workspace silently renamed to
+  // "workspace", taking its shared links with it.
+  it.each(["ab", "!!!", ""])("refuses %j as a handle to rename to", async (handle) => {
     const fakeStore = store()
 
-    await updateWorkspaceProfileForUser(
-      { workspace: workspace(), patch: { handle: "ab" } },
-      fakeStore
-    )
+    await expect(
+      updateWorkspaceProfileForUser(
+        { workspace: workspace(), patch: { handle } },
+        fakeStore
+      )
+    ).rejects.toThrow("invalid_workspace_handle")
 
-    // "workspace" here would silently take over a live workspace's shared links.
-    expect(fakeStore.updates).toEqual([
-      ["profile", { workspaceId: "workspace_1", handle: "ab" }],
-    ])
+    expect(fakeStore.updates).toEqual([])
   })
 
   it("validates profile and sensitivity updates at the domain seam", async () => {

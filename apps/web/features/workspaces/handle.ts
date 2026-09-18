@@ -14,9 +14,6 @@
 export const HANDLE_MIN_LENGTH = 3
 export const HANDLE_MAX_LENGTH = 63
 
-/** What an unusable handle becomes on the paths that have always silently substituted one. */
-export const WORKSPACE_HANDLE_FALLBACK = "workspace"
-
 /**
  * For the handle *field*. A trailing dash survives because the person may be typing past
  * it - eating it mid-word makes `park-clinic` impossible to type. A leading dash does not,
@@ -61,26 +58,15 @@ function deriveForStore(value: string) {
 }
 
 /**
- * For storage, where a too-short handle is not storable: `""` rather than one the database
- * would reject, so callers can branch on falsiness alone.
+ * The one derivation for a value bound for storage, for every server path. A result the
+ * database would reject comes back as `""` rather than as a substitute: a handle nobody
+ * typed is a worse answer than being told the handle cannot be used, and every caller can
+ * branch on falsiness alone. Length is the only rejection it can report, because
+ * `deriveForStore` has already removed everything else the constraint would refuse.
  */
 export function normalizeWorkspaceHandle(value: string) {
   const handle = deriveForStore(value)
   return handle.length < HANDLE_MIN_LENGTH ? "" : handle
-}
-
-/**
- * For the two server paths that have always silently substituted a handle rather than
- * reporting one. Bug-for-bug with the `slugify` this replaced: a too-short result is
- * kept and reaches the check constraint, which rejects it loudly as it always has, and
- * the substitution happens only when nothing is left at all. So this does *not* return a
- * storable handle by construction - nothing may assume it does.
- *
- * ponytail: kept as-is on purpose. Turning the substitution into a field-level error
- * needs a new WorkspaceActionError value, which belongs with M3.T5.
- */
-export function workspaceHandleForStore(value: string) {
-  return deriveForStore(value) || WORKSPACE_HANDLE_FALLBACK
 }
 
 /** `at_max_length` is advisory; the rest block Continue. */
