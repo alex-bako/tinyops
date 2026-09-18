@@ -6,6 +6,8 @@ import {
   type OnboardingPersistenceInput,
 } from "@/features/onboarding/application"
 import type { DataSourceStore } from "@/features/data-sources/types"
+import { deriveWorkspaceHandle } from "@/features/workspaces/handle"
+import { HANDLE_TABLE } from "@/features/workspaces/handle-cases"
 
 const actor = {
   userId: "user_1",
@@ -241,5 +243,32 @@ describe("onboarding application", () => {
         },
       },
     ])
+  })
+
+  // M3.T2: the handle the person is shown and the handle the server stores are the same
+  // string, for the same input, or the run stops at validation - never a silent third
+  // value. Runs the one shared table so this cannot drift from handle.test.ts.
+  describe("agrees with the UI derivation over the shared input table", () => {
+    it.each(HANDLE_TABLE)("$input", async ({ input, handle }) => {
+      const h = harness()
+      const result = await h.app.complete(
+        baseCommand({ workspaceName: input, workspaceHandle: undefined })
+      )
+
+      if (!handle) {
+        expect(result).toEqual({
+          status: "validation_error",
+          error: input.trim()
+            ? "workspace_handle_required"
+            : "workspace_name_required",
+        })
+        expect(h.persisted).toEqual([])
+        return
+      }
+
+      expect(result).toMatchObject({ status: "completed" })
+      expect(h.persisted[0]?.workspace.handle).toBe(handle)
+      expect(h.persisted[0]?.workspace.handle).toBe(deriveWorkspaceHandle(input))
+    })
   })
 })

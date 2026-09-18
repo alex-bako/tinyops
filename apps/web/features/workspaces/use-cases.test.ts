@@ -392,6 +392,36 @@ describe("workspace use cases", () => {
     expect(fakeStore.workspaceInvites).toHaveLength(0)
   })
 
+  // M3.T2: the settings form resubmits the whole draft, so every save runs the handle
+  // through this seam - including saves that never touched the handle.
+  it("does not rewrite a handle the database already accepts", async () => {
+    const fakeStore = store()
+    const legacy = "y".repeat(64)
+
+    await updateWorkspaceProfileForUser(
+      { workspace: workspace(), patch: { name: "New Name", handle: legacy } },
+      fakeStore
+    )
+
+    expect(fakeStore.updates).toEqual([
+      ["profile", { workspaceId: "workspace_1", name: "New Name", handle: legacy }],
+    ])
+  })
+
+  it("lets a too-short handle reach the database instead of renaming the workspace", async () => {
+    const fakeStore = store()
+
+    await updateWorkspaceProfileForUser(
+      { workspace: workspace(), patch: { handle: "ab" } },
+      fakeStore
+    )
+
+    // "workspace" here would silently take over a live workspace's shared links.
+    expect(fakeStore.updates).toEqual([
+      ["profile", { workspaceId: "workspace_1", handle: "ab" }],
+    ])
+  })
+
   it("validates profile and sensitivity updates at the domain seam", async () => {
     const fakeStore = store()
     const current = workspace()

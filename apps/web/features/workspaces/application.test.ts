@@ -4,6 +4,8 @@ import { createWorkspaceApplication } from "@/features/workspaces/application"
 import type { ActiveWorkspaceStore } from "@/features/workspaces/active-workspace"
 import type { WorkspaceStore } from "@/features/workspaces/use-cases"
 import type { Workspace } from "@/features/workspaces/types"
+import { WORKSPACE_HANDLE_FALLBACK, deriveWorkspaceHandle } from "@/features/workspaces/handle"
+import { HANDLE_TABLE } from "@/features/workspaces/handle-cases"
 
 function workspace(id: string, patch: Partial<Workspace> = {}): Workspace {
   return {
@@ -309,4 +311,23 @@ describe("workspace application", () => {
       error: "invite_link_failed",
     })
   })
+
+  // M3.T2: same rule, same table as onboarding and the UI, with one deliberate
+  // difference below the 3-character minimum: onboarding rejects, while this path keeps
+  // its pre-T2 behaviour of passing the short handle to the database, which rejects it.
+  // Only an input with nothing left at all becomes "workspace". M3.T5 turns that into a
+  // field-level error.
+  it.each(HANDLE_TABLE)(
+    "derives the same handle as onboarding for $input",
+    async ({ input, handle }) => {
+      const { app } = harness([workspace("one")])
+
+      const result = await app.createWorkspace({ name: input })
+
+      const created = result.data?.workspaces.find((w) => w.id === "created")
+      expect(created?.handle).toBe(
+        handle || deriveWorkspaceHandle(input) || WORKSPACE_HANDLE_FALLBACK
+      )
+    }
+  )
 })

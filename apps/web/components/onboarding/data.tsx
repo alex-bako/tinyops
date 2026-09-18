@@ -232,15 +232,6 @@ export function buildSteps(data: OnboardingData): Step[] {
   return base
 }
 
-export function slugify(value: string) {
-  return (value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 32)
-}
-
 export const INITIAL_DATA: OnboardingData = {
   firstName: "",
   lastName: "",
