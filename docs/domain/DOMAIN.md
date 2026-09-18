@@ -1,6 +1,6 @@
-# Domain vocabulary — workspaces, invitations and workspace creation
+# Domain vocabulary — workspaces, invitations and the signed-in surfaces
 
-Scope: only the terms whose meaning matters for workspace membership, invitations, and the fields a person fills in when a workspace is created. Use these words in requirements, code, tests and UI copy.
+Scope: only the terms whose meaning matters for workspace membership, invitations, the fields a person fills in when a workspace is created, and what a signed-in person is shown. Use these words in requirements, code, tests and UI copy.
 
 ## Terms
 
@@ -25,6 +25,13 @@ Scope: only the terms whose meaning matters for workspace membership, invitation
 | **Invite link** | A one-time Supabase sign-in link for the invitee's address, either inside the invite email or copied from the Members page. Signs in that address only, then lands on the Join flow. | A public "anyone with the link" URL. It is address-bound and expires. |
 | **Join flow** | The screen an invitee lands on after signing in: shows pending invitations, asks for a name, and accepts one. | Onboarding, which creates a new workspace. |
 | **Onboarding** | The existing founder setup flow that creates a personal workspace. | The Join flow. |
+| **Home** | The workspace's landing surface at `/home`, where signing in, finishing onboarding and accepting an invitation all arrive. It **is** the client list, not a summary of it. | A dashboard. Home shows the clients themselves, not counts standing in for them. |
+| **Client** | A person the workspace knows about, identified by their primary email and addressed by a slug. One row in the client list, one profile at `/home/clients/<slug>`. | A member, who is a user of the workspace. Clients never sign in. |
+| **Client list** | Every client in the active workspace, one row each, uncapped, newest activity first. Read from the `client_list_rows` scalar view. | "Recently viewed", which was the five most recent and is not a list of the workspace. |
+| **Client search** | The single input at the top of Home. Narrows the client list under it as the person types, and offers to open an exact match directly. | A filter. Search is free text over the loaded rows; filters are the status tabs and cohort select. Both narrow the same list, and the same rows answer both. |
+| **Placeholder content** | UI rendered from values hardcoded in the source, with no workspace data behind it, and controls with no handler. It looks like a report about the workspace and is not one. | Mock data in `mock-data.ts`, which backs tests and the mock repository and never reaches a signed-in surface. |
+| **Navigation entry** | One row in the sidebar. It names a destination and goes there. | A label for an unbuilt feature. An entry with no destination is placeholder content wearing a nav row. |
+| **Empty workspace** | A workspace with no clients yet — what a founder sees immediately after onboarding. It is a starting state and is told what to do next. | An empty result, which is a list that has rows but none matching the current search or filters. |
 
 ## Invariants
 
@@ -44,6 +51,11 @@ Scope: only the terms whose meaning matters for workspace membership, invitation
 - A derived field follows its source until the person edits it, and never after. Being non-empty is not evidence that a person edited it.
 - Availability is advisory; the insert is the authority. A collision at insert is reported as a field error on the handle, not as a failed flow.
 - Every validation failure reaches the person as a field error on the step holding that field. No validation failure is reported for the first time on the final step.
+- No placeholder content is rendered on a signed-in surface. Everything shown is computed from the active workspace, and every control does what it says.
+- Every navigation entry leads to a real destination. A feature that does not exist yet has no sidebar row.
+- Home shows the client list. Reaching the workspace's clients never requires a click after signing in.
+- One search input per surface. Search and filters narrow the same loaded rows, so the two can never disagree about which clients exist.
+- An empty workspace and an empty result are different states and never share a message.
 
 ## Examples
 
@@ -60,6 +72,12 @@ Scope: only the terms whose meaning matters for workspace membership, invitation
 - The availability RPC is unreachable. The handle field says availability could not be checked, Continue stays available, and a real collision is still caught at submit.
 - Mia types `Park` into the handle field directly. It becomes `park`, not `ark`: normalization lowercases the `P` instead of discarding it.
 - Cara has an Auth account (allowlisted earlier) but never finished onboarding and has no membership; Ada invites her → after sign-in she gets the Join flow, not onboarding, and joins Ada's Studio as the same user (INV-11).
+- Ada signs in → Home shows "137 clients", the search bar, the status tabs, and 137 rows. She does not click anything to get there.
+- Ada types `mari` → the rows narrow to Mariko Tan and Marina Ruiz, and the dropdown offers "Open Mariko Tan's profile". Pressing Enter opens the profile; not pressing it leaves her with two rows to compare. One input did both.
+- Mia finishes onboarding and lands on Home with no clients → "No clients yet", with Import and New client. She is not told that nothing matches her filters, because she set none.
+- Ada searches `zzz` → "No clients match your search", with a way to clear it. Her workspace still has 137 clients, so this is not the empty-workspace message.
+- Ada opens an old `/home/clients` bookmark → she arrives at Home, which is that list. Nothing 404s, and no second copy of the list exists to drift from it.
+- "Tasks" showed a sidebar row with a count of `0` and no destination for every real workspace. It is not a feature in progress; it is placeholder content, and it is removed until Tasks exists.
 
 ## Boundaries
 
@@ -68,3 +86,5 @@ Scope: only the terms whose meaning matters for workspace membership, invitation
 - **Onboarding (`complete_onboarding`)** creates a founder's workspace and marks the profile onboarded. The Join flow reuses "mark onboarded" but not workspace creation.
 - **Handle normalization and availability** is one shared module under `apps/web/features/workspaces`, used by the onboarding flow, the create-workspace form and the server actions, plus one `security definer` RPC for the availability answer. No screen carries its own copy of the rule.
 - **Email delivery (hosted Supabase SMTP and templates)** is configuration outside the repo; the code treats send failures as a reportable, non-fatal outcome.
+- **Client reading (`client_list_rows`, the client reader port and its Supabase adapter)** decides what a workspace knows about its clients. Owned by `apps/web/features/clients`. The list is uncapped by design; the surfaces render it, they do not re-query it per keystroke.
+- **Signed-in navigation** is one definition under `apps/web/features/workspaces`, used by the sidebar, with breadcrumbs derived from the same route table in `apps/web/lib/navigation.ts`. No screen carries a second copy of the nav, and no route appears in one and not the other.
