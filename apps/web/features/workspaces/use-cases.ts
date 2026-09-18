@@ -1,5 +1,5 @@
 import { normalizeEmail } from "@/lib/auth/email"
-import { workspaceHandleForStore } from "@/features/workspaces/handle"
+import { normalizeWorkspaceHandle } from "@/features/workspaces/handle"
 import { resolveActiveWorkspaceId } from "@/features/workspaces/active-workspace"
 import {
   canChangeMemberRole,
@@ -225,7 +225,12 @@ export async function updateWorkspaceProfileForUser(
     patch.name = name
   }
   if (input.patch.handle !== undefined) {
-    patch.handle = workspaceHandleForStore(input.patch.handle)
+    // Same rule as create. A rename is where the substitution was worst: it renamed a
+    // live workspace on an unrelated settings save. A handle the database already holds
+    // survives this unchanged, cap and all (A6).
+    const handle = normalizeWorkspaceHandle(input.patch.handle)
+    if (!handle) throw new Error("invalid_workspace_handle")
+    patch.handle = handle
   }
   if (input.patch.description !== undefined) {
     patch.description = input.patch.description.trim()

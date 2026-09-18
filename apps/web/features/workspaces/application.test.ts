@@ -4,7 +4,7 @@ import { createWorkspaceApplication } from "@/features/workspaces/application"
 import type { ActiveWorkspaceStore } from "@/features/workspaces/active-workspace"
 import type { WorkspaceStore } from "@/features/workspaces/use-cases"
 import type { Workspace } from "@/features/workspaces/types"
-import { WORKSPACE_HANDLE_FALLBACK, deriveWorkspaceHandle } from "@/features/workspaces/handle"
+import { deriveWorkspaceHandle } from "@/features/workspaces/handle"
 import { HANDLE_TABLE } from "@/features/workspaces/handle-cases"
 
 function workspace(id: string, patch: Partial<Workspace> = {}): Workspace {
@@ -312,11 +312,9 @@ describe("workspace application", () => {
     })
   })
 
-  // M3.T2: same rule, same table as onboarding and the UI, with one deliberate
-  // difference below the 3-character minimum: onboarding rejects, while this path keeps
-  // its pre-T2 behaviour of passing the short handle to the database, which rejects it.
-  // Only an input with nothing left at all becomes "workspace". M3.T5 turns that into a
-  // field-level error.
+  // M3.T5: one rule, one table, no third answer anywhere. Where onboarding rejects, this
+  // path now rejects too, instead of storing a short handle for the database to refuse or
+  // renaming the workspace to "workspace".
   it.each(HANDLE_TABLE)(
     "derives the same handle as onboarding for $input",
     async ({ input, handle }) => {
@@ -324,10 +322,18 @@ describe("workspace application", () => {
 
       const result = await app.createWorkspace({ name: input })
 
+      if (!handle) {
+        expect(result).toEqual({
+          error: input.trim()
+            ? "invalid_workspace_handle"
+            : "invalid_workspace_name",
+        })
+        return
+      }
+
       const created = result.data?.workspaces.find((w) => w.id === "created")
-      expect(created?.handle).toBe(
-        handle || deriveWorkspaceHandle(input) || WORKSPACE_HANDLE_FALLBACK
-      )
+      expect(created?.handle).toBe(handle)
+      expect(created?.handle).toBe(deriveWorkspaceHandle(input))
     }
   )
 })

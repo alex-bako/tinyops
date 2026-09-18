@@ -5,10 +5,8 @@ import {
   HANDLE_MIN_LENGTH,
   deriveWorkspaceHandle,
   isValidWorkspaceHandle,
-  WORKSPACE_HANDLE_FALLBACK,
   normalizeWorkspaceHandle,
   sanitizeWorkspaceHandleInput,
-  workspaceHandleForStore,
   workspaceHandleIssue,
 } from "@/features/workspaces/handle"
 import { HANDLE_TABLE } from "@/features/workspaces/handle-cases"
@@ -114,38 +112,30 @@ describe("normalizeWorkspaceHandle", () => {
   })
 })
 
-describe("workspaceHandleForStore", () => {
+describe("normalizeWorkspaceHandle, the one rule for a stored handle", () => {
   it("does not apply the 63-character cap to a handle the database already holds", () => {
     // A 64-character handle predates the cap and is still valid. Capping it on an unrelated
-    // settings save would silently shorten a live workspace (A6). The cap is the *only*
-    // thing skipped - see the dash-collapse case below.
+    // settings save would silently shorten a live workspace (A6).
     const legacy = "y".repeat(64)
-    expect(workspaceHandleForStore(legacy)).toBe(legacy)
     expect(normalizeWorkspaceHandle(legacy)).toBe(legacy)
-    expect(workspaceHandleForStore("park-therapy")).toBe("park-therapy")
+    expect(normalizeWorkspaceHandle("park-therapy")).toBe("park-therapy")
   })
 
   it("collapses repeated dashes even in a handle the constraint would accept", () => {
-    // The constraint permits `ab--cd`; the `slugify` this replaced always collapsed it.
-    // Keeping it verbatim would store something the field itself could never produce.
-    expect(workspaceHandleForStore("ab--cd")).toBe("ab-cd")
-    expect(workspaceHandleForStore("a---------b")).toBe("a-b")
+    // The constraint permits `ab--cd`; keeping it verbatim would store something the
+    // field itself could never produce.
     expect(normalizeWorkspaceHandle("ab--cd")).toBe("ab-cd")
+    expect(normalizeWorkspaceHandle("a---------b")).toBe("a-b")
     expect(sanitizeWorkspaceHandleInput("ab--cd")).toBe("ab-cd")
   })
 
-  it("keeps a too-short handle rather than renaming the workspace", () => {
-    // The database rejects these, loudly, exactly as it did before this module existed.
-    // Substituting here would silently rename someone's workspace on a settings save.
-    expect(workspaceHandleForStore("ab")).toBe("ab")
-    expect(workspaceHandleForStore("Pa")).toBe("pa")
-    expect(workspaceHandleForStore("9")).toBe("9")
-  })
-
-  it("substitutes only when the input leaves nothing at all", () => {
-    expect(workspaceHandleForStore("!!!")).toBe(WORKSPACE_HANDLE_FALLBACK)
-    expect(workspaceHandleForStore("")).toBe(WORKSPACE_HANDLE_FALLBACK)
-    expect(workspaceHandleForStore("---")).toBe(WORKSPACE_HANDLE_FALLBACK)
+  // M3.T5: every unusable input has one answer - nothing - and each server path turns
+  // that into a named error. The old behaviour split them: too short reached the database
+  // and was rejected, while nothing-left-at-all was silently renamed to "workspace".
+  it("reports an unusable handle as nothing at all", () => {
+    for (const input of ["ab", "Pa", "9", "!!!", "", "---"]) {
+      expect(normalizeWorkspaceHandle(input)).toBe("")
+    }
   })
 })
 

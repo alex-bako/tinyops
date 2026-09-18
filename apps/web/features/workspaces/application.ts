@@ -16,9 +16,7 @@ import {
   type WorkspaceActor,
   type WorkspaceStore,
 } from "@/features/workspaces/use-cases"
-import {
-  workspaceHandleForStore,
-} from "@/features/workspaces/handle"
+import { normalizeWorkspaceHandle } from "@/features/workspaces/handle"
 import type {
   WorkspaceFeatureData,
   WorkspaceRole,
@@ -30,6 +28,8 @@ export type WorkspaceActionError =
   | "workspace_not_found"
   | "invalid_email"
   | "invalid_workspace_name"
+  | "invalid_workspace_handle"
+  | "workspace_handle_taken"
   | "owner_invite_forbidden"
   | "duplicate_invite"
   | "seat_limit_reached"
@@ -147,7 +147,12 @@ export function createWorkspaceApplication({
 
       try {
         const name = input.name.trim()
-        const handle = workspaceHandleForStore(input.handle || name)
+        if (!name) return { error: "invalid_workspace_name" }
+        // M3.T5: the handle this path stores is the one the form derived, or none. It
+        // used to substitute "workspace" for anything unusable, which named someone's
+        // workspace for them on the strength of a typo they were never shown.
+        const handle = normalizeWorkspaceHandle(input.handle || name)
+        if (!handle) return { error: "invalid_workspace_handle" }
         const created = await store.createWorkspace({
           email: actor.email ?? "",
           name,
@@ -455,6 +460,8 @@ const WORKSPACE_ACTION_ERRORS = new Set<WorkspaceActionError>([
   "workspace_not_found",
   "invalid_email",
   "invalid_workspace_name",
+  "invalid_workspace_handle",
+  "workspace_handle_taken",
   "owner_invite_forbidden",
   "duplicate_invite",
   "seat_limit_reached",

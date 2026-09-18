@@ -7,6 +7,7 @@ import {
   type WorkspaceMembershipRow,
   type WorkspaceRow,
 } from "@/features/workspaces/mappers"
+import { isWorkspaceHandleConflict } from "@/features/workspaces/handle-conflict"
 import type {
   WorkspaceInviteRecord,
   WorkspaceStore,
@@ -156,6 +157,12 @@ export function createSupabaseWorkspaceStore({
       })
 
       if (error) {
+        // Same reason as the onboarding store: this is the one create failure the
+        // person can act on, and the application seam can only route what it can tell
+        // apart from the six other 23505s this schema raises.
+        if (isWorkspaceHandleConflict(error)) {
+          throw new Error("workspace_handle_taken", { cause: error })
+        }
         throw new Error("Could not create workspace", { cause: error })
       }
 

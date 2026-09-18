@@ -272,6 +272,74 @@ describe("supabase workspace store", () => {
     ).rejects.toThrow("duplicate_invite")
   })
 
+  // M3.T5: the create path tells the one failure a person can act on apart from every
+  // other unique violation, by the same predicate the onboarding store uses.
+  it("names a handle the unique index refused", async () => {
+    const client = {
+      from(table: string) {
+        throw new Error(`unexpected table call: ${table}`)
+      },
+      rpc() {
+        return Promise.resolve({
+          data: null,
+          error: {
+            code: "23505",
+            message:
+              'duplicate key value violates unique constraint "workspaces_handle_key"',
+            details: "Key (handle)=(park-therapy) already exists.",
+            hint: null,
+          },
+        })
+      },
+    }
+    const store = createSupabaseWorkspaceStore({
+      client: client as never,
+      actorUserId: "user_1",
+    })
+
+    await expect(
+      store.createWorkspace({
+        email: "jamie@example.co",
+        name: "Park Therapy",
+        handle: "park-therapy",
+      })
+    ).rejects.toThrow("workspace_handle_taken")
+  })
+
+  it("leaves any other create failure as itself", async () => {
+    const client = {
+      from(table: string) {
+        throw new Error(`unexpected table call: ${table}`)
+      },
+      rpc() {
+        return Promise.resolve({
+          data: null,
+          // The same SQLSTATE, a different constraint. Reading the code alone would
+          // tell this person their handle was taken when it was not.
+          error: {
+            code: "23505",
+            message:
+              'duplicate key value violates unique constraint "workspace_memberships_pkey"',
+            details: null,
+            hint: null,
+          },
+        })
+      },
+    }
+    const store = createSupabaseWorkspaceStore({
+      client: client as never,
+      actorUserId: "user_1",
+    })
+
+    await expect(
+      store.createWorkspace({
+        email: "jamie@example.co",
+        name: "Park Therapy",
+        handle: "park-therapy",
+      })
+    ).rejects.toThrow("Could not create workspace")
+  })
+
   it("counts workspace clients with an exact head query", async () => {
     const calls: unknown[] = []
     const client = {
