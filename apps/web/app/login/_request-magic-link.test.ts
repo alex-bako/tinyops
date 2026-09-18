@@ -67,7 +67,7 @@ describe("requestMagicLinkWithDependencies", () => {
     expect(state.status).toBe("sent")
     expect(sendMagicLink).toHaveBeenCalledWith({
       email: "anna@example.co",
-      emailRedirectTo: "http://localhost:3000/auth/callback",
+      emailRedirectTo: "http://localhost:3000/auth/callback?next=%2Fhome",
     })
   })
 

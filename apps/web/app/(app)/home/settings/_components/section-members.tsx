@@ -1,7 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { InfoIcon, MailIcon, SendIcon, UserPlusIcon, XIcon } from "lucide-react"
+import {
+  InfoIcon,
+  LinkIcon,
+  MailIcon,
+  SendIcon,
+  UserPlusIcon,
+  XIcon,
+} from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
 import { Button } from "@workspace/ui/components/button"
@@ -39,6 +46,7 @@ export function SectionMembers({
   onChangeRole,
   onRemoveMember,
   onResendInvite,
+  onCopyInviteLink,
   onRevokeInvite,
   inviteNotice = null,
 }: {
@@ -47,6 +55,7 @@ export function SectionMembers({
   onChangeRole: (id: string, role: WorkspaceRole) => void
   onRemoveMember: (id: string) => void
   onResendInvite: (id: string) => void
+  onCopyInviteLink: (id: string) => void
   onRevokeInvite: (id: string) => void
   inviteNotice?: WorkspaceInviteNotice | null
 }) {
@@ -138,29 +147,30 @@ export function SectionMembers({
         ))}
       </div>
 
+      {inviteNotice ? (
+        <p
+          role="status"
+          className={cn(
+            "mt-5 text-[12.5px]",
+            inviteNotice.kind === "sent" || inviteNotice.kind === "link_copied"
+              ? "text-muted-foreground"
+              : "text-coral-700"
+          )}
+        >
+          {INVITE_NOTICE_COPY[inviteNotice.kind]}
+        </p>
+      ) : null}
+
       {inviteRows.length > 0 ? (
         <>
-          <div className="mb-3 mt-7 text-[12px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+          <div className="mb-3 mt-5 text-[12px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
             Pending invites
           </div>
-          {inviteNotice ? (
-            <p
-              role="status"
-              className={cn(
-                "mb-3 text-[12.5px]",
-                inviteNotice.kind === "sent"
-                  ? "text-muted-foreground"
-                  : "text-coral-700"
-              )}
-            >
-              {INVITE_NOTICE_COPY[inviteNotice.kind]}
-            </p>
-          ) : null}
           <div className="flex flex-col gap-1">
             {inviteRows.map((i) => (
               <div
                 key={i.id}
-                className="grid grid-cols-[24px_1fr_auto_auto_auto] items-center gap-2.5 rounded-md border border-border bg-[var(--tint-hover)] px-2.5 py-2"
+                className="grid grid-cols-[24px_1fr_auto_auto_auto_auto] items-center gap-2.5 rounded-md border border-border bg-[var(--tint-hover)] px-2.5 py-2"
               >
                 <MailIcon className="size-3.5 text-muted-foreground" />
                 <div className="flex min-w-0 flex-col leading-tight">
@@ -186,6 +196,15 @@ export function SectionMembers({
                 >
                   <SendIcon />
                   Resend
+                </Button>
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  disabled={!canManage}
+                  onClick={() => onCopyInviteLink(i.id)}
+                >
+                  <LinkIcon />
+                  Copy link
                 </Button>
                 <Button
                   variant="tertiary"
@@ -216,6 +235,7 @@ const INVITE_NOTICE_COPY: Record<WorkspaceInviteNotice["kind"], string> = {
   sent: "Invite email sent.",
   email_failed:
     "Invite saved, email not sent. Use Resend once email is configured.",
+  link_copied: "Invite link copied. It signs the invitee in, so share it only with them.",
   failed: "Something went wrong. Refresh and try again.",
 }
 

@@ -9,6 +9,7 @@ import {
   inviteWorkspaceMemberAction,
   removeMemberAction,
   resendWorkspaceInviteAction,
+  createWorkspaceInviteLinkAction,
   revokeWorkspaceInviteAction,
   switchWorkspaceAction,
   updateWorkspaceProfileAction,
@@ -34,6 +35,7 @@ type WorkspaceFeatureCommands = {
   removeMember: (memberId: string) => void
   acceptInvitation: (invitationId: string) => void
   resendInvitation: (invitationId: string) => void
+  copyInviteLink: (invitationId: string) => void
   revokeInvitation: (invitationId: string) => void
   archiveWorkspace: (workspaceId: string) => void
   updateSensitivity: (patch: Partial<WorkspaceSensitivity>) => void
@@ -41,7 +43,7 @@ type WorkspaceFeatureCommands = {
 
 // A fresh object per outcome so consumers can react to repeated outcomes.
 export type WorkspaceInviteNotice = {
-  kind: "sent" | "email_failed" | "failed"
+  kind: "sent" | "email_failed" | "link_copied" | "failed"
 }
 
 type WorkspaceFeatureContextValue = {
@@ -158,6 +160,22 @@ export function WorkspaceFeatureProvider({
             () => setInviteNotice({ kind: "failed" })
           )
         })
+      },
+      copyInviteLink(invitationId) {
+        // ponytail: no transition; the link never touches workspace state.
+        createWorkspaceInviteLinkAction(invitationId)
+          .then(async (result) => {
+            if (!result.link) throw new Error(result.error)
+            try {
+              await navigator.clipboard.writeText(result.link)
+              setInviteNotice({ kind: "link_copied" })
+            } catch {
+              // ponytail: Safari refuses clipboard writes after the server
+              // round-trip; a native prompt still lets the admin copy it.
+              window.prompt("Copy this invite link:", result.link)
+            }
+          })
+          .catch(() => setInviteNotice({ kind: "failed" }))
       },
       revokeInvitation(invitationId) {
         startTransition(() => {

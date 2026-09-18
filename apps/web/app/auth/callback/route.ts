@@ -18,6 +18,10 @@ export async function GET(request: NextRequest) {
       const { error } = await supabase.auth.exchangeCodeForSession(code)
       return { error }
     },
+    verifyOtp: async (input) => {
+      const { error } = await supabase.auth.verifyOtp(input)
+      return { error }
+    },
     getUser: async () => {
       const {
         data: { user },

@@ -45,6 +45,10 @@ export type WorkspaceActionError =
 
 export type WorkspaceActionWarning = "invite_email_failed"
 
+export type WorkspaceInviteLinkResult =
+  | { link: string; error?: never }
+  | { link?: never; error: WorkspaceActionError | "invite_link_failed" }
+
 export type WorkspaceActionResult =
   | { data: WorkspaceFeatureData; warning?: WorkspaceActionWarning; error?: never }
   | { data?: never; warning?: never; error: WorkspaceActionError }
@@ -243,6 +247,33 @@ export function createWorkspaceApplication({
 
         const fresh = await loadFreshData(workspace.id)
         return warning && fresh.data ? { ...fresh, warning } : fresh
+      } catch (error) {
+        return { error: mapWorkspaceActionError(error) }
+      }
+    },
+
+    // The link is a sign-in credential for the invitee, so it is only ever
+    // generated for the stored invitation email by an owner/admin (M1.T3).
+    async createInviteLink(
+      invitationId: string
+    ): Promise<WorkspaceInviteLinkResult> {
+      if (!actor) return { error: "not_authenticated" }
+      if (!mailer) return { error: "invite_link_failed" }
+
+      try {
+        const workspace = await loadWorkspaceContainingInvite(
+          actor,
+          store,
+          invitationId
+        )
+        if (!canManageMembers(workspace.role)) {
+          return { error: "invite_forbidden" }
+        }
+        const invite = workspace.invites.find(
+          (candidate) => candidate.id === invitationId
+        )!
+        const { link } = await mailer.createLink({ email: invite.email })
+        return link ? { link } : { error: "invite_link_failed" }
       } catch (error) {
         return { error: mapWorkspaceActionError(error) }
       }

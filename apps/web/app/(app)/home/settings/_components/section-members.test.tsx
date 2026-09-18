@@ -52,6 +52,7 @@ function renderMembers(
   props: Partial<React.ComponentProps<typeof SectionMembers>> = {}
 ) {
   const onResendInvite = vi.fn()
+  const onCopyInviteLink = vi.fn()
   render(
     <SectionMembers
       workspace={workspace("owner")}
@@ -59,6 +60,7 @@ function renderMembers(
       onChangeRole={vi.fn()}
       onRemoveMember={vi.fn()}
       onResendInvite={onResendInvite}
+      onCopyInviteLink={onCopyInviteLink}
       onRevokeInvite={vi.fn()}
       {...props}
     />
@@ -75,6 +77,7 @@ describe("SectionMembers invites", () => {
         onChangeRole={vi.fn()}
         onRemoveMember={vi.fn()}
         onResendInvite={onResendInvite}
+        onCopyInviteLink={vi.fn()}
         onRevokeInvite={vi.fn()}
         inviteNotice={null}
       />
@@ -92,6 +95,7 @@ describe("SectionMembers invites", () => {
         onChangeRole={vi.fn()}
         onRemoveMember={vi.fn()}
         onResendInvite={onResendInvite}
+        onCopyInviteLink={vi.fn()}
         onRevokeInvite={vi.fn()}
         inviteNotice={{ kind: "failed" }}
       />
@@ -108,9 +112,28 @@ describe("SectionMembers invites", () => {
     )
   })
 
-  it("does not let viewers resend", () => {
+  it("copies an invite link and confirms it", () => {
+    const onCopyInviteLink = vi.fn()
+    renderMembers({ onCopyInviteLink, inviteNotice: { kind: "link_copied" } })
+
+    fireEvent.click(screen.getByRole("button", { name: /copy link/i }))
+    expect(onCopyInviteLink).toHaveBeenCalledWith("invite_1")
+    expect(screen.getByRole("status")).toHaveTextContent("Invite link copied.")
+  })
+
+  it("shows the notice even without pending invites", () => {
+    renderMembers({
+      workspace: { ...workspace("owner"), invites: [] },
+      inviteNotice: { kind: "failed" },
+    })
+
+    expect(screen.getByRole("status")).toHaveTextContent("Something went wrong")
+  })
+
+  it("does not let viewers resend or copy links", () => {
     renderMembers({ workspace: workspace("viewer") })
 
     expect(screen.getByRole("button", { name: /resend/i })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /copy link/i })).toBeDisabled()
   })
 })
