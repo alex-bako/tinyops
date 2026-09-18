@@ -27,6 +27,8 @@ Scope: only the terms whose meaning matters for workspace membership and invitat
 - Creating an invitation never exceeds seats: members + pending < `plan_seats`.
 - Revoked or accepted invitations are inert: they cannot be accepted again, and an invite link for them leads to a neutral "no longer valid" message.
 - A user with pending invitations and no membership is routed to the Join flow, never forced through Onboarding. A user with at least one membership is never blocked by pending invitations.
+- "My workspaces" means memberships only. An invitee may read the name and icon of the workspace they are invited to, but that visibility is not a membership and must never route them as a member.
+- A member can own a workspace and belong to others at the same time; creating a workspace never requires Onboarding for an already onboarded profile.
 - Accepting marks the profile onboarded with the supplied name; no workspace is created.
 - Sending an email is best-effort: email failure never prevents the invitation from being saved.
 
@@ -36,6 +38,7 @@ Scope: only the terms whose meaning matters for workspace membership and invitat
 - VA clicks the link → signed in → Join flow shows "Ada's Studio · Operator" → enters name → Accept → active workspace is Ada's Studio, role operator, invitation accepted, seats used 2 of 5.
 - Ada revokes before VA clicks → VA's link signs them in, Join flow shows "This invite is no longer valid" and a way to sign out; nothing is created.
 - Ben already uses TinyOps for his own workspace and is invited by Ada → he gets a magic-link email; after sign-in he is not sent to Join (he has a membership) but sees Ada's Studio under Invitations in the switcher and can accept there. He stays one Auth user with two memberships; no second account or profile is created. He stays one Auth user with two memberships; no second account or profile is created.
+- Mia joined Ada's Studio as operator and six months later starts her own practice → switcher "Create or join a workspace" → name + handle → she now owns "Mia's Studio" and still switches back to Ada's Studio; no second account, no onboarding questions.
 - Cara has an Auth account (allowlisted earlier) but never finished onboarding and has no membership; Ada invites her → after sign-in she gets the Join flow, not onboarding, and joins Ada's Studio as the same user (INV-11).
 
 ## Boundaries
