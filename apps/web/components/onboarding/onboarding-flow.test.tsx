@@ -1,5 +1,5 @@
 import * as React from "react"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { completeOnboarding } from "@/app/onboarding/actions"
@@ -68,6 +68,13 @@ async function reachSourceStep() {
   fireEvent.click(screen.getByRole("button", { name: /continue/i }))
 
   await screen.findByText("Connect a data source")
+}
+
+async function reachDoneStep() {
+  await reachSourceStep()
+  fireEvent.click(screen.getByRole("button", { name: /Upload a CSV/i }))
+  fireEvent.click(screen.getByRole("button", { name: /continue/i }))
+  await screen.findByRole("button", { name: /Open TinyOps/i })
 }
 
 describe("OnboardingFlow", () => {
@@ -514,6 +521,237 @@ describe("OnboardingFlow", () => {
         await screen.findByText(/could not check whether that handle is free/i)
       ).toBeInTheDocument()
       expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+    })
+  })
+
+  // M3.T4 -----------------------------------------------------------------
+  // A rejection from the server is only useful where the offending answer is. These
+  // drive the whole flow to the end and read back where it lands (OBI-8).
+
+  describe("server rejections", () => {
+    it("returns a handle taken at submit to its own field and keeps every answer", async () => {
+      vi.mocked(completeOnboarding)
+        .mockResolvedValueOnce({
+          status: "validation_error",
+          error: "workspace_handle_taken",
+        })
+        .mockResolvedValueOnce({
+          status: "completed",
+          workspaceId: "workspace_1",
+        })
+
+      render(<OnboardingFlow />)
+      await reachDoneStep()
+      fireEvent.click(screen.getByRole("button", { name: /Open TinyOps/i }))
+
+      const handle = await screen.findByLabelText("URL handle")
+      expect(handle).toHaveValue("park-therapy")
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "That handle was just taken."
+      )
+      expect(handle).toHaveAttribute("aria-invalid", "true")
+      // Nothing under the finish button: this one has a field, so it does not also
+      // get the sentence meant for failures that have none.
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+
+      // The availability answer that let this through is still "free" and always will
+      // be - the handle has not changed, so nothing re-asks. Only the server knows.
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled()
+      )
+
+      type(handle, "park-therapy-2")
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+      )
+
+      fireEvent.click(screen.getByRole("button", { name: /continue/i }))
+      fireEvent.click(await screen.findByRole("button", { name: /continue/i }))
+      fireEvent.click(await screen.findByRole("button", { name: /continue/i }))
+      fireEvent.click(
+        await screen.findByRole("button", { name: /Open TinyOps/i })
+      )
+
+      await waitFor(() => expect(completeOnboarding).toHaveBeenCalledTimes(2))
+      // Every answer given before the rejection is still the answer. Only the handle
+      // the server refused is different.
+      const [first] = vi.mocked(completeOnboarding).mock.calls[0]!
+      const [second] = vi.mocked(completeOnboarding).mock.calls[1]!
+      expect(second).toEqual({ ...first, workspaceHandle: "park-therapy-2" })
+      expect(replace).toHaveBeenCalledWith("/home")
+    })
+
+    it("returns a missing first name to the Name step", async () => {
+      vi.mocked(completeOnboarding).mockResolvedValue({
+        status: "validation_error",
+        error: "first_name_required",
+      })
+
+      render(<OnboardingFlow />)
+      await reachDoneStep()
+      fireEvent.click(screen.getByRole("button", { name: /Open TinyOps/i }))
+
+      const firstName = await screen.findByLabelText("First name")
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Enter your first name."
+      )
+      expect(firstName).toHaveAttribute("aria-invalid", "true")
+      // Two steps back, and the answer it is complaining about is still there to fix.
+      expect(firstName).toHaveValue("Jamie")
+      expect(screen.getByLabelText("How clients know you")).toHaveValue(
+        "Jamie at Park Therapy"
+      )
+    })
+
+    it("clears the rejection when the value it names changes, however it changes", async () => {
+      vi.mocked(completeOnboarding).mockResolvedValue({
+        status: "validation_error",
+        error: "workspace_handle_taken",
+      })
+
+      render(<OnboardingFlow />)
+      await reachDoneStep()
+      fireEvent.click(screen.getByRole("button", { name: /Open TinyOps/i }))
+
+      await screen.findByLabelText("URL handle")
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "That handle was just taken."
+      )
+
+      // The workspace name still feeds the handle here, so editing it hands the person
+      // a handle the server has never seen - and the old answer no longer applies to it.
+      type(screen.getByLabelText("Workspace name"), "Park Therapy North")
+      expect(screen.getByLabelText("URL handle")).toHaveValue(
+        "park-therapy-north"
+      )
+      expect(screen.getByRole("status")).not.toHaveTextContent(
+        "That handle was just taken."
+      )
+    })
+
+    it("keeps a rejection while a different field is edited", async () => {
+      vi.mocked(completeOnboarding).mockResolvedValue({
+        status: "validation_error",
+        error: "first_name_required",
+      })
+
+      render(<OnboardingFlow />)
+      await reachDoneStep()
+      fireEvent.click(screen.getByRole("button", { name: /Open TinyOps/i }))
+
+      await screen.findByLabelText("First name")
+      // The last name derives the sender name, not the first name. Nothing the server
+      // complained about has changed.
+      type(screen.getByLabelText("Last name"), "Parker")
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Enter your first name."
+      )
+
+      type(screen.getByLabelText("First name"), "Jamie Lee")
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    })
+
+    it("keeps one sentence under the finish button for a failure with no field", async () => {
+      vi.mocked(completeOnboarding).mockResolvedValue({
+        status: "validation_error",
+        error: "onboarding_failed",
+      })
+
+      render(<OnboardingFlow />)
+      await reachDoneStep()
+      fireEvent.click(screen.getByRole("button", { name: /Open TinyOps/i }))
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Onboarding could not be completed."
+      )
+      // Still on the last step: there is nowhere better to send anyone.
+      expect(
+        screen.getByRole("button", { name: /Open TinyOps/i })
+      ).toBeInTheDocument()
+    })
+
+    it("brings the rejection back when the refused value is typed back", async () => {
+      vi.mocked(completeOnboarding).mockResolvedValue({
+        status: "validation_error",
+        error: "workspace_handle_taken",
+      })
+
+      render(<OnboardingFlow />)
+      await reachDoneStep()
+      fireEvent.click(screen.getByRole("button", { name: /Open TinyOps/i }))
+
+      const handle = await screen.findByLabelText("URL handle")
+      type(handle, "park-therapy-2")
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+      )
+
+      // Back to the exact handle the server refused. Availability was told "free" before
+      // the collision and has no reason to re-ask, so the server's answer is the only
+      // thing standing between this and submitting it again.
+      type(handle, "park-therapy")
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "That handle was just taken."
+      )
+      expect(handle).toHaveAttribute("aria-invalid", "true")
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled()
+      )
+    })
+
+    it("will not let the answers change while they are in flight", async () => {
+      let release: (value: { status: "validation_error"; error: "first_name_required" }) => void
+      vi.mocked(completeOnboarding).mockReturnValue(
+        new Promise((resolve) => {
+          release = resolve as typeof release
+        })
+      )
+
+      render(<OnboardingFlow />)
+      await reachDoneStep()
+      fireEvent.click(screen.getByRole("button", { name: /Open TinyOps/i }))
+
+      // Going back here would let someone edit a value that has already been sent. The
+      // server's answer is about what it was given, so it would land on a form that has
+      // moved on: routed and focused, but with nothing to show.
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /back/i })).toBeDisabled()
+      )
+
+      // The answer arrives from outside React, so `act` is what says when it has been
+      // dealt with: the reply, the re-render and the effect that moves focus are all
+      // finished when it returns. Waiting for the field to appear instead would settle
+      // on the render and race the effect behind it.
+      await act(async () => {
+        release!({ status: "validation_error", error: "first_name_required" })
+      })
+
+      const firstName = screen.getByLabelText("First name")
+      expect(firstName).toHaveFocus()
+      expect(screen.getByRole("alert")).toHaveTextContent("Enter your first name.")
+    })
+
+    it("puts focus on the field it sent the person back to", async () => {
+      vi.mocked(completeOnboarding).mockResolvedValue({
+        status: "validation_error",
+        error: "first_name_required",
+      })
+
+      render(<OnboardingFlow />)
+      await reachDoneStep()
+      fireEvent.click(screen.getByRole("button", { name: /Open TinyOps/i }))
+
+      // Without this the person is moved two steps back with focus on a button that no
+      // longer exists, and the message is only on screen for those who can see it.
+      // No waitFor: findBy* has already flushed the effect that moves focus, so this is
+      // a settled fact by now. Polling for it only adds a deadline to miss on a loaded
+      // machine.
+      const firstName = await screen.findByLabelText("First name")
+      expect(firstName).toHaveFocus()
+      expect(firstName).toHaveAttribute(
+        "aria-describedby",
+        expect.stringContaining("ob-first-name-error")
+      )
     })
   })
 })

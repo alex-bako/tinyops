@@ -111,6 +111,7 @@ export type OnboardingValidationError =
   | "invalid_invite_email"
   | "invalid_invite_role"
   | "invalid_imap_config"
+  | "workspace_handle_taken"
   | "onboarding_failed"
 
 export type OnboardingResult =
@@ -204,8 +205,16 @@ export function createOnboardingApplication({
       let completed: { workspaceId: string }
       try {
         completed = await store.completeOnboarding(normalized.input)
-      } catch {
-        return { status: "validation_error", error: "onboarding_failed" }
+      } catch (error) {
+        // A handle taken between the availability answer and this write is the one
+        // store failure that names a field, so it is the one that survives with a
+        // name. Anything else is unattributable and stays the generic failure.
+        return {
+          status: "validation_error",
+          error: isWorkspaceHandleTakenError(error)
+            ? "workspace_handle_taken"
+            : "onboarding_failed",
+        }
       }
 
       // ponytail: best effort. The invitation rows are already saved, so a
@@ -341,4 +350,8 @@ function sensitivityDefaults(
 
 function isInvalidImapConfigError(error: unknown) {
   return error instanceof Error && error.message === "invalid_imap_config"
+}
+
+function isWorkspaceHandleTakenError(error: unknown) {
+  return error instanceof Error && error.message === "workspace_handle_taken"
 }

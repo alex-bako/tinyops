@@ -4,6 +4,7 @@ import type {
   OnboardingPersistenceInput,
   OnboardingStore,
 } from "@/features/onboarding/application"
+import { isWorkspaceHandleConflict } from "@/features/workspaces/handle-conflict"
 import type { Database } from "@/lib/database.types"
 
 type OnboardingSupabaseClient = Pick<SupabaseClient<Database>, "rpc">
@@ -40,7 +41,15 @@ export function createSupabaseOnboardingStore({
         invite_roles: input.invites.map((invite) => invite.role),
       })
 
-      if (error) throw new Error(error.message, { cause: error })
+      if (error) {
+        // Named here rather than left as Postgres' own sentence, because this is the
+        // one failure the person can do something about and the application seam can
+        // only route what it can tell apart.
+        if (isWorkspaceHandleConflict(error)) {
+          throw new Error("workspace_handle_taken", { cause: error })
+        }
+        throw new Error(error.message, { cause: error })
+      }
 
       return { workspaceId: String(data) }
     },

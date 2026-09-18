@@ -6,7 +6,10 @@ import type { StepProps } from "../types"
 const inputClass =
   "h-9 rounded-sm border-[rgba(15,23,42,0.16)] bg-card px-3 text-[14px] text-foreground placeholder:text-[rgba(15,23,42,0.3)] focus-visible:border-cobalt-500 focus-visible:ring-cobalt-500/[0.12]"
 
-export function StepName({ data, set }: StepProps) {
+export function StepName({ data, set, fieldError }: StepProps) {
+  const firstNameError =
+    fieldError?.field === "firstName" ? fieldError.message : null
+
   return (
     <div className="flex w-full max-w-[520px] flex-col gap-6">
       <header className="flex flex-col gap-3">
@@ -34,9 +37,24 @@ export function StepName({ data, set }: StepProps) {
               id="ob-first-name"
               value={data.firstName}
               onChange={(e) => set({ firstName: e.target.value })}
+              aria-invalid={firstNameError ? true : undefined}
+              aria-describedby={
+                firstNameError ? "ob-first-name-error" : undefined
+              }
               placeholder="Jamie"
               className={inputClass}
             />
+            {/* Mounted only when there is something to say: this step is entered afresh
+                when the server rejects, so the node is new either way and is announced. */}
+            {firstNameError && (
+              <span
+                id="ob-first-name-error"
+                role="alert"
+                className="text-[12px] leading-[1.5] text-coral-700"
+              >
+                {firstNameError}
+              </span>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label

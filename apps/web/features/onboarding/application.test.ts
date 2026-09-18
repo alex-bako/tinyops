@@ -39,7 +39,7 @@ function harness({
   connectImapFails,
   imapTestFails,
 }: {
-  completeFails?: boolean
+  completeFails?: boolean | string
   connectImapFails?: boolean
   imapTestFails?: boolean
 } = {}) {
@@ -48,7 +48,11 @@ function harness({
   const store = {
     async completeOnboarding(input: OnboardingPersistenceInput) {
       persisted.push(input)
-      if (completeFails) throw new Error("persistence_failed")
+      if (completeFails) {
+        throw new Error(
+          typeof completeFails === "string" ? completeFails : "persistence_failed"
+        )
+      }
       return { workspaceId: "workspace_1" }
     },
   }
@@ -243,6 +247,31 @@ describe("onboarding application", () => {
         },
       },
     ])
+  })
+
+  // M3.T4: a store failure the person can act on keeps its name; everything else is
+  // still one unattributable failure (OBI-8).
+
+  it("reports a handle taken between the availability answer and the write", async () => {
+    const { app, persisted } = harness({
+      completeFails: "workspace_handle_taken",
+    })
+
+    await expect(app.complete(baseCommand())).resolves.toEqual({
+      status: "validation_error",
+      error: "workspace_handle_taken",
+    })
+    // It was attempted: this is a collision at the write, not a rejection before it.
+    expect(persisted).toHaveLength(1)
+  })
+
+  it("leaves any other store failure unattributable", async () => {
+    const { app } = harness({ completeFails: true })
+
+    await expect(app.complete(baseCommand())).resolves.toEqual({
+      status: "validation_error",
+      error: "onboarding_failed",
+    })
   })
 
   // M3.T2: the handle the person is shown and the handle the server stores are the same
