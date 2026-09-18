@@ -16,6 +16,7 @@ import {
   isValidWorkspaceHandle,
   sanitizeWorkspaceHandleInput,
 } from "@/features/workspaces/handle"
+import { useWorkspaceHandleAvailability } from "@/features/workspaces/use-handle-availability"
 
 import { INITIAL_DATA, QUOTES, VERTICALS, buildSteps } from "./data"
 import { Quote } from "./quote"
@@ -79,6 +80,9 @@ export function OnboardingFlow() {
     dispatch({ type: "patch_data", patch })
   }, [])
 
+  // Lives here rather than in the step because Continue is decided here.
+  const handleAvailability = useWorkspaceHandleAvailability(data.handle)
+
   const steps = React.useMemo(() => buildSteps(data), [data])
   const safeIdx = Math.min(stepIdx, steps.length - 1)
   const step = steps[safeIdx]!
@@ -91,9 +95,12 @@ export function OnboardingFlow() {
       case "vertical":
         return !!data.vertical
       case "workspace":
+        // Known free or not known at all. Only a handle known to be taken blocks - a
+        // check that could not be made must not strand someone (OBI-9).
         return (
           data.workspaceName.trim().length > 0 &&
-          isValidWorkspaceHandle(data.handle)
+          isValidWorkspaceHandle(data.handle) &&
+          handleAvailability.status !== "taken"
         )
       case "sensitivity":
         return !!data.sensitivity
@@ -159,7 +166,9 @@ export function OnboardingFlow() {
       case "vertical":
         return <StepVertical data={data} set={set} />
       case "workspace":
-        return <StepWorkspace data={data} set={set} />
+        return (
+          <StepWorkspace data={data} set={set} availability={handleAvailability} />
+        )
       case "sensitivity":
         return <StepSensitivity data={data} set={set} />
       case "source":

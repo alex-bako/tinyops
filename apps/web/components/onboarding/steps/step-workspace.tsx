@@ -10,6 +10,7 @@ import {
   WORKSPACE_HANDLE_MESSAGES,
   workspaceHandleIssue,
 } from "@/features/workspaces/handle"
+import type { WorkspaceHandleAvailability } from "@/features/workspaces/use-handle-availability"
 
 import type { StepProps } from "../types"
 
@@ -24,7 +25,11 @@ const toneSwatchClasses: Record<AvatarTone, string> = {
   slate: "bg-slate-700 text-white",
 }
 
-export function StepWorkspace({ data, set }: StepProps) {
+export function StepWorkspace({
+  data,
+  set,
+  availability,
+}: StepProps & { availability: WorkspaceHandleAvailability }) {
   const previewLetter = (
     data.iconLetter ||
     data.workspaceName[0] ||
@@ -37,7 +42,10 @@ export function StepWorkspace({ data, set }: StepProps) {
     data.handle || data.workspaceName
       ? workspaceHandleIssue(data.handle)
       : null
-  const blocking = issue !== null && issue !== "at_max_length"
+  const formatBlocking = issue !== null && issue !== "at_max_length"
+  // A handle someone else already holds is just as much a dead end as a malformed one,
+  // and only the field can say which of the two it is.
+  const blocking = formatBlocking || availability.status === "taken"
 
   return (
     <div className="flex w-full max-w-[520px] flex-col gap-6">
@@ -101,8 +109,17 @@ export function StepWorkspace({ data, set }: StepProps) {
           >
             {issue
               ? WORKSPACE_HANDLE_MESSAGES[issue]
-              : "Used for shared links and SSO. Lowercase letters, numbers and dashes only."}
+              : availabilityMessage(availability)}
           </span>
+          {availability.status === "taken" && availability.suggestion && (
+            <button
+              type="button"
+              onClick={() => set({ handle: availability.suggestion! })}
+              className="self-start rounded-xs border border-[rgba(15,23,42,0.16)] bg-card px-2 py-1 font-mono text-[12px] text-foreground hover:bg-[rgba(15,23,42,0.04)]"
+            >
+              Use {availability.suggestion}
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -175,6 +192,29 @@ export function StepWorkspace({ data, set }: StepProps) {
       </div>
     </div>
   )
+}
+
+/**
+ * What is known about the handle, in the same one live region the format rule uses. An
+ * unanswered check reads as a hint, not a warning: the flow does not block on it (OBI-9).
+ */
+function availabilityMessage(availability: WorkspaceHandleAvailability) {
+  switch (availability.status) {
+    case "checking":
+      return "Checking whether that handle is free…"
+    case "free":
+      return "That handle is free."
+    case "taken":
+      // The alternative is named here and not only on the button, so that the polite
+      // announcement carries it too - otherwise it exists only for people who can see it.
+      return availability.suggestion
+        ? `That handle is taken. ${availability.suggestion} is free.`
+        : "That handle is taken."
+    case "unknown":
+      return "We could not check whether that handle is free. You can continue."
+    case "idle":
+      return "Used for shared links and SSO. Lowercase letters, numbers and dashes only."
+  }
 }
 
 function ToggleCard({

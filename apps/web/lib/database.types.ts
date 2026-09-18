@@ -1582,6 +1582,10 @@ export type Database = {
         Args: { target_workspace_id: string }
         Returns: string
       }
+      workspace_handle_available: {
+        Args: { target_handle: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
