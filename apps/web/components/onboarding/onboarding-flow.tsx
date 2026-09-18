@@ -27,10 +27,14 @@ type OnboardingFlowState = {
   stepIdx: number
   skipped: SkippedMap
   data: OnboardingData
+  edited: EditedMap
   pending: boolean
   finishError: string | null
   canSkipSourceAfterError: boolean
 }
+
+/** Fields the person has typed into. A derived field follows its source until it appears here. */
+type EditedMap = Partial<Record<keyof OnboardingData, boolean>>
 
 type OnboardingFlowAction =
   | { type: "patch_data"; patch: Partial<OnboardingData> }
@@ -44,6 +48,7 @@ const INITIAL_FLOW_STATE: OnboardingFlowState = {
   stepIdx: 0,
   skipped: {},
   data: INITIAL_DATA,
+  edited: {},
   pending: false,
   finishError: null,
   canSkipSourceAfterError: false,
@@ -72,34 +77,6 @@ export function OnboardingFlow() {
   const safeIdx = Math.min(stepIdx, steps.length - 1)
   const step = steps[safeIdx]!
   const stepId: StepId = step.id
-
-  React.useEffect(() => {
-    if (data.firstName && !data.senderName) {
-      const next = `${data.firstName} ${data.lastName}`.trim()
-      if (next) dispatch({ type: "patch_data", patch: { senderName: next } })
-    }
-  }, [data.firstName, data.lastName, data.senderName])
-
-  React.useEffect(() => {
-    const patch: Partial<OnboardingData> = {}
-    if (data.workspaceName && !data.handle) {
-      patch.handle = slugify(data.workspaceName)
-    }
-    if (data.workspaceName && !data.iconLetter) {
-      patch.iconLetter = data.workspaceName[0]!.toUpperCase()
-    }
-    if (Object.keys(patch).length > 0) {
-      dispatch({ type: "patch_data", patch })
-    }
-  }, [data.workspaceName, data.handle, data.iconLetter])
-
-  React.useEffect(() => {
-    if (!data.vertical) return
-    const v = VERTICALS.find((x) => x.id === data.vertical)
-    if (v) {
-      dispatch({ type: "patch_data", patch: { sensitivity: v.sensitivity } })
-    }
-  }, [data.vertical])
 
   const canContinue = (() => {
     switch (stepId) {
@@ -309,8 +286,39 @@ function onboardingFlowReducer(
   action: OnboardingFlowAction
 ): OnboardingFlowState {
   switch (action.type) {
-    case "patch_data":
-      return { ...state, data: { ...state.data, ...action.patch } }
+    case "patch_data": {
+      const data = { ...state.data, ...action.patch }
+      const edited = { ...state.edited }
+      // ponytail: derive here rather than in an effect. An effect that guards on the
+      // field it writes ("only fill it while it is empty") fires exactly once - the
+      // first keystroke. A field the person typed into stops following its source;
+      // emptying it hands it back.
+      for (const key of Object.keys(action.patch) as (keyof OnboardingData)[]) {
+        edited[key] = action.patch[key] !== ""
+      }
+      if (
+        !edited.senderName &&
+        ("firstName" in action.patch || "lastName" in action.patch)
+      ) {
+        data.senderName = `${data.firstName} ${data.lastName}`.trim()
+      }
+      if ("workspaceName" in action.patch) {
+        if (!edited.handle) data.handle = slugify(data.workspaceName)
+        if (!edited.iconLetter) {
+          data.iconLetter = (data.workspaceName.trim()[0] ?? "").toUpperCase()
+        }
+      }
+      // Only a *change* of vertical re-applies its sensitivity default, so a
+      // sensitivity the person picked afterwards survives re-visiting this step.
+      if (
+        "vertical" in action.patch &&
+        action.patch.vertical !== state.data.vertical
+      ) {
+        const vertical = VERTICALS.find((x) => x.id === data.vertical)
+        if (vertical) data.sensitivity = vertical.sensitivity
+      }
+      return { ...state, data, edited }
+    }
     case "set_step":
       return { ...state, stepIdx: action.stepIdx }
     case "skip_step":
