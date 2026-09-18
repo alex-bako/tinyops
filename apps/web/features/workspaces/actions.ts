@@ -9,6 +9,10 @@ import {
   type WorkspaceActionResult,
   type WorkspaceInviteLinkResult,
 } from "@/features/workspaces/application"
+import {
+  resolveWorkspaceHandleAvailability,
+  type WorkspaceHandleCheck,
+} from "@/features/workspaces/handle-availability"
 import { createSupabaseInviteMailer } from "@/features/workspaces/invite-mailer"
 import { createSupabaseWorkspaceStore } from "@/features/workspaces/supabase-store"
 import type {
@@ -180,4 +184,24 @@ export async function archiveWorkspaceAction(workspaceId: string) {
   return runWorkspaceAction((application) =>
     application.archiveWorkspace(workspaceId)
   )
+}
+
+/**
+ * Whether a workspace handle is still free, for the onboarding flow and the
+ * create-workspace form. The RPC behind it answers with one boolean and needs a signed-in
+ * caller; the search for a free alternative lives here so the RPC stays that one boolean.
+ */
+export async function checkWorkspaceHandleAvailability(
+  handle: string
+): Promise<WorkspaceHandleCheck> {
+  const supabase = await createServerSupabaseClient()
+
+  return resolveWorkspaceHandleAvailability(handle, async (candidate) => {
+    const { data, error } = await supabase.rpc("workspace_handle_available", {
+      target_handle: candidate,
+    })
+    // Including "not signed in", which the RPC raises: the answer is unknown, not free.
+    if (error) throw new Error(error.message, { cause: error })
+    return data === true
+  })
 }

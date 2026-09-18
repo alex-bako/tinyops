@@ -10,6 +10,7 @@ function allMigrationSource() {
     "20260509001000_workspaces.sql",
     "20260509003000_workspace_lifecycle_rpc.sql",
     "20260510000000_onboarding_persistence.sql",
+    "20260918002000_workspace_handle_available.sql",
   ]
     .map((file) => readFileSync(path.join(migrationsDir, file), "utf8"))
     .join("\n")
@@ -38,6 +39,20 @@ describe("onboarding database contract", () => {
     expect(migration).toMatch(/profile_onboarded_at/)
     expect(migration).toMatch(
       /grant execute on function public\.complete_onboarding/
+    )
+  })
+
+  it("answers handle availability through one authenticated-only RPC", () => {
+    const migration = allMigrationSource()
+
+    expect(migration).toMatch(/function public\.workspace_handle_available/)
+    expect(migration).toMatch(/returns boolean/)
+    expect(migration).toMatch(/security definer/)
+    expect(migration).toMatch(
+      /grant execute on function public\.workspace_handle_available\(text\)\s*\n\s*to authenticated/
+    )
+    expect(migration).toMatch(
+      /revoke execute on function public\.workspace_handle_available\(text\)\s*\n\s*from anon, public/
     )
   })
 })

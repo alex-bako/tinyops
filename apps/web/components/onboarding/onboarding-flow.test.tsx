@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { completeOnboarding } from "@/app/onboarding/actions"
+import { checkWorkspaceHandleAvailability } from "@/features/workspaces/actions"
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow"
 
 const replace = vi.fn()
@@ -14,6 +15,12 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/app/onboarding/actions", () => ({
   completeOnboarding: vi.fn(),
 }))
+
+vi.mock("@/features/workspaces/actions", () => ({
+  checkWorkspaceHandleAvailability: vi.fn(),
+}))
+
+const checkHandle = vi.mocked(checkWorkspaceHandleAvailability)
 
 /**
  * Drive a field the way a person does: one change event per character, carrying the
@@ -66,6 +73,8 @@ async function reachSourceStep() {
 describe("OnboardingFlow", () => {
   beforeEach(() => {
     vi.mocked(completeOnboarding).mockReset()
+    checkHandle.mockReset()
+    checkHandle.mockResolvedValue({ status: "free" })
     replace.mockReset()
   })
 
@@ -406,5 +415,105 @@ describe("OnboardingFlow", () => {
     type(screen.getByLabelText("Workspace name"), "Park Clinic")
     expect(screen.getByLabelText("URL handle")).toHaveValue("park-clinic")
     expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+  })
+
+  describe("handle availability", () => {
+    it("says a free handle is free without blocking anything", async () => {
+      render(<OnboardingFlow />)
+      await reachWorkspaceStep()
+
+      type(screen.getByLabelText("Workspace name"), "Park Therapy")
+
+      expect(await screen.findByText(/that handle is free/i)).toBeInTheDocument()
+      expect(checkHandle).toHaveBeenCalledWith("park-therapy")
+      expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+    })
+
+    it("reports a taken handle and offers one that is free", async () => {
+      checkHandle.mockImplementation(async (handle) =>
+        handle === "park-therapy"
+          ? { status: "taken", suggestion: "park-therapy-2" }
+          : { status: "free" }
+      )
+
+      render(<OnboardingFlow />)
+      await reachWorkspaceStep()
+
+      type(screen.getByLabelText("Workspace name"), "Park Therapy")
+
+      // The alternative is announced and not only drawn: the live region is everything a
+      // screen reader gets without tabbing on to find the button.
+      expect(await screen.findByText(/that handle is taken/i)).toHaveTextContent(
+        "That handle is taken. park-therapy-2 is free."
+      )
+      // A handle someone else holds is as invalid as a malformed one, and has to say so
+      // to assistive technology, not only in coral text.
+      expect(screen.getByLabelText("URL handle")).toHaveAttribute(
+        "aria-invalid",
+        "true"
+      )
+      // A taken handle is a dead end, so Continue must not be available - the whole
+      // point of asking before submit rather than after it.
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled()
+      )
+
+      fireEvent.click(screen.getByRole("button", { name: "Use park-therapy-2" }))
+
+      expect(screen.getByLabelText("URL handle")).toHaveValue("park-therapy-2")
+      await waitFor(() =>
+        expect(checkHandle).toHaveBeenCalledWith("park-therapy-2")
+      )
+      expect(await screen.findByText(/that handle is free/i)).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+    })
+
+    it("stops the accepted suggestion from being overwritten by the name", async () => {
+      checkHandle.mockImplementation(async (handle) =>
+        handle === "park-therapy"
+          ? { status: "taken", suggestion: "park-therapy-2" }
+          : { status: "free" }
+      )
+
+      render(<OnboardingFlow />)
+      await reachWorkspaceStep()
+      type(screen.getByLabelText("Workspace name"), "Park Therapy")
+
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Use park-therapy-2" })
+      )
+
+      // Accepting a suggestion is editing the handle: typing more of the name must not
+      // silently take back the handle the person just chose.
+      type(screen.getByLabelText("Workspace name"), "Park Therapy North")
+      expect(screen.getByLabelText("URL handle")).toHaveValue("park-therapy-2")
+    })
+
+    it("never asks about a handle the format rule already rejects", async () => {
+      render(<OnboardingFlow />)
+      await reachWorkspaceStep()
+
+      type(screen.getByLabelText("Workspace name"), "Pa")
+
+      expect(
+        await screen.findByText(/at least 3 characters/i)
+      ).toBeInTheDocument()
+      await waitFor(() => expect(checkHandle).not.toHaveBeenCalled())
+      expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled()
+    })
+
+    it("lets the flow continue when the check itself cannot be made (OBI-9)", async () => {
+      checkHandle.mockRejectedValue(new Error("database unreachable"))
+
+      render(<OnboardingFlow />)
+      await reachWorkspaceStep()
+
+      type(screen.getByLabelText("Workspace name"), "Park Therapy")
+
+      expect(
+        await screen.findByText(/could not check whether that handle is free/i)
+      ).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+    })
   })
 })
