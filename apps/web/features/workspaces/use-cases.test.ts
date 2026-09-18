@@ -66,6 +66,7 @@ function store({
   updates: unknown[]
   workspaceInvites: WorkspaceInviteRecord[]
   countedWorkspaceIds: string[]
+  accepted: unknown[]
 } {
   const calls = {
     created: [] as Workspace[],
@@ -73,6 +74,7 @@ function store({
     updates: [] as unknown[],
     workspaceInvites: [...invitations],
     countedWorkspaceIds: [] as string[],
+    accepted: [] as unknown[],
   }
 
   return {
@@ -128,6 +130,7 @@ function store({
       return clientCounts[workspaceId] ?? 0
     },
     async acceptWorkspaceInvitation(input) {
+      calls.accepted.push(input)
       const invite = calls.workspaceInvites.find(
         (candidate) => candidate.id === input.invitationId
       )
@@ -311,6 +314,33 @@ describe("workspace use cases", () => {
 
     expect(data.activeWorkspaceId).toBe("joined")
     expect(data.workspaces.map((candidate) => candidate.id)).toContain("joined")
+  })
+
+  it("passes the join profile to the store so accepting also onboards", async () => {
+    const fakeStore = store({
+      invitations: [
+        { id: "invite_1", workspaceId: "joined", email: "mia@example.co", role: "operator" },
+      ],
+    })
+
+    await acceptWorkspaceInvitationForUser(
+      {
+        invitationId: "invite_1",
+        userId: "user_2",
+        email: "Mia@Example.co",
+        name: null,
+        profile: { firstName: "Mia", lastName: "" },
+      },
+      fakeStore
+    )
+
+    expect(fakeStore.accepted).toEqual([
+      {
+        invitationId: "invite_1",
+        email: "mia@example.co",
+        profile: { firstName: "Mia", lastName: "" },
+      },
+    ])
   })
 
   it("rejects duplicate workspace invites before touching the store", async () => {

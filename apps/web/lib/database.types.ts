@@ -1283,7 +1283,11 @@ export type Database = {
     }
     Functions: {
       accept_workspace_invitation: {
-        Args: { target_invitation_id: string }
+        Args: {
+          target_invitation_id: string
+          target_first_name?: string
+          target_last_name?: string
+        }
         Returns: string
       }
       archive_workspace: {

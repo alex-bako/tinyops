@@ -22,6 +22,11 @@ export type WorkspaceInviteRecord = {
   role: Exclude<WorkspaceRole, "owner">
 }
 
+export type WorkspaceJoinProfile = {
+  firstName?: string
+  lastName?: string
+}
+
 export type WorkspaceStore = {
   listWorkspaces(): Promise<Workspace[]>
   listJoinableWorkspaces(
@@ -40,6 +45,7 @@ export type WorkspaceStore = {
   acceptWorkspaceInvitation(input: {
     invitationId: string
     email: string
+    profile?: WorkspaceJoinProfile
   }): Promise<{ workspaceId: string }>
   archiveWorkspace(workspaceId: string): Promise<void>
   updateWorkspaceProfile(input: {
@@ -176,6 +182,7 @@ export async function acceptWorkspaceInvitationForUser(
     userId: string
     email: string | null
     name: string | null
+    profile?: WorkspaceJoinProfile
   },
   store: WorkspaceStore
 ) {
@@ -185,6 +192,7 @@ export async function acceptWorkspaceInvitationForUser(
   const accepted = await store.acceptWorkspaceInvitation({
     invitationId: input.invitationId,
     email,
+    profile: input.profile,
   })
 
   return ensureWorkspaceFeatureData(
