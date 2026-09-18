@@ -11,9 +11,12 @@ import {
   WorkspacePageHeader,
   WorkspacePageSurface,
 } from "@/components/page-surface"
+import { HomeSearch } from "@/app/(app)/home/_components/home-search"
+import type { RecentClientItem } from "@/app/(app)/home/_components/home-search-model"
 import { ClientProfileRealtimeRefresh } from "@/features/clients/adapters/client-profile-realtime-refresh"
 import type { ClientListEntry } from "@/features/clients/application/client-memory"
 import { useActiveWorkspace } from "@/features/workspaces/context"
+import type { HomeSourceRow } from "@/lib/sources"
 
 import { ClientsTable } from "./clients-table"
 import { ClientsToolbar } from "./clients-toolbar"
@@ -21,8 +24,12 @@ import { getNewClientSlugs, useClientListView } from "../_view-model"
 
 export function ClientsPageClient({
   rows: sourceRows,
+  recentClients,
+  sources,
 }: {
   rows: ClientListEntry[]
+  recentClients: RecentClientItem[]
+  sources: HomeSourceRow[]
 }) {
   const activeWorkspace = useActiveWorkspace()
   const {
@@ -31,6 +38,7 @@ export function ClientsPageClient({
     counts,
     rows,
     total,
+    workspaceEmpty,
     emptyMessage,
     clearFilters,
   } = useClientListView(sourceRows)
@@ -42,9 +50,8 @@ export function ClientsPageClient({
       <ClientProfileRealtimeRefresh workspaceId={activeWorkspace.id} />
 
       <WorkspacePageHeader
-        className="mb-8"
         eyebrowIcon={UsersIcon}
-        eyebrow="Workspace · clients"
+        eyebrow={activeWorkspace.name}
         title={
           <>
             All clients.{" "}
@@ -54,8 +61,10 @@ export function ClientsPageClient({
             in your practice.
           </>
         }
-        description="Every person you've imported, with everything TinyOps has learned about them. Filter by status, cohort, or flag, open any row to see their full timeline."
+        description="Everyone you've imported, with everything TinyOps has learned about them. Search by name or email, filter by status, cohort, or flag, open any row to see their full timeline."
       />
+
+      <HomeSearch recentClients={recentClients} sources={sources} />
 
       <ClientsToolbar
         filters={filters}
@@ -67,6 +76,7 @@ export function ClientsPageClient({
         rows={rows}
         emptyMessage={emptyMessage}
         onClear={clearFilters}
+        workspaceEmpty={workspaceEmpty}
         newlyInsertedSlugs={newlyInsertedSlugs}
       />
 

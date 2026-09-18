@@ -23,7 +23,7 @@ export default function ClientNotFound() {
       />
       <div className="mt-7 flex justify-center">
         <Button asChild variant="primary" size="sm">
-          <Link href="/home/clients">
+          <Link href="/home">
             <ArrowLeftIcon />
             Back to all clients
           </Link>
