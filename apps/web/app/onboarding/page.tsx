@@ -3,7 +3,11 @@ import { redirect } from "next/navigation"
 
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow"
 import { createSupabaseWorkspaceStore } from "@/features/workspaces/supabase-store"
-import { DEFAULT_SIGNED_IN_PATH, LOGIN_PATH } from "@/lib/auth/route-policy"
+import {
+  DEFAULT_SIGNED_IN_PATH,
+  JOIN_PATH,
+  LOGIN_PATH,
+} from "@/lib/auth/route-policy"
 import { readSupabaseAppProfileSession } from "@/lib/auth/profile"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
@@ -30,6 +34,12 @@ export default async function OnboardingPage() {
 
   if (session.profile?.onboardedAt && workspaces.length > 0) {
     redirect(DEFAULT_SIGNED_IN_PATH)
+  }
+
+  // An invited person joins an existing workspace instead of founding one.
+  if (workspaces.length === 0 && session.email) {
+    const invitations = await store.listJoinableWorkspaces(session.email)
+    if (invitations.length > 0) redirect(JOIN_PATH)
   }
 
   return <OnboardingFlow />

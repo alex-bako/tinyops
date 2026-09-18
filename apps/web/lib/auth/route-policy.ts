@@ -4,11 +4,13 @@ export const DEFAULT_SIGNED_IN_PATH = "/home"
 export const CLIENTS_PATH = `${DEFAULT_SIGNED_IN_PATH}/clients`
 export const SOURCES_PATH = `${DEFAULT_SIGNED_IN_PATH}/sources`
 export const SETTINGS_PATH = `${DEFAULT_SIGNED_IN_PATH}/settings`
+export const JOIN_PATH = "/join"
 
 export function isProtectedPath(pathname: string) {
   return (
     pathname === DEFAULT_SIGNED_IN_PATH ||
-    pathname.startsWith(`${DEFAULT_SIGNED_IN_PATH}/`)
+    pathname.startsWith(`${DEFAULT_SIGNED_IN_PATH}/`) ||
+    pathname === JOIN_PATH
   )
 }
 

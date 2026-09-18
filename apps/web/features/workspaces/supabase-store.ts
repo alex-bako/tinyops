@@ -223,9 +223,14 @@ export function createSupabaseWorkspaceStore({
     async acceptWorkspaceInvitation(input) {
       const { data, error } = await client.rpc("accept_workspace_invitation", {
         target_invitation_id: input.invitationId,
+        target_first_name: input.profile?.firstName,
+        target_last_name: input.profile?.lastName,
       })
 
       if (error) {
+        if (error.message.includes("Workspace invitation not found")) {
+          throw new Error("invite_not_found", { cause: error })
+        }
         throw new Error("Could not accept workspace invite", { cause: error })
       }
 

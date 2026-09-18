@@ -122,7 +122,9 @@ where email in (
 delete from auth.users
 where id in (
   '00000000-0000-4000-8000-000000000101',
-  '00000000-0000-4000-8000-000000000102'
+  '00000000-0000-4000-8000-000000000102',
+  '00000000-0000-4000-8000-000000000103',
+  '00000000-0000-4000-8000-000000000104'
 );
 
 select pg_temp.create_auth_user(
@@ -237,6 +239,162 @@ select pg_temp.assert_true(
   'only successful workspace invitations are persisted'
 );
 
+-- Accepting an invitation (M1.T1): membership + profile onboarding in one call.
+select id as pending_invitation_id
+from public.workspace_invitations
+where workspace_id = current_setting('tinyops.workspace_id')::uuid
+  and email = 'pending@example.co' \gset
+
+select pg_temp.create_auth_user(
+  '00000000-0000-4000-8000-000000000103',
+  'pending@example.co'
+);
+select pg_temp.create_auth_user(
+  '00000000-0000-4000-8000-000000000104',
+  'pending-2@example.co'
+);
+
+set role authenticated;
+select pg_temp.as_user(
+  '00000000-0000-4000-8000-000000000104',
+  'pending-2@example.co'
+);
+
+select pg_temp.expect_error(
+  format(
+    'select public.accept_workspace_invitation(%L::uuid, %L, %L)',
+    :'pending_invitation_id',
+    'Nope',
+    null
+  ),
+  'Workspace invitation not found',
+  'accepting another address''s invitation'
+);
+
+select pg_temp.as_user(
+  '00000000-0000-4000-8000-000000000103',
+  'pending@example.co'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*)
+    from public.workspaces
+    where id = current_setting('tinyops.workspace_id')::uuid
+  ) = 1,
+  'pending invitee can read the invited workspace before accepting'
+);
+
+select pg_temp.assert_true(
+  (
+    select count(*)
+    from public.workspace_invitations
+    where id = :'pending_invitation_id'::uuid
+  ) = 1,
+  'pending invitee can read their own invitation'
+);
+
+select public.accept_workspace_invitation(
+  :'pending_invitation_id'::uuid,
+  '  Mia ',
+  ''
+) as joined_workspace_id \gset
+
+select pg_temp.expect_error(
+  format(
+    'select public.accept_workspace_invitation(%L::uuid)',
+    :'pending_invitation_id'
+  ),
+  'Workspace invitation not found',
+  'accepting an already accepted invitation'
+);
+
+reset role;
+
+-- Revoked invitations are inert (M1.T1).
+select id as revoked_invitation_id
+from public.workspace_invitations
+where workspace_id = current_setting('tinyops.workspace_id')::uuid
+  and email = 'pending-2@example.co' \gset
+
+set role authenticated;
+select pg_temp.as_user(
+  '00000000-0000-4000-8000-000000000101',
+  'owner@example.co'
+);
+select public.revoke_workspace_invitation(:'revoked_invitation_id'::uuid);
+
+select pg_temp.as_user(
+  '00000000-0000-4000-8000-000000000104',
+  'pending-2@example.co'
+);
+select pg_temp.expect_error(
+  format(
+    'select public.accept_workspace_invitation(%L::uuid, %L, %L)',
+    :'revoked_invitation_id',
+    'Nope',
+    null
+  ),
+  'Workspace invitation not found',
+  'accepting a revoked invitation'
+);
+select pg_temp.assert_true(
+  (
+    select count(*)
+    from public.workspaces
+    where id = current_setting('tinyops.workspace_id')::uuid
+  ) = 0,
+  'revoked invitee can no longer read the workspace'
+);
+reset role;
+
+select pg_temp.assert_true(
+  (
+    select count(*)
+    from public.workspace_memberships
+    where user_id = '00000000-0000-4000-8000-000000000104'
+  ) = 0,
+  'revoked invitation creates no membership'
+);
+
+select pg_temp.assert_true(
+  :'joined_workspace_id' = current_setting('tinyops.workspace_id'),
+  'accept returns the invited workspace'
+);
+
+select pg_temp.assert_true(
+  exists (
+    select 1
+    from public.workspace_memberships
+    where workspace_id = current_setting('tinyops.workspace_id')::uuid
+      and user_id = '00000000-0000-4000-8000-000000000103'
+      and role = 'viewer'
+  ),
+  'accept creates the membership with the invited role'
+);
+
+select pg_temp.assert_true(
+  exists (
+    select 1
+    from public.workspace_invitations
+    where id = :'pending_invitation_id'::uuid
+      and accepted_at is not null
+  ),
+  'accept marks the invitation accepted'
+);
+
+select pg_temp.assert_true(
+  exists (
+    select 1
+    from public.profiles
+    where id = '00000000-0000-4000-8000-000000000103'
+      and first_name = 'Mia'
+      and last_name is null
+      and onboarded_at is not null
+  ),
+  'accept trims the name, ignores blanks and onboards the invitee'
+);
+
 delete from public.workspaces
 where handle = 'rpc-contract-owner';
 
@@ -252,5 +410,7 @@ where email in (
 delete from auth.users
 where id in (
   '00000000-0000-4000-8000-000000000101',
-  '00000000-0000-4000-8000-000000000102'
+  '00000000-0000-4000-8000-000000000102',
+  '00000000-0000-4000-8000-000000000103',
+  '00000000-0000-4000-8000-000000000104'
 );

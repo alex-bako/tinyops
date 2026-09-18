@@ -48,9 +48,10 @@ const onboardedSession = {
   email: "jamie@example.co",
 }
 
-function mockWorkspaceStore(workspaces: unknown[]) {
+function mockWorkspaceStore(workspaces: unknown[], invitations: unknown[] = []) {
   vi.mocked(createSupabaseWorkspaceStore).mockReturnValue({
     listWorkspaces: vi.fn().mockResolvedValue(workspaces),
+    listJoinableWorkspaces: vi.fn().mockResolvedValue(invitations),
   } as never)
 }
 
@@ -81,6 +82,28 @@ describe("OnboardingPage", () => {
       profile: { ...onboardedSession.profile, onboardedAt: null },
     })
     mockWorkspaceStore([{ id: "workspace_1" }])
+
+    render(await OnboardingPage())
+
+    expect(screen.getByTestId("onboarding-flow")).toBeInTheDocument()
+  })
+
+  it("diverts an invited user with no workspace to the join flow", async () => {
+    vi.mocked(readSupabaseAppProfileSession).mockResolvedValue({
+      ...onboardedSession,
+      profile: null,
+    })
+    mockWorkspaceStore([], [{ invitationId: "invite_1" }])
+
+    await expect(OnboardingPage()).rejects.toThrow("redirect: /join")
+  })
+
+  it("keeps founders in onboarding when they have a workspace and an invitation", async () => {
+    vi.mocked(readSupabaseAppProfileSession).mockResolvedValue({
+      ...onboardedSession,
+      profile: { ...onboardedSession.profile, onboardedAt: null },
+    })
+    mockWorkspaceStore([{ id: "workspace_1" }], [{ invitationId: "invite_1" }])
 
     render(await OnboardingPage())
 

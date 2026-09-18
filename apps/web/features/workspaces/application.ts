@@ -10,6 +10,7 @@ import {
   slugify,
   updateWorkspaceProfileForUser,
   updateWorkspaceSensitivityForUser,
+  type WorkspaceJoinProfile,
   type WorkspaceProfilePatch,
   type WorkspaceActor,
   type WorkspaceStore,
@@ -30,6 +31,7 @@ export type WorkspaceActionError =
   | "seat_limit_reached"
   | "invite_forbidden"
   | "invite_revoke_forbidden"
+  | "invite_not_found"
   | "archive_forbidden"
   | "member_not_found"
   | "owner_role_locked"
@@ -144,7 +146,8 @@ export function createWorkspaceApplication({
     },
 
     async acceptInvitation(
-      invitationId: string
+      invitationId: string,
+      profile?: WorkspaceJoinProfile
     ): Promise<WorkspaceActionResult> {
       if (!actor) return { error: "not_authenticated" }
 
@@ -155,6 +158,7 @@ export function createWorkspaceApplication({
             userId: actor.userId,
             email: actor.email,
             name: actor.name,
+            profile,
           },
           store
         )
@@ -162,8 +166,8 @@ export function createWorkspaceApplication({
           await activeWorkspaceStore.write(data.activeWorkspaceId)
         }
         return { data }
-      } catch {
-        return { error: "workspace_action_failed" }
+      } catch (error) {
+        return { error: mapWorkspaceActionError(error) }
       }
     },
 
@@ -378,6 +382,7 @@ const WORKSPACE_ACTION_ERRORS = new Set<WorkspaceActionError>([
   "seat_limit_reached",
   "invite_forbidden",
   "invite_revoke_forbidden",
+  "invite_not_found",
   "archive_forbidden",
   "member_not_found",
   "owner_role_locked",

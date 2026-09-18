@@ -40,7 +40,10 @@ function workspace(id: string, patch: Partial<Workspace> = {}): Workspace {
   }
 }
 
-function harness(initialWorkspaces: Workspace[]) {
+function harness(
+  initialWorkspaces: Workspace[],
+  options: { acceptError?: string } = {}
+) {
   const writes: string[] = []
   const updates: unknown[] = []
   const workspaces = [...initialWorkspaces]
@@ -77,6 +80,7 @@ function harness(initialWorkspaces: Workspace[]) {
       }
     },
     async acceptWorkspaceInvitation() {
+      if (options.acceptError) throw new Error(options.acceptError)
       workspaces.push(workspace("accepted"))
       return { workspaceId: "accepted" }
     },
@@ -162,5 +166,17 @@ describe("workspace application", () => {
         role: "viewer",
       })
     ).resolves.toMatchObject({ error: "duplicate_invite" })
+  })
+
+  it("surfaces invite_not_found from the store when accepting", async () => {
+    const { app } = harness([], { acceptError: "invite_not_found" })
+    await expect(app.acceptInvitation("invite_1")).resolves.toEqual({
+      error: "invite_not_found",
+    })
+
+    const other = harness([], { acceptError: "boom" })
+    await expect(other.app.acceptInvitation("invite_1")).resolves.toEqual({
+      error: "workspace_action_failed",
+    })
   })
 })

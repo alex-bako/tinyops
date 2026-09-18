@@ -75,3 +75,13 @@ describe("route policy", () => {
     expect(resolveMagicLinkCodeRedirect("/login", "?code=abc123")).toBeNull()
   })
 })
+
+describe("join path", () => {
+  it("is protected and a valid signed-in next target", () => {
+    expect(isProtectedPath("/join")).toBe(true)
+    expect(safeSignedInPath("/join")).toBe("/join")
+    expect(buildAuthCallbackUrl("https://app.test", "/join")).toBe(
+      "https://app.test/auth/callback?next=%2Fjoin"
+    )
+  })
+})

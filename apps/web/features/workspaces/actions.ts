@@ -82,9 +82,12 @@ export async function switchWorkspaceAction(workspaceId: string) {
   )
 }
 
-export async function acceptWorkspaceInvitationAction(invitationId: string) {
+export async function acceptWorkspaceInvitationAction(
+  invitationId: string,
+  profile?: { firstName?: string; lastName?: string }
+) {
   return runWorkspaceAction((application) =>
-    application.acceptInvitation(invitationId)
+    application.acceptInvitation(invitationId, profile)
   )
 }
 
