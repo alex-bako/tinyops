@@ -63,6 +63,11 @@ function harness({
       return { folders: [{ path: "INBOX", messages: 12 }] }
     }),
   }
+  const mailer = {
+    sendInvite: vi.fn<
+      (input: { email: string }) => Promise<{ error: Error | null }>
+    >(async () => ({ error: null })),
+  }
 
   return {
     app: createOnboardingApplication({
@@ -70,11 +75,13 @@ function harness({
       store,
       dataSourceStore,
       imapConnectionTester,
+      mailer,
       now: () => new Date("2026-05-10T01:02:03.000Z"),
     }),
     persisted,
     connectedImap,
     imapConnectionTester,
+    mailer,
   }
 }
 
@@ -116,6 +123,25 @@ describe("onboarding application", () => {
         invites: [{ email: "new.member@example.co", role: "operator" }],
       },
     ])
+  })
+
+  it("mails every saved invite after the workspace is created", async () => {
+    const h = harness()
+    h.mailer.sendInvite.mockResolvedValueOnce({ error: new Error("smtp") })
+
+    const result = await h.app.complete(
+      baseCommand({
+        invites: [
+          { email: " First@Example.com ", role: "operator" },
+          { email: "second@example.com", role: "viewer" },
+        ],
+      })
+    )
+
+    expect(result).toEqual({ status: "completed", workspaceId: "workspace_1" })
+    expect(h.mailer.sendInvite.mock.calls.map(([input]) => input.email)).toEqual(
+      ["first@example.com", "second@example.com"]
+    )
   })
 
   it("rejects invalid required onboarding fields before persistence", async () => {

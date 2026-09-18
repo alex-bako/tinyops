@@ -1,3 +1,4 @@
+import type { WorkspaceInviteMailer } from "@/features/workspaces/invite-mailer"
 import type {
   DataSourceStore,
   ImapConnectionConfig,
@@ -151,12 +152,14 @@ export function createOnboardingApplication({
   store,
   dataSourceStore,
   imapConnectionTester,
+  mailer,
   now = () => new Date(),
 }: {
   actor: OnboardingActor | null
   store: OnboardingStore
   dataSourceStore: DataSourceStore
   imapConnectionTester: ImapConnectionTester
+  mailer?: Pick<WorkspaceInviteMailer, "sendInvite">
   now?: () => Date
 }) {
   return {
@@ -203,6 +206,12 @@ export function createOnboardingApplication({
         completed = await store.completeOnboarding(normalized.input)
       } catch {
         return { status: "validation_error", error: "onboarding_failed" }
+      }
+
+      // ponytail: best effort. The invitation rows are already saved, so a
+      // failed mail is recoverable with Resend in Settings -> Members.
+      for (const invite of normalized.input.invites) {
+        await mailer?.sendInvite({ email: invite.email }).catch(() => undefined)
       }
 
       if (imapConnection && imapIntake && imapFolderSnapshot) {

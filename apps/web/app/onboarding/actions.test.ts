@@ -45,6 +45,18 @@ vi.mock("@/features/data-sources/imap-connection-tester", () => ({
   createImapFlowConnectionTester: vi.fn(),
 }))
 
+vi.mock("@/features/workspaces/invite-mailer", () => ({
+  createSupabaseInviteMailer: vi.fn(() => ({})),
+}))
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: vi.fn(() => ({})),
+}))
+
+vi.mock("@/lib/auth/request-origin", () => ({
+  getRequestOrigin: vi.fn(async () => "http://localhost:3000"),
+}))
+
 vi.mock("@/features/onboarding/application", async () => {
   const actual = await vi.importActual<
     typeof import("@/features/onboarding/application")
