@@ -54,12 +54,9 @@ const SETTINGS_SECTIONS: Omit<SettingsSectionView, "active">[] = [
   { id: "danger", label: "Danger zone", icon: Trash2Icon, danger: true },
 ]
 
+// Home is the client list, so it carries the client count.
 const COUNT_KEYS: Record<string, keyof WorkspaceSidebarCounts> = {
-  clients: "clients",
-  tasks: "tasks",
-  march: "march",
-  feedback: "feedback",
-  dnc: "dnc",
+  home: "clients",
 }
 
 export function buildSettingsRailView({

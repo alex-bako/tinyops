@@ -1,22 +1,13 @@
-import {
-  CircleSlashIcon,
-  HashIcon,
-  HomeIcon,
-  ListTodoIcon,
-  MessageSquareIcon,
-  PlugZapIcon,
-  Settings2Icon,
-  UsersIcon,
-} from "lucide-react"
+import { HomeIcon, PlugZapIcon, Settings2Icon } from "lucide-react"
 
 import {
-  CLIENTS_PATH,
   DEFAULT_SIGNED_IN_PATH,
   SETTINGS_PATH,
   SOURCES_PATH,
 } from "@/lib/auth/route-policy"
 import type { NavGroup } from "@/lib/navigation"
 
+// Every entry leads somewhere. A feature that does not exist yet has no row.
 export const WORKSPACE_NAV_GROUPS: NavGroup[] = [
   {
     id: "primary",
@@ -28,31 +19,11 @@ export const WORKSPACE_NAV_GROUPS: NavGroup[] = [
         href: DEFAULT_SIGNED_IN_PATH,
       },
       {
-        id: "clients",
-        label: "Clients",
-        icon: UsersIcon,
-        href: CLIENTS_PATH,
-      },
-      { id: "tasks", label: "Tasks", icon: ListTodoIcon },
-      {
         id: "sources",
         label: "Data sources",
         icon: PlugZapIcon,
         href: SOURCES_PATH,
       },
-    ],
-  },
-  {
-    id: "pinned",
-    label: "Pinned views",
-    items: [
-      { id: "march", label: "March cohort", icon: HashIcon },
-      {
-        id: "feedback",
-        label: "Feedback queue",
-        icon: MessageSquareIcon,
-      },
-      { id: "dnc", label: "Do not contact", icon: CircleSlashIcon },
     ],
   },
   {

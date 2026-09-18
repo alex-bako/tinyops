@@ -3,7 +3,6 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { PlusIcon } from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
 import {
@@ -11,7 +10,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
@@ -109,14 +107,6 @@ export function AppSidebar({
           <SidebarGroup key={group.id}>
             {group.label ? (
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            ) : null}
-            {group.id === "pinned" ? (
-              <SidebarGroupAction
-                aria-label="Pin a new view"
-                className="opacity-0 transition-opacity duration-(--dur-fast) group-hover/sidebar-group:opacity-100 focus-visible:opacity-100"
-              >
-                <PlusIcon />
-              </SidebarGroupAction>
             ) : null}
             <SidebarGroupContent>
               <SidebarMenu>

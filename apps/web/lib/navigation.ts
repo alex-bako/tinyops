@@ -1,17 +1,7 @@
-import {
-  CircleSlashIcon,
-  HashIcon,
-  HomeIcon,
-  ListTodoIcon,
-  MessageSquareIcon,
-  PlugZapIcon,
-  Settings2Icon,
-  UsersIcon,
-} from "lucide-react"
+import { HomeIcon, PlugZapIcon, Settings2Icon } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 import {
-  CLIENTS_PATH,
   DEFAULT_SIGNED_IN_PATH,
   SETTINGS_PATH,
   SOURCES_PATH,
@@ -26,7 +16,7 @@ export type NavItem = {
 }
 
 export type NavGroup = {
-  id: "primary" | "pinned" | "workspace"
+  id: "primary" | "workspace"
   label?: string
   items: NavItem[]
 }
@@ -37,7 +27,7 @@ export type Crumb = {
   href?: string
 }
 
-export type AppRouteId = "home" | "clients" | "sources" | "settings"
+export type AppRouteId = "home" | "sources" | "settings"
 
 export type AppRoute = {
   id: AppRouteId
@@ -55,15 +45,6 @@ const APP_ROUTES: AppRoute[] = [
     label: "Home",
     icon: HomeIcon,
     href: DEFAULT_SIGNED_IN_PATH,
-    navGroup: "primary",
-  },
-  {
-    id: "clients",
-    label: "Clients",
-    icon: UsersIcon,
-    count: 142,
-    href: CLIENTS_PATH,
-    parentId: "home",
     navGroup: "primary",
   },
   {
@@ -94,12 +75,9 @@ function routeCrumb(route: AppRoute, href?: string): Crumb {
 }
 
 const HOME_ROUTE = appRoute("home")
-const CLIENTS_ROUTE = appRoute("clients")
 const SOURCES_ROUTE = appRoute("sources")
-const SETTINGS_ROUTE = appRoute("settings")
 
 const HOME: Crumb = routeCrumb(HOME_ROUTE, HOME_ROUTE.href)
-const CLIENTS: Crumb = routeCrumb(CLIENTS_ROUTE, CLIENTS_ROUTE.href)
 const SOURCES: Crumb = routeCrumb(SOURCES_ROUTE, SOURCES_ROUTE.href)
 
 function routeCrumbs(route: AppRoute): Crumb[] {
@@ -110,55 +88,6 @@ function routeCrumbs(route: AppRoute): Crumb[] {
 const ROUTE_CRUMBS: Record<string, Crumb[]> = Object.fromEntries(
   APP_ROUTES.map((route) => [route.href, routeCrumbs(route)])
 )
-
-function navItemForRoute(id: AppRouteId): NavItem {
-  const route = appRoute(id)
-  return {
-    id: route.id,
-    label: route.label,
-    icon: route.icon,
-    count: route.count,
-    href: route.href,
-  }
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    id: "primary",
-    items: [
-      navItemForRoute("home"),
-      navItemForRoute("clients"),
-      { id: "tasks", label: "Tasks", icon: ListTodoIcon, count: 3 },
-      navItemForRoute("sources"),
-    ],
-  },
-  {
-    id: "pinned",
-    label: "Pinned views",
-    items: [
-      { id: "march", label: "March cohort", icon: HashIcon, count: 47 },
-      {
-        id: "feedback",
-        label: "Feedback queue",
-        icon: MessageSquareIcon,
-        count: 12,
-      },
-      { id: "dnc", label: "Do not contact", icon: CircleSlashIcon, count: 3 },
-    ],
-  },
-  {
-    id: "workspace",
-    label: "Workspace",
-    items: [
-      {
-        id: "settings",
-        label: "Settings",
-        icon: Settings2Icon,
-        href: SETTINGS_ROUTE.href,
-      },
-    ],
-  },
-]
 
 function flattenNavItems(groups: NavGroup[]): NavItem[] {
   return groups.flatMap((group) => group.items)
@@ -196,11 +125,8 @@ function deriveAppCrumbs(
 
   const clientSlug = pathname.match(/^\/home\/clients\/([^/]+)\/?$/)?.[1]
   if (clientSlug) {
-    return [
-      HOME,
-      CLIENTS,
-      { label: options.resolveClientName?.(clientSlug) ?? clientSlug },
-    ]
+    // Home is the client list, so there is no "Clients" crumb between them.
+    return [HOME, { label: options.resolveClientName?.(clientSlug) ?? clientSlug }]
   }
 
   const sourceMatch = pathname.match(
@@ -233,9 +159,7 @@ function deriveAppCrumbs(
 
 export {
   APP_ROUTES,
-  CLIENTS,
   HOME,
-  NAV_GROUPS,
   SOURCES,
   deriveAppCrumbs,
   flattenNavItems,

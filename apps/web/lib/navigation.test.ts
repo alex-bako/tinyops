@@ -1,21 +1,28 @@
 import { describe, expect, it } from "vitest"
 
+import { WORKSPACE_NAV_GROUPS } from "@/features/workspaces/navigation"
+
 import {
   APP_ROUTES,
-  NAV_GROUPS,
   deriveAppCrumbs,
   flattenNavItems,
   pickActiveNavItemId,
 } from "./navigation"
 
 describe("navigation model", () => {
-  it("marks nested client routes as clients nav", () => {
+  it("marks client routes as home nav, because Home is the client list", () => {
     expect(
       pickActiveNavItemId(
-        flattenNavItems(NAV_GROUPS),
+        flattenNavItems(WORKSPACE_NAV_GROUPS),
         "/home/clients/anna-smith"
       )
-    ).toBe("clients")
+    ).toBe("home")
+  })
+
+  it("renders no navigation entry without a destination", () => {
+    const items = flattenNavItems(WORKSPACE_NAV_GROUPS)
+    expect(items.map((item) => item.id)).toEqual(["home", "sources", "settings"])
+    expect(items.every((item) => !!item.href)).toBe(true)
   })
 
   it("derives client detail breadcrumbs with injected name lookup", () => {
@@ -24,11 +31,7 @@ describe("navigation model", () => {
         slug === "anna-smith" ? "Anna Smith" : undefined,
     })
 
-    expect(crumbs.map((crumb) => crumb.label)).toEqual([
-      "Home",
-      "Clients",
-      "Anna Smith",
-    ])
+    expect(crumbs.map((crumb) => crumb.label)).toEqual(["Home", "Anna Smith"])
   })
 
   it("falls back to home crumb for unknown routes", () => {
@@ -39,7 +42,7 @@ describe("navigation model", () => {
 
   it("activates sources nav and resolves data sources crumbs", () => {
     expect(
-      pickActiveNavItemId(flattenNavItems(NAV_GROUPS), "/home/sources")
+      pickActiveNavItemId(flattenNavItems(WORKSPACE_NAV_GROUPS), "/home/sources")
     ).toBe("sources")
     expect(
       deriveAppCrumbs("/home/sources").map((crumb) => crumb.label)
@@ -88,7 +91,7 @@ describe("navigation model", () => {
   it("activates sources nav for nested source detail routes", () => {
     expect(
       pickActiveNavItemId(
-        flattenNavItems(NAV_GROUPS),
+        flattenNavItems(WORKSPACE_NAV_GROUPS),
         "/home/sources/imap/primary-inbox"
       )
     ).toBe("sources")
@@ -96,7 +99,7 @@ describe("navigation model", () => {
 
   it("derives route nav and crumbs from the same route metadata", () => {
     const sourceRoute = APP_ROUTES.find((route) => route.id === "sources")!
-    const sourceNav = flattenNavItems(NAV_GROUPS).find(
+    const sourceNav = flattenNavItems(WORKSPACE_NAV_GROUPS).find(
       (item) => item.id === "sources"
     )!
 
