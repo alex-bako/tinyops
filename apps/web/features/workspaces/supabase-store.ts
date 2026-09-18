@@ -118,9 +118,14 @@ export function createSupabaseWorkspaceStore({
 
       if (error) throw new Error("Could not load workspaces", { cause: error })
 
-      return ((data ?? []) as WorkspaceRow[]).map((row) =>
-        mapWorkspaceRow(row, { userId: actorUserId })
-      )
+      // ponytail: RLS also shows an invitee the workspace they were invited to
+      // (Join screen needs it). "My workspaces" means memberships, so drop
+      // rows that do not hold ours.
+      return ((data ?? []) as WorkspaceRow[])
+        .filter((row) =>
+          row.workspace_memberships?.some((m) => m.user_id === actorUserId)
+        )
+        .map((row) => mapWorkspaceRow(row, { userId: actorUserId }))
     },
 
     async listJoinableWorkspaces(email) {
