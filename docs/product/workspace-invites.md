@@ -43,6 +43,8 @@ Stable IDs. "Existing" means the behaviour is already implemented and covered by
 | INV-8 | A revoked or already-accepted invitation cannot be accepted, and the link for it no longer leads anywhere useful (it shows a neutral "invite no longer valid" message). | Existing (RPC) / New (message) |
 | INV-9 | The hosted Supabase projects have custom SMTP, invite/magic-link templates and redirect allowlist configured so that email reaches non-organisation addresses. | New (ops, outside repo) |
 | INV-10 | Uninvited addresses keep getting the neutral invite-only message on login; nothing about this feature reveals whether an address is known. | Existing |
+| INV-12 | The app's list of "my workspaces" contains only workspaces the user is a member of. Being able to read an invited workspace's name for the Join screen never counts as membership, so an invitee with no membership is never routed as if they had one. | New (defect found 2026-09-18) |
+| INV-13 | A member who joined by invitation can later create her own workspace from the switcher's "Create or join a workspace" entry. She keeps one account; the new workspace is added next to the one she was invited to and she is not sent through founder onboarding again. | Existing (form, RPC) / New (acceptance) |
 
 ## Scope
 
@@ -68,6 +70,11 @@ Non-goals (explicit):
 ## User decisions
 
 - **D1 (2026-09-18)**: Deliver the invite both by email and by a copyable link shown on the pending invite row.
+- **D2 (2026-09-18)**: An invitee who later wants her own workspace uses the existing switcher entry and create-workspace form (name + handle). She does not get the founder onboarding questions; vertical, sensitivity and sender settings stay at defaults and are editable in Settings. Rejected: re-running onboarding for a second workspace, and hiding workspace creation from invitees.
+
+## Conflicts between accepted requirements and observed behaviour
+
+- **C1 (2026-09-18, M1 delivered locally)**: INV-3 says an invitee with no membership goes to the Join flow, yet a fresh invitee landed on Onboarding. Verified cause: the M1.T1 policy that lets an invitee read the invited workspace (needed for the Join screen) also makes that workspace appear in the store's general workspace list, which the Join page reads as "already has a workspace"; it redirects to Home, whose layout sends the un-onboarded profile to Onboarding. Resolved by INV-12 and milestone M2.
 
 ## Proposed assumptions (not yet user-confirmed; will be treated as accepted unless objected to)
 
@@ -79,4 +86,4 @@ Non-goals (explicit):
 
 ## Open decisions
 
-None blocking. Optional, deferred to implementation: exact email copy, and whether the Join flow also offers "create my own workspace instead" (default: a small secondary link to the existing onboarding).
+None blocking. Deferred to implementation: exact email copy. The Join flow does not offer "create my own workspace instead"; that path is the switcher entry after joining (D2).
