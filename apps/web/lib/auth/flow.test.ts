@@ -61,7 +61,7 @@ describe("requestMagicLink", () => {
     expect(outcome).toEqual({ status: "sent", email: "anna@example.co" })
     expect(sendMagicLink).toHaveBeenCalledWith({
       email: "anna@example.co",
-      emailRedirectTo: "http://localhost:3000/auth/callback",
+      emailRedirectTo: "http://localhost:3000/auth/callback?next=%2Fhome",
     })
   })
 
@@ -85,6 +85,7 @@ describe("completeAuthCallback", () => {
   it("returns expired login redirect when the callback code is missing", async () => {
     const redirectTo = await completeAuthCallback(callbackUrl(""), {
       exchangeCodeForSession: vi.fn(),
+      verifyOtp: vi.fn(),
       getUser: vi.fn(),
       syncProfile: vi.fn(),
     })
@@ -97,6 +98,7 @@ describe("completeAuthCallback", () => {
       exchangeCodeForSession: vi
         .fn()
         .mockResolvedValue({ error: { message: "expired" } }),
+      verifyOtp: vi.fn(),
       getUser: vi.fn(),
       syncProfile: vi.fn(),
     })
@@ -111,6 +113,7 @@ describe("completeAuthCallback", () => {
       callbackUrl("?code=ok&next=/home/clients"),
       {
         exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
+        verifyOtp: vi.fn(),
         getUser: vi.fn().mockResolvedValue({ user }),
         syncProfile,
       }

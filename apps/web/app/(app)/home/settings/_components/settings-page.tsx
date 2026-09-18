@@ -49,6 +49,7 @@ export function SettingsPage() {
             onChangeRole={commands.changeMemberRole}
             onRemoveMember={commands.removeMember}
             onResendInvite={commands.resendInvitation}
+            onCopyInviteLink={commands.copyInviteLink}
             onRevokeInvite={commands.revokeInvitation}
             inviteNotice={inviteNotice}
           />

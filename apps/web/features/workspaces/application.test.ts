@@ -42,7 +42,12 @@ function workspace(id: string, patch: Partial<Workspace> = {}): Workspace {
 
 function harness(
   initialWorkspaces: Workspace[],
-  options: { acceptError?: string; mailError?: boolean; mailThrows?: boolean } = {}
+  options: {
+    acceptError?: string
+    mailError?: boolean
+    mailThrows?: boolean
+    linkError?: boolean
+  } = {}
 ) {
   const writes: string[] = []
   const sent: string[] = []
@@ -123,6 +128,10 @@ function harness(
           sent.push(`${email}@${updates.length}`)
           if (options.mailThrows) throw new Error("boom")
           return { error: options.mailError ? new Error("smtp down") : null }
+        },
+        async createLink({ email }) {
+          if (options.linkError) return { link: null, error: new Error("down") }
+          return { link: `https://sb.example.co/link?for=${email}`, error: null }
         },
       },
     }),
@@ -266,5 +275,38 @@ describe("workspace application", () => {
     await expect(failing.app.resendInvitation("invite_1")).resolves.toMatchObject(
       { warning: "invite_email_failed" }
     )
+  })
+
+  it("creates invite links only for pending invitations the actor may manage", async () => {
+    const invite = {
+      id: "invite_1",
+      email: "va@example.co",
+      role: "operator" as const,
+      createdAt: "2026-09-18T00:00:00.000Z",
+      invitedByEmail: "jamie@example.co",
+    }
+    const owner = harness([workspace("one", { invites: [invite] })])
+    await expect(owner.app.createInviteLink("invite_1")).resolves.toEqual({
+      link: "https://sb.example.co/link?for=va@example.co",
+    })
+    expect(owner.updates).toEqual([])
+
+    await expect(owner.app.createInviteLink("missing")).resolves.toEqual({
+      error: "invite_not_found",
+    })
+
+    const viewer = harness([
+      workspace("one", { role: "viewer", invites: [invite] }),
+    ])
+    await expect(viewer.app.createInviteLink("invite_1")).resolves.toEqual({
+      error: "invite_forbidden",
+    })
+
+    const failing = harness([workspace("one", { invites: [invite] })], {
+      linkError: true,
+    })
+    await expect(failing.app.createInviteLink("invite_1")).resolves.toEqual({
+      error: "invite_link_failed",
+    })
   })
 })

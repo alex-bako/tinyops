@@ -49,10 +49,8 @@ export function safeSignedInPath(value: string | null | undefined) {
 
 export function buildAuthCallbackUrl(origin: string, nextPath?: string | null) {
   const url = new URL(AUTH_CALLBACK_PATH, origin)
-  const safeNext = safeSignedInPath(nextPath)
-  if (safeNext !== DEFAULT_SIGNED_IN_PATH) {
-    url.searchParams.set("next", safeNext)
-  }
+  // Always present so email templates can append `&token_hash=...` safely.
+  url.searchParams.set("next", safeSignedInPath(nextPath))
   return url.toString()
 }
 

@@ -7,6 +7,7 @@ import {
   createWorkspaceApplication,
   type WorkspaceProfileInput,
   type WorkspaceActionResult,
+  type WorkspaceInviteLinkResult,
 } from "@/features/workspaces/application"
 import { createSupabaseInviteMailer } from "@/features/workspaces/invite-mailer"
 import { createSupabaseWorkspaceStore } from "@/features/workspaces/supabase-store"
@@ -159,6 +160,14 @@ export async function resendWorkspaceInviteAction(invitationId: string) {
     (application) => application.resendInvitation(invitationId),
     { withMailer: true }
   )
+}
+
+export async function createWorkspaceInviteLinkAction(
+  invitationId: string
+): Promise<WorkspaceInviteLinkResult> {
+  const context = await createWorkspaceActionContext({ withMailer: true })
+  if (isWorkspaceActionContextError(context)) return context
+  return context.application.createInviteLink(invitationId)
 }
 
 export async function revokeWorkspaceInviteAction(invitationId: string) {

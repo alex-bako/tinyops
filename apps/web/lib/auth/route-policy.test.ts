@@ -46,7 +46,7 @@ describe("route policy", () => {
       buildAuthCallbackUrl("http://localhost:3000", "/home/clients")
     ).toBe("http://localhost:3000/auth/callback?next=%2Fhome%2Fclients")
     expect(buildAuthCallbackUrl("http://localhost:3000", "/login")).toBe(
-      "http://localhost:3000/auth/callback"
+      "http://localhost:3000/auth/callback?next=%2Fhome"
     )
   })
 
