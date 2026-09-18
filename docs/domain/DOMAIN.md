@@ -1,6 +1,6 @@
-# Domain vocabulary — workspaces and invitations
+# Domain vocabulary — workspaces, invitations and the signed-in surfaces
 
-Scope: only the terms whose meaning matters for workspace membership and invitations. Use these words in requirements, code, tests and UI copy.
+Scope: only the terms whose meaning matters for workspace membership, invitations, and what a signed-in person is shown. Use these words in requirements, code, tests and UI copy.
 
 ## Terms
 
@@ -18,6 +18,13 @@ Scope: only the terms whose meaning matters for workspace membership and invitat
 | **Invite link** | A one-time Supabase sign-in link for the invitee's address, either inside the invite email or copied from the Members page. Signs in that address only, then lands on the Join flow. | A public "anyone with the link" URL. It is address-bound and expires. |
 | **Join flow** | The screen an invitee lands on after signing in: shows pending invitations, asks for a name, and accepts one. | Onboarding, which creates a new workspace. |
 | **Onboarding** | The existing founder setup flow that creates a personal workspace. | The Join flow. |
+| **Home** | The workspace's landing surface at `/home`, where signing in, finishing onboarding and accepting an invitation all arrive. It **is** the client list, not a summary of it. | A dashboard. Home shows the clients themselves, not counts standing in for them. |
+| **Client** | A person the workspace knows about, identified by their primary email and addressed by a slug. One row in the client list, one profile at `/home/clients/<slug>`. | A member, who is a user of the workspace. Clients never sign in. |
+| **Client list** | Every client in the active workspace, one row each, uncapped, newest activity first. Read from the `client_list_rows` scalar view. | "Recently viewed", which was the five most recent and is not a list of the workspace. |
+| **Client search** | The single input at the top of Home. Narrows the client list under it as the person types, and offers to open an exact match directly. | A filter. Search is free text over the loaded rows; filters are the status tabs and cohort select. Both narrow the same list, and the same rows answer both. |
+| **Placeholder content** | UI rendered from values hardcoded in the source, with no workspace data behind it, and controls with no handler. It looks like a report about the workspace and is not one. | Mock data in `mock-data.ts`, which backs tests and the mock repository and never reaches a signed-in surface. |
+| **Navigation entry** | One row in the sidebar. It names a destination and goes there. | A label for an unbuilt feature. An entry with no destination is placeholder content wearing a nav row. |
+| **Empty workspace** | A workspace with no clients yet — what a founder sees immediately after onboarding. It is a starting state and is told what to do next. | An empty result, which is a list that has rows but none matching the current search or filters. |
 
 ## Invariants
 
@@ -31,15 +38,26 @@ Scope: only the terms whose meaning matters for workspace membership and invitat
 - A member can own a workspace and belong to others at the same time; creating a workspace never requires Onboarding for an already onboarded profile.
 - Accepting marks the profile onboarded with the supplied name; no workspace is created.
 - Sending an email is best-effort: email failure never prevents the invitation from being saved.
+- No placeholder content is rendered on a signed-in surface. Everything shown is computed from the active workspace, and every control does what it says.
+- Every navigation entry leads to a real destination. A feature that does not exist yet has no sidebar row.
+- Home shows the client list. Reaching the workspace's clients never requires a click after signing in.
+- One search input per surface. Search and filters narrow the same loaded rows, so the two can never disagree about which clients exist.
+- An empty workspace and an empty result are different states and never share a message.
 
 ## Examples
 
 - Ada (owner) invites `va@example.com` as operator → pending invitation, `va@example.com` in allowlist, invite email sent, seats used 2 of 5.
 - VA clicks the link → signed in → Join flow shows "Ada's Studio · Operator" → enters name → Accept → active workspace is Ada's Studio, role operator, invitation accepted, seats used 2 of 5.
 - Ada revokes before VA clicks → VA's link signs them in, Join flow shows "This invite is no longer valid" and a way to sign out; nothing is created.
-- Ben already uses TinyOps for his own workspace and is invited by Ada → he gets a magic-link email; after sign-in he is not sent to Join (he has a membership) but sees Ada's Studio under Invitations in the switcher and can accept there. He stays one Auth user with two memberships; no second account or profile is created. He stays one Auth user with two memberships; no second account or profile is created.
+- Ben already uses TinyOps for his own workspace and is invited by Ada → he gets a magic-link email; after sign-in he is not sent to Join (he has a membership) but sees Ada's Studio under Invitations in the switcher and can accept there. He stays one Auth user with two memberships; no second account or profile is created.
 - Mia joined Ada's Studio as operator and six months later starts her own practice → switcher "Create or join a workspace" → name + handle → she now owns "Mia's Studio" and still switches back to Ada's Studio; no second account, no onboarding questions.
 - Cara has an Auth account (allowlisted earlier) but never finished onboarding and has no membership; Ada invites her → after sign-in she gets the Join flow, not onboarding, and joins Ada's Studio as the same user (INV-11).
+- Ada signs in → Home shows "137 clients", the search bar, the status tabs, and 137 rows. She does not click anything to get there.
+- Ada types `mari` → the rows narrow to Mariko Tan and Marina Ruiz, and the dropdown offers "Open Mariko Tan's profile". Pressing Enter opens the profile; not pressing it leaves her with two rows to compare. One input did both.
+- Mia finishes onboarding and lands on Home with no clients → "No clients yet", with Import and New client. She is not told that nothing matches her filters, because she set none.
+- Ada searches `zzz` → "No clients match your search", with a way to clear it. Her workspace still has 137 clients, so this is not the empty-workspace message.
+- Ada opens an old `/home/clients` bookmark → she arrives at Home, which is that list. Nothing 404s, and no second copy of the list exists to drift from it.
+- "Tasks" showed a sidebar row with a count of `0` and no destination for every real workspace. It is not a feature in progress; it is placeholder content, and it is removed until Tasks exists.
 
 ## Boundaries
 
@@ -47,3 +65,5 @@ Scope: only the terms whose meaning matters for workspace membership and invitat
 - **Workspace membership (`workspaces`, `workspace_memberships`, `workspace_invitations`, lifecycle RPCs)** decides who is in which workspace with which role. Owned by `apps/web/features/workspaces`.
 - **Onboarding (`complete_onboarding`)** creates a founder's workspace and marks the profile onboarded. The Join flow reuses "mark onboarded" but not workspace creation.
 - **Email delivery (hosted Supabase SMTP and templates)** is configuration outside the repo; the code treats send failures as a reportable, non-fatal outcome.
+- **Client reading (`client_list_rows`, the client reader port and its Supabase adapter)** decides what a workspace knows about its clients. Owned by `apps/web/features/clients`. The list is uncapped by design; the surfaces render it, they do not re-query it per keystroke.
+- **Signed-in navigation** is one definition under `apps/web/features/workspaces`, used by the sidebar, with breadcrumbs derived from the same route table in `apps/web/lib/navigation.ts`. No screen carries a second copy of the nav, and no route appears in one and not the other.
