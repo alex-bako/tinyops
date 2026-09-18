@@ -8,6 +8,7 @@ import {
   changeMemberRoleAction,
   inviteWorkspaceMemberAction,
   removeMemberAction,
+  resendWorkspaceInviteAction,
   revokeWorkspaceInviteAction,
   switchWorkspaceAction,
   updateWorkspaceProfileAction,
@@ -32,14 +33,21 @@ type WorkspaceFeatureCommands = {
   changeMemberRole: (memberId: string, role: WorkspaceRole) => void
   removeMember: (memberId: string) => void
   acceptInvitation: (invitationId: string) => void
+  resendInvitation: (invitationId: string) => void
   revokeInvitation: (invitationId: string) => void
   archiveWorkspace: (workspaceId: string) => void
   updateSensitivity: (patch: Partial<WorkspaceSensitivity>) => void
 }
 
+// A fresh object per outcome so consumers can react to repeated outcomes.
+export type WorkspaceInviteNotice = {
+  kind: "sent" | "email_failed" | "failed"
+}
+
 type WorkspaceFeatureContextValue = {
   state: WorkspaceFeatureState
   commands: WorkspaceFeatureCommands
+  inviteNotice: WorkspaceInviteNotice | null
 }
 
 const WorkspaceFeatureContext =
@@ -56,6 +64,8 @@ export function WorkspaceFeatureProvider({
     createWorkspaceFeatureState(data)
   )
   const [, startTransition] = React.useTransition()
+  const [inviteNotice, setInviteNotice] =
+    React.useState<WorkspaceInviteNotice | null>(null)
 
   // Adopt fresh server data whenever the layout re-renders (navigation or a
   // realtime-driven `router.refresh()`). `data` only gets a new reference from
@@ -68,6 +78,7 @@ export function WorkspaceFeatureProvider({
     async (
       run: () => Promise<{
         data?: WorkspaceFeatureData
+        warning?: string
         error?: string
       }>
     ) => {
@@ -75,6 +86,7 @@ export function WorkspaceFeatureProvider({
       if (result.data) {
         setState(createWorkspaceFeatureState(result.data))
       }
+      return result
     },
     []
   )
@@ -101,6 +113,16 @@ export function WorkspaceFeatureProvider({
               email,
               role,
             })
+          ).then(
+            (result) =>
+              setInviteNotice(
+                result.error
+                  ? { kind: "failed" }
+                  : result.warning
+                    ? { kind: "email_failed" }
+                    : null
+              ),
+            () => setInviteNotice({ kind: "failed" })
           )
         })
       },
@@ -118,6 +140,23 @@ export function WorkspaceFeatureProvider({
       acceptInvitation(invitationId) {
         startTransition(() => {
           void applyResult(() => acceptWorkspaceInvitationAction(invitationId))
+        })
+      },
+      resendInvitation(invitationId) {
+        startTransition(() => {
+          void applyResult(() =>
+            resendWorkspaceInviteAction(invitationId)
+          ).then(
+            (result) =>
+              setInviteNotice({
+                kind: result.error
+                  ? "failed"
+                  : result.warning
+                    ? "email_failed"
+                    : "sent",
+              }),
+            () => setInviteNotice({ kind: "failed" })
+          )
         })
       },
       revokeInvitation(invitationId) {
@@ -142,8 +181,8 @@ export function WorkspaceFeatureProvider({
   )
 
   const value = React.useMemo<WorkspaceFeatureContextValue>(
-    () => ({ state, commands }),
-    [state, commands]
+    () => ({ state, commands, inviteNotice }),
+    [state, commands, inviteNotice]
   )
 
   return (

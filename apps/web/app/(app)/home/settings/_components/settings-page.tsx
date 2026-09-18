@@ -20,7 +20,7 @@ import { SectionAudit } from "./section-audit"
 import { SectionDanger } from "./section-danger"
 
 export function SettingsPage() {
-  const { state, commands } = useWorkspaceFeature()
+  const { state, commands, inviteNotice } = useWorkspaceFeature()
   const workspace = state.active
   const usage = state.activeUsage
   const [active, setActive] = React.useState<SettingsSectionId>("general")
@@ -48,7 +48,9 @@ export function SettingsPage() {
             onInvite={commands.inviteMember}
             onChangeRole={commands.changeMemberRole}
             onRemoveMember={commands.removeMember}
+            onResendInvite={commands.resendInvitation}
             onRevokeInvite={commands.revokeInvitation}
+            inviteNotice={inviteNotice}
           />
         )
       case "roles":

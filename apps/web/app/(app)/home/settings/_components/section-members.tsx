@@ -17,6 +17,7 @@ import {
 import { TonalAvatar } from "@workspace/ui/components/tonal-avatar"
 
 import { ROLE_DEFS, ROLE_ORDER } from "@/features/workspaces/catalog"
+import type { WorkspaceInviteNotice } from "@/features/workspaces/context"
 import {
   canChangeMemberRole,
   canManageMembers,
@@ -37,13 +38,17 @@ export function SectionMembers({
   onInvite,
   onChangeRole,
   onRemoveMember,
+  onResendInvite,
   onRevokeInvite,
+  inviteNotice = null,
 }: {
   workspace: Workspace
   onInvite: (email: string, role: WorkspaceRole) => void
   onChangeRole: (id: string, role: WorkspaceRole) => void
   onRemoveMember: (id: string) => void
+  onResendInvite: (id: string) => void
   onRevokeInvite: (id: string) => void
+  inviteNotice?: WorkspaceInviteNotice | null
 }) {
   const canManage = canManageMembers(workspace.role)
   const seatsUsed = workspace.members.length + workspace.invites.length
@@ -53,6 +58,9 @@ export function SectionMembers({
 
   const [inviteEmail, setInviteEmail] = React.useState("")
   const [inviteRole, setInviteRole] = React.useState<WorkspaceRole>("operator")
+  const [resendingId, setResendingId] = React.useState<string | null>(null)
+  // Every action outcome yields a new notice object, which unlocks the row.
+  React.useEffect(() => setResendingId(null), [inviteNotice])
 
   const submitInvite = () => {
     if (!inviteEmail.includes("@")) return
@@ -135,10 +143,23 @@ export function SectionMembers({
           <div className="mb-3 mt-7 text-[12px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
             Pending invites
           </div>
+          {inviteNotice ? (
+            <p
+              role="status"
+              className={cn(
+                "mb-3 text-[12.5px]",
+                inviteNotice.kind === "sent"
+                  ? "text-muted-foreground"
+                  : "text-coral-700"
+              )}
+            >
+              {INVITE_NOTICE_COPY[inviteNotice.kind]}
+            </p>
+          ) : null}
           <div className="flex flex-col gap-1">
             {inviteRows.map((i) => (
               <div
-                key={i.email}
+                key={i.id}
                 className="grid grid-cols-[24px_1fr_auto_auto_auto] items-center gap-2.5 rounded-md border border-border bg-[var(--tint-hover)] px-2.5 py-2"
               >
                 <MailIcon className="size-3.5 text-muted-foreground" />
@@ -154,7 +175,15 @@ export function SectionMembers({
                   label={ROLE_DEFS[i.role].label}
                   tone={ROLE_DEFS[i.role].tone}
                 />
-                <Button variant="tertiary" size="sm" disabled>
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  disabled={!canManage || resendingId === i.id}
+                  onClick={() => {
+                    setResendingId(i.id)
+                    onResendInvite(i.id)
+                  }}
+                >
                   <SendIcon />
                   Resend
                 </Button>
@@ -181,6 +210,13 @@ export function SectionMembers({
       ) : null}
     </div>
   )
+}
+
+const INVITE_NOTICE_COPY: Record<WorkspaceInviteNotice["kind"], string> = {
+  sent: "Invite email sent.",
+  email_failed:
+    "Invite saved, email not sent. Use Resend once email is configured.",
+  failed: "Something went wrong. Refresh and try again.",
 }
 
 function MemberRow({

@@ -8,13 +8,16 @@ import {
   type WorkspaceProfileInput,
   type WorkspaceActionResult,
 } from "@/features/workspaces/application"
+import { createSupabaseInviteMailer } from "@/features/workspaces/invite-mailer"
 import { createSupabaseWorkspaceStore } from "@/features/workspaces/supabase-store"
 import type {
   WorkspaceRole,
   WorkspaceSensitivity,
 } from "@/features/workspaces/types"
 import { readSupabaseAppProfileSession } from "@/lib/auth/profile"
+import { getRequestOrigin } from "@/lib/auth/request-origin"
 import { DEFAULT_SIGNED_IN_PATH } from "@/lib/auth/route-policy"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 type WorkspaceActionContext = {
@@ -25,9 +28,9 @@ type WorkspaceActionContextError = {
   error: "not_authenticated"
 }
 
-async function createWorkspaceActionContext(): Promise<
-  WorkspaceActionContext | WorkspaceActionContextError
-> {
+async function createWorkspaceActionContext(
+  options: { withMailer?: boolean } = {}
+): Promise<WorkspaceActionContext | WorkspaceActionContextError> {
   const supabase = await createServerSupabaseClient()
   const appSession = await readSupabaseAppProfileSession(supabase)
   if (!appSession) return { error: "not_authenticated" }
@@ -42,10 +45,18 @@ async function createWorkspaceActionContext(): Promise<
     client: supabase,
     actorUserId: actor.userId,
   })
+  // Only invite actions need the service-role client and request origin.
+  const mailer = options.withMailer
+    ? createSupabaseInviteMailer({
+        admin: createSupabaseAdminClient(),
+        origin: await getRequestOrigin(),
+      })
+    : undefined
   const application = createWorkspaceApplication({
     actor,
     store,
     activeWorkspaceStore,
+    mailer,
   })
 
   return {
@@ -66,9 +77,10 @@ function isWorkspaceActionContextError(
 async function runWorkspaceAction(
   operation: (
     application: ReturnType<typeof createWorkspaceApplication>
-  ) => Promise<WorkspaceActionResult>
+  ) => Promise<WorkspaceActionResult>,
+  options: { withMailer?: boolean } = {}
 ): Promise<WorkspaceActionResult> {
-  const context = await createWorkspaceActionContext()
+  const context = await createWorkspaceActionContext(options)
   if (isWorkspaceActionContextError(context)) return context
 
   const result = await operation(context.application)
@@ -96,7 +108,9 @@ export async function inviteWorkspaceMemberAction(input: {
   email: string
   role: WorkspaceRole
 }) {
-  return runWorkspaceAction((application) => application.inviteMember(input))
+  return runWorkspaceAction((application) => application.inviteMember(input), {
+    withMailer: true,
+  })
 }
 
 export async function createWorkspaceAction(input: {
@@ -137,6 +151,13 @@ export async function changeMemberRoleAction(
 export async function removeMemberAction(membershipId: string) {
   return runWorkspaceAction((application) =>
     application.removeMember(membershipId)
+  )
+}
+
+export async function resendWorkspaceInviteAction(invitationId: string) {
+  return runWorkspaceAction(
+    (application) => application.resendInvitation(invitationId),
+    { withMailer: true }
   )
 }
 

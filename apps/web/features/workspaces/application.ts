@@ -1,4 +1,6 @@
 import type { ActiveWorkspaceStore } from "@/features/workspaces/active-workspace"
+import type { WorkspaceInviteMailer } from "@/features/workspaces/invite-mailer"
+import { canManageMembers } from "@/features/workspaces/policy"
 import {
   acceptWorkspaceInvitationForUser,
   archiveWorkspaceForUser,
@@ -41,9 +43,11 @@ export type WorkspaceActionError =
   | "sensitivity_update_forbidden"
   | "workspace_action_failed"
 
+export type WorkspaceActionWarning = "invite_email_failed"
+
 export type WorkspaceActionResult =
-  | { data: WorkspaceFeatureData; error?: never }
-  | { data?: never; error: WorkspaceActionError }
+  | { data: WorkspaceFeatureData; warning?: WorkspaceActionWarning; error?: never }
+  | { data?: never; warning?: never; error: WorkspaceActionError }
 
 export type WorkspaceProfileInput = WorkspaceProfilePatch
 
@@ -53,10 +57,12 @@ export function createWorkspaceApplication({
   actor,
   store,
   activeWorkspaceStore,
+  mailer,
 }: {
   actor: WorkspaceActor | null
   store: WorkspaceApplicationStore
   activeWorkspaceStore: ActiveWorkspaceStore
+  mailer?: WorkspaceInviteMailer
 }) {
   async function loadFeatureData(): Promise<WorkspaceFeatureData> {
     if (!actor) {
@@ -92,6 +98,17 @@ export function createWorkspaceApplication({
       await activeWorkspaceStore.write(data.activeWorkspaceId)
     }
     return { data }
+  }
+
+  // The invitation row is already saved; a mail failure only becomes a warning.
+  async function sendInviteEmail(email: string) {
+    if (!mailer) return "invite_email_failed" as const
+    try {
+      const { error } = await mailer.sendInvite({ email })
+      return error ? ("invite_email_failed" as const) : undefined
+    } catch {
+      return "invite_email_failed" as const
+    }
   }
 
   return {
@@ -188,7 +205,7 @@ export function createWorkspaceApplication({
         )
         if (!workspace) return { error: "workspace_not_found" }
 
-        await inviteWorkspaceMember(
+        const invitation = await inviteWorkspaceMember(
           {
             workspace,
             email: input.email,
@@ -196,8 +213,36 @@ export function createWorkspaceApplication({
           },
           store
         )
+        const warning = await sendInviteEmail(invitation.email)
 
-        return loadFreshData(input.workspaceId)
+        const fresh = await loadFreshData(input.workspaceId)
+        return warning && fresh.data ? { ...fresh, warning } : fresh
+      } catch (error) {
+        return { error: mapWorkspaceActionError(error) }
+      }
+    },
+
+    async resendInvitation(
+      invitationId: string
+    ): Promise<WorkspaceActionResult> {
+      if (!actor) return { error: "not_authenticated" }
+
+      try {
+        const workspace = await loadWorkspaceContainingInvite(
+          actor,
+          store,
+          invitationId
+        )
+        if (!canManageMembers(workspace.role)) {
+          return { error: "invite_forbidden" }
+        }
+        const invite = workspace.invites.find(
+          (candidate) => candidate.id === invitationId
+        )!
+        const warning = await sendInviteEmail(invite.email)
+
+        const fresh = await loadFreshData(workspace.id)
+        return warning && fresh.data ? { ...fresh, warning } : fresh
       } catch (error) {
         return { error: mapWorkspaceActionError(error) }
       }

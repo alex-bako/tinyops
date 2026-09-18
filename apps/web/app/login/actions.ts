@@ -1,11 +1,10 @@
 "use server"
 
-import { headers } from "next/headers"
-
 import {
   createSupabaseInviteLookupClient,
   isInvitedEmail,
 } from "@/lib/auth/invites"
+import { getRequestOrigin } from "@/lib/auth/request-origin"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
@@ -14,17 +13,6 @@ import {
   type RequestMagicLinkDependencies,
 } from "@/app/login/_request-magic-link"
 import type { LoginState } from "@/app/login/_state"
-
-async function getRequestOrigin() {
-  const requestHeaders = await headers()
-  const origin = requestHeaders.get("origin")
-  if (origin) return origin
-
-  const host = requestHeaders.get("host")
-  if (host) return `http://${host}`
-
-  return "http://127.0.0.1:3000"
-}
 
 export async function requestMagicLink(
   previousState: LoginState,
