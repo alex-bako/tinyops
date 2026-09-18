@@ -1,21 +1,18 @@
-import type { ClientSearchResult, ClientStatus } from "@/features/clients/application/client-memory"
+import type { ClientStatus } from "@/features/clients/application/client-memory"
 import type { DataSourceIcon, HomeSourceRow } from "@/lib/sources"
 
-/** A recently-viewed client, narrowed to what the search dropdown renders. */
-export type RecentClientItem = {
+/** A client, narrowed to what the search dropdown renders. */
+export type ClientSearchItem = {
   slug: string
   name: string
   email: string
   status: ClientStatus
-  sources: number
 }
 
-export type ActionIcon =
-  | "users"
-  | "plus"
-  | "settings"
-  | "sparkles"
-  | "upload"
+/** Recently-viewed clients render exactly like matched ones. */
+export type RecentClientItem = ClientSearchItem
+
+export type ActionIcon = "plus" | "settings" | "sparkles" | "upload"
 
 export type SearchItem =
   | {
@@ -24,9 +21,7 @@ export type SearchItem =
       slug: string
       name: string
       email: string
-      /** Present for recently-viewed clients; absent for server results. */
-      status?: ClientStatus
-      sources: number
+      status: ClientStatus
       disabled?: false
     }
   | {
@@ -65,11 +60,16 @@ export type SearchModel = {
 }
 
 /**
+ * The dropdown is a jump list, not the list itself — the rows below already
+ * show every match, so only the first few are worth offering.
+ */
+const CLIENT_MATCH_LIMIT = 8
+
+/**
  * Quick actions. Real navigations first, then a roadmap placeholder marked
  * "Soon" so the action is visible but never lands on a dead end.
  */
 export const QUICK_ACTIONS: SearchItem[] = [
-  { kind: "action", key: "all-clients", label: "View all clients", icon: "users", href: "/home/clients" },
   { kind: "action", key: "add-source", label: "Add a data source", icon: "plus", href: "/home/sources" },
   { kind: "action", key: "settings", label: "Workspace settings", icon: "settings", href: "/home/settings" },
   { kind: "action", key: "new-checkin", label: "New monthly check-in", icon: "sparkles", soon: true, disabled: true },
@@ -86,7 +86,7 @@ export function filterSources(
   )
 }
 
-function recentToItem(c: RecentClientItem): SearchItem {
+function clientToItem(c: ClientSearchItem): SearchItem {
   return {
     kind: "client",
     key: c.slug,
@@ -94,18 +94,6 @@ function recentToItem(c: RecentClientItem): SearchItem {
     name: c.name,
     email: c.email,
     status: c.status,
-    sources: c.sources,
-  }
-}
-
-function resultToItem(c: ClientSearchResult): SearchItem {
-  return {
-    kind: "client",
-    key: c.slug,
-    slug: c.slug,
-    name: c.name,
-    email: c.email,
-    sources: c.sourceCount,
   }
 }
 
@@ -124,12 +112,13 @@ function sourceToItem(s: HomeSourceRow): SearchItem {
 
 export function buildSearchModel({
   query,
-  clientResults,
+  clientMatches,
   sources,
   recentClients,
 }: {
   query: string
-  clientResults: ClientSearchResult[]
+  /** The rows the list is already showing, so the two can never disagree. */
+  clientMatches: ClientSearchItem[]
   sources: HomeSourceRow[]
   recentClients: RecentClientItem[]
 }): SearchModel {
@@ -140,7 +129,7 @@ export function buildSearchModel({
     if (recentClients.length) {
       groups.push({
         label: "Recently viewed",
-        items: recentClients.map(recentToItem),
+        items: recentClients.map(clientToItem),
       })
     }
     groups.push({ label: "Quick actions", items: QUICK_ACTIONS })
@@ -154,7 +143,7 @@ export function buildSearchModel({
     items: [{ kind: "ask", key: "ask", query: trimmed, disabled: true }],
   }
 
-  const clientItems = clientResults.map(resultToItem)
+  const clientItems = clientMatches.slice(0, CLIENT_MATCH_LIMIT).map(clientToItem)
   const sourceItems = filterSources(sources, trimmed).map(sourceToItem)
   const lc = trimmed.toLowerCase()
   const actionItems = QUICK_ACTIONS.filter((a) =>
@@ -166,7 +155,11 @@ export function buildSearchModel({
   const groups: SearchGroup[] = [askGroup]
   if (!noResults) {
     if (clientItems.length) {
-      groups.push({ label: "Clients", count: clientItems.length, items: clientItems })
+      groups.push({
+        label: "Clients",
+        count: clientMatches.length,
+        items: clientItems,
+      })
     }
     if (sourceItems.length) {
       groups.push({ label: "Data sources", items: sourceItems })

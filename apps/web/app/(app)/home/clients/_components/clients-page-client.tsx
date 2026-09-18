@@ -64,7 +64,13 @@ export function ClientsPageClient({
         description="Everyone you've imported, with everything TinyOps has learned about them. Search by name or email, filter by status, cohort, or flag, open any row to see their full timeline."
       />
 
-      <HomeSearch recentClients={recentClients} sources={sources} />
+      <HomeSearch
+        query={filters.query}
+        onQueryChange={(query) => updateFilters({ query })}
+        clientMatches={rows}
+        recentClients={recentClients}
+        sources={sources}
+      />
 
       <ClientsToolbar
         filters={filters}

@@ -18,7 +18,6 @@ export default function Loading() {
       <div className="-mx-1 flex flex-wrap items-center gap-1.5 border-b border-border px-1 py-2">
         <Skeleton className="h-[26px] w-64 rounded-md" />
         <div className="ml-auto flex items-center gap-1.5">
-          <Skeleton className="h-[26px] w-[220px] rounded-sm" />
           <Skeleton className="h-[26px] w-24 rounded-sm" />
           <Skeleton className="h-[26px] w-24 rounded-sm" />
         </div>

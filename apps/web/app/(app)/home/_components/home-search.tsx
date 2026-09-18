@@ -6,7 +6,6 @@ import {
   SettingsIcon,
   SparklesIcon,
   UploadIcon,
-  UsersIcon,
   SearchIcon,
   XIcon,
   type LucideIcon,
@@ -30,19 +29,17 @@ import type { HomeSourceRow } from "@/lib/sources"
 import { clientProfileHref } from "@/app/(app)/home/clients/_profile-routing"
 import { useNavigationProgress } from "@/lib/navigation-progress/context"
 
-import { searchClientsAction } from "../actions"
 import {
   buildSearchModel,
   type ActionIcon,
+  type ClientSearchItem,
   type RecentClientItem,
   type SearchItem,
 } from "./home-search-model"
-import type { ClientSearchResult } from "@/features/clients/application/client-memory"
 
 const FOCUS_EVENT = "tinyops:focus-home-search"
 
 const ACTION_ICONS: Record<ActionIcon, LucideIcon> = {
-  users: UsersIcon,
   plus: PlusIcon,
   settings: SettingsIcon,
   sparkles: SparklesIcon,
@@ -52,48 +49,33 @@ const ACTION_ICONS: Record<ActionIcon, LucideIcon> = {
 /** Shared item chrome: reveals the ↵ affordance on the cmdk-selected row. */
 const itemClass = "[&[data-selected=true]_[data-enter]]:opacity-100"
 
+/**
+ * The one search input on Home. It owns no query of its own: the list's filter
+ * state is the query, so the rows below and the dropdown always agree.
+ */
 function HomeSearch({
+  query,
+  onQueryChange,
+  clientMatches,
   recentClients,
   sources,
 }: {
+  query: string
+  onQueryChange: (query: string) => void
+  clientMatches: ClientSearchItem[]
   recentClients: RecentClientItem[]
   sources: HomeSourceRow[]
 }) {
   const { navigate } = useNavigationProgress()
-  const [query, setQuery] = React.useState("")
   const [open, setOpen] = React.useState(false)
-  const [clientResults, setClientResults] = React.useState<ClientSearchResult[]>([])
-  const [loading, setLoading] = React.useState(false)
 
   const wrapRef = React.useRef<HTMLDivElement>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
-  const requestId = React.useRef(0)
 
   const trimmed = query.trim()
   const hasQuery = trimmed.length > 0
 
-  const model = buildSearchModel({ query, clientResults, sources, recentClients })
-
-  // ---- Debounced, stale-guarded server search ------------------------------
-  React.useEffect(() => {
-    if (!trimmed) {
-      setClientResults([])
-      setLoading(false)
-      return
-    }
-    const id = ++requestId.current
-    setLoading(true)
-    const timer = setTimeout(() => {
-      searchClientsAction(trimmed)
-        .then((results) => {
-          if (requestId.current === id) setClientResults(results)
-        })
-        .finally(() => {
-          if (requestId.current === id) setLoading(false)
-        })
-    }, 150)
-    return () => clearTimeout(timer)
-  }, [trimmed])
+  const model = buildSearchModel({ query, clientMatches, sources, recentClients })
 
   // ---- Close on outside click ----------------------------------------------
   React.useEffect(() => {
@@ -156,12 +138,12 @@ function HomeSearch({
     if (e.key === "Escape") {
       e.preventDefault()
       if (open) setOpen(false)
-      else if (hasQuery) setQuery("")
+      else if (hasQuery) onQueryChange("")
     }
   }
 
   return (
-    <div ref={wrapRef} className="relative mt-7 mb-8">
+    <div ref={wrapRef} className="mt-7 mb-8">
       <Command shouldFilter={false} loop>
         <div className="flex h-[46px] items-center gap-2.5 rounded-md border border-input bg-card px-3.5 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/20">
           <span className="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground [&>svg]:size-4">
@@ -171,7 +153,7 @@ function HomeSearch({
             ref={inputRef}
             value={query}
             onValueChange={(value) => {
-              setQuery(value)
+              onQueryChange(value)
               setOpen(true)
             }}
             onFocus={() => setOpen(true)}
@@ -184,7 +166,7 @@ function HomeSearch({
               aria-label="Clear"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
-                setQuery("")
+                onQueryChange("")
                 inputRef.current?.focus()
               }}
               className="inline-flex size-[22px] shrink-0 items-center justify-center rounded-xs text-slate-300 transition-colors hover:bg-[var(--tint-hover)] hover:text-foreground"
@@ -196,8 +178,9 @@ function HomeSearch({
           )}
         </div>
 
+        {/* The panel sits in the flow: it narrows the rows below, never covers them. */}
         {open && (
-          <div className="absolute inset-x-0 top-[calc(100%+8px)] z-40 animate-in fade-in-0 slide-in-from-top-1 rounded-lg border border-input bg-card p-1.5 shadow-[var(--shadow-3)] duration-150 ease-out">
+          <div className="mt-2 animate-in fade-in-0 slide-in-from-top-1 rounded-lg border border-input bg-card p-1.5 shadow-[var(--shadow-3)] duration-150 ease-out">
             <CommandList className="max-h-[min(62vh,540px)]">
               {model.groups.map((group, index) => (
                 <CommandGroup
@@ -226,33 +209,10 @@ function HomeSearch({
                 </CommandGroup>
               ))}
 
-              {hasQuery && model.noResults && loading && (
-                <div className="px-3.5 py-[18px] text-center text-[13px] text-muted-foreground">
-                  Searching…
+              {hasQuery && model.noResults && (
+                <div className="px-3.5 pb-1 pt-[18px] text-center text-[13px] leading-[1.6] text-muted-foreground">
+                  No clients or sources match “{trimmed}”.
                 </div>
-              )}
-
-              {hasQuery && model.noResults && !loading && (
-                <>
-                  <div className="px-3.5 pb-1 pt-[18px] text-center text-[13px] leading-[1.6] text-muted-foreground">
-                    No clients or sources match “{trimmed}”.
-                  </div>
-                  <CommandGroup className="mt-0.5 border-t border-border pt-1.5">
-                    <CommandItem
-                      value="empty:all-clients"
-                      className={itemClass}
-                      onSelect={() => go("/home/clients")}
-                    >
-                      <SearchIconBox icon="users" />
-                      <span className="flex min-w-0 flex-col leading-[1.3]">
-                        <span className="text-[13.5px] text-foreground">
-                          View all clients
-                        </span>
-                      </span>
-                      <EnterHint />
-                    </CommandItem>
-                  </CommandGroup>
-                </>
               )}
             </CommandList>
 
@@ -272,19 +232,6 @@ function HomeSearch({
         )}
       </Command>
     </div>
-  )
-}
-
-function EnterHint() {
-  return (
-    <span className="ml-auto flex shrink-0 items-center gap-2.5">
-      <span
-        data-enter
-        className="font-mono text-[12px] text-cobalt-500 opacity-0 transition-opacity duration-[80ms]"
-      >
-        ↵
-      </span>
-    </span>
   )
 }
 
@@ -355,14 +302,7 @@ function SearchRow({
           </span>
         </span>
         <span className="ml-auto flex shrink-0 items-center gap-2.5">
-          {item.status ? (
-            <ClientStatusBadge status={item.status} />
-          ) : (
-            <span className="text-[12px] text-muted-foreground">
-              <b className="font-medium text-foreground">{item.sources}</b>{" "}
-              sources
-            </span>
-          )}
+          <ClientStatusBadge status={item.status} />
           <span
             data-enter
             className="font-mono text-[12px] text-cobalt-500 opacity-0 transition-opacity duration-[80ms]"
