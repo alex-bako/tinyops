@@ -22,7 +22,7 @@
     "supabase:test:onboarding-rpc": "docker exec -i supabase_db_tinyops psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/onboarding_rpc_contract.sql",
     "supabase:test:service-role-privileges": "docker exec -i supabase_db_tinyops psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/service_role_privileges_contract.sql",
     "supabase:test:rls-grant-invariants": "docker exec -i supabase_db_tinyops psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/rls_grant_invariants_contract.sql",
-    "supabase:types": "pnpm dlx supabase@latest gen types typescript --local > apps/web/lib/database.types.ts"
+    "supabase:types": "pnpm dlx supabase@2.117.0 gen types typescript --db-url postgresql://postgres:postgres@127.0.0.1:54322/postgres > apps/web/lib/database.types.ts"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
