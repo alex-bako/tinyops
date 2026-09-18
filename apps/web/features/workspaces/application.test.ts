@@ -42,9 +42,10 @@ function workspace(id: string, patch: Partial<Workspace> = {}): Workspace {
 
 function harness(
   initialWorkspaces: Workspace[],
-  options: { acceptError?: string } = {}
+  options: { acceptError?: string; mailError?: boolean; mailThrows?: boolean } = {}
 ) {
   const writes: string[] = []
+  const sent: string[] = []
   const updates: unknown[] = []
   const workspaces = [...initialWorkspaces]
   const activeWorkspaceStore: ActiveWorkspaceStore = {
@@ -116,9 +117,18 @@ function harness(
       actor: session,
       store,
       activeWorkspaceStore,
+      mailer: {
+        async sendInvite({ email }) {
+          // record how many store writes had happened when the mail went out
+          sent.push(`${email}@${updates.length}`)
+          if (options.mailThrows) throw new Error("boom")
+          return { error: options.mailError ? new Error("smtp down") : null }
+        },
+      },
     }),
     writes,
     updates,
+    sent,
   }
 }
 
@@ -178,5 +188,83 @@ describe("workspace application", () => {
     await expect(other.app.acceptInvitation("invite_1")).resolves.toEqual({
       error: "workspace_action_failed",
     })
+  })
+
+  it("emails the invitee after saving the invitation", async () => {
+    const { app, sent, updates } = harness([workspace("one")])
+
+    await expect(
+      app.inviteMember({
+        workspaceId: "one",
+        email: " VA@Example.co ",
+        role: "operator",
+      })
+    ).resolves.toMatchObject({ data: { activeWorkspaceId: "one" } })
+    expect(updates).toHaveLength(1)
+    expect(sent).toEqual(["va@example.co@1"])
+  })
+
+  it("treats a throwing mailer like a failed send", async () => {
+    const { app } = harness([workspace("one")], { mailThrows: true })
+
+    await expect(
+      app.inviteMember({
+        workspaceId: "one",
+        email: "va@example.co",
+        role: "operator",
+      })
+    ).resolves.toMatchObject({
+      data: { activeWorkspaceId: "one" },
+      warning: "invite_email_failed",
+    })
+  })
+
+  it("keeps the invitation and warns when the email fails", async () => {
+    const { app, updates } = harness([workspace("one")], { mailError: true })
+
+    const result = await app.inviteMember({
+      workspaceId: "one",
+      email: "va@example.co",
+      role: "operator",
+    })
+    expect(result.warning).toBe("invite_email_failed")
+    expect(result.data?.activeWorkspaceId).toBe("one")
+    expect(updates).toEqual([
+      ["invite", { workspaceId: "one", email: "va@example.co", role: "operator" }],
+    ])
+  })
+
+  it("resends only pending invitations the actor may manage", async () => {
+    const invite = {
+      id: "invite_1",
+      email: "va@example.co",
+      role: "operator" as const,
+      createdAt: "2026-09-18T00:00:00.000Z",
+      invitedByEmail: "jamie@example.co",
+    }
+    const owner = harness([workspace("one", { invites: [invite] })])
+    await expect(owner.app.resendInvitation("invite_1")).resolves.toMatchObject({
+      data: { activeWorkspaceId: "one" },
+    })
+    expect(owner.sent).toEqual(["va@example.co@0"])
+
+    await expect(owner.app.resendInvitation("missing")).resolves.toEqual({
+      error: "invite_not_found",
+    })
+
+    const viewer = harness([
+      workspace("one", { role: "viewer", invites: [invite] }),
+    ])
+    await expect(viewer.app.resendInvitation("invite_1")).resolves.toEqual({
+      error: "invite_forbidden",
+    })
+    expect(viewer.sent).toEqual([])
+
+    const failing = harness([workspace("one", { invites: [invite] })], {
+      mailError: true,
+    })
+    await expect(failing.app.resendInvitation("invite_1")).resolves.toMatchObject(
+      { warning: "invite_email_failed" }
+    )
   })
 })

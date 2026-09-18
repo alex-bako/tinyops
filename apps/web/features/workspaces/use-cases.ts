@@ -145,7 +145,7 @@ export async function inviteWorkspaceMember(
   if (duplicateMember || duplicateInvite) throw new Error("duplicate_invite")
 
   const role = input.role
-  await store.createWorkspaceInvite({
+  return store.createWorkspaceInvite({
     workspaceId: input.workspace.id,
     email,
     role,
