@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import {
-  SearchIcon,
   SlidersHorizontalIcon,
   UploadIcon,
   UserPlusIcon,
@@ -14,11 +13,6 @@ import {
   FilterTabCount,
   FilterTabs,
 } from "@workspace/ui/components/filter-tab"
-import {
-  SearchField,
-  SearchFieldIcon,
-  SearchFieldInput,
-} from "@workspace/ui/components/search-field"
 import {
   Select,
   SelectContent,
@@ -69,18 +63,6 @@ export function ClientsToolbar({
       </FilterTabs>
 
       <div className="ml-auto flex flex-wrap items-center gap-1.5">
-        <SearchField variant="compact" className="w-[220px]">
-          <SearchFieldIcon>
-            <SearchIcon />
-          </SearchFieldIcon>
-          <SearchFieldInput
-            value={filters.query}
-            onChange={(e) => updateFilters({ query: e.target.value })}
-            placeholder="Filter by name or email…"
-            aria-label="Filter by name or email"
-          />
-        </SearchField>
-
         <Select
           value={filters.cohort}
           onValueChange={(v) =>

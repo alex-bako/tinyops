@@ -1,33 +1,19 @@
 import { describe, expect, it } from "vitest"
 
-import type { ClientSearchResult } from "@/features/clients/application/client-memory"
 import type { HomeSourceRow } from "@/lib/sources"
 
 import {
   buildSearchModel,
   filterSources,
-  type RecentClientItem,
+  type ClientSearchItem,
 } from "./home-search-model"
 
-function recent(overrides: Partial<RecentClientItem> = {}): RecentClientItem {
+function client(overrides: Partial<ClientSearchItem> = {}): ClientSearchItem {
   return {
     slug: "anna-smith",
     name: "Anna Smith",
     email: "anna@example.com",
     status: "active",
-    sources: 3,
-    ...overrides,
-  }
-}
-
-function result(overrides: Partial<ClientSearchResult> = {}): ClientSearchResult {
-  return {
-    id: "c1",
-    slug: "anna-smith",
-    name: "Anna Smith",
-    email: "anna@example.com",
-    lastInteractionAt: null,
-    sourceCount: 3,
     ...overrides,
   }
 }
@@ -53,9 +39,9 @@ describe("buildSearchModel — empty query (focused)", () => {
   it("shows recently viewed clients then quick actions", () => {
     const model = buildSearchModel({
       query: "",
-      clientResults: [],
+      clientMatches: [],
       sources,
-      recentClients: [recent(), recent({ slug: "mariko-tan", name: "Mariko Tan" })],
+      recentClients: [client(), client({ slug: "mariko-tan", name: "Mariko Tan" })],
     })
 
     expect(model.groups.map((g) => g.label)).toEqual([
@@ -69,7 +55,7 @@ describe("buildSearchModel — empty query (focused)", () => {
   it("omits recently viewed when there are no recent clients", () => {
     const model = buildSearchModel({
       query: "",
-      clientResults: [],
+      clientMatches: [],
       sources,
       recentClients: [],
     })
@@ -79,11 +65,24 @@ describe("buildSearchModel — empty query (focused)", () => {
   it("never shows the Ask AI row before the user types", () => {
     const model = buildSearchModel({
       query: "",
-      clientResults: [],
+      clientMatches: [],
       sources,
-      recentClients: [recent()],
+      recentClients: [client()],
     })
     expect(model.groups.some((g) => g.label === "Ask AI")).toBe(false)
+  })
+
+  it("offers no 'View all clients' action, because the list is already here", () => {
+    const model = buildSearchModel({
+      query: "",
+      clientMatches: [],
+      sources,
+      recentClients: [],
+    })
+    const labels = model.groups
+      .flatMap((g) => g.items)
+      .map((i) => (i.kind === "action" ? i.label : ""))
+    expect(labels).not.toContain("View all clients")
   })
 })
 
@@ -91,7 +90,7 @@ describe("buildSearchModel — typed query", () => {
   it("leads with a disabled Ask AI row, then matched clients and sources", () => {
     const model = buildSearchModel({
       query: "anna",
-      clientResults: [result()],
+      clientMatches: [client()],
       sources,
       recentClients: [],
     })
@@ -105,24 +104,41 @@ describe("buildSearchModel — typed query", () => {
     expect(model.noResults).toBe(false)
   })
 
-  it("flags a count on the Clients group only when it exceeds five", () => {
-    const many = Array.from({ length: 6 }, (_, i) =>
-      result({ id: `c${i}`, slug: `c-${i}`, name: `Client ${i}` })
+  it("takes its clients from the rows the list is showing, not a second query", () => {
+    const matches = [client(), client({ slug: "mariko-tan", name: "Mariko Tan" })]
+    const model = buildSearchModel({
+      query: "a",
+      clientMatches: matches,
+      sources: [],
+      recentClients: [],
+    })
+
+    const clients = model.groups.find((g) => g.label === "Clients")!
+    expect(clients.items.map((i) => (i.kind === "client" ? i.slug : ""))).toEqual([
+      "anna-smith",
+      "mariko-tan",
+    ])
+  })
+
+  it("counts every match but offers only the first eight to jump to", () => {
+    const many = Array.from({ length: 12 }, (_, i) =>
+      client({ slug: `c-${i}`, name: `Client ${i}` })
     )
     const model = buildSearchModel({
       query: "client",
-      clientResults: many,
+      clientMatches: many,
       sources: [],
       recentClients: [],
     })
     const clients = model.groups.find((g) => g.label === "Clients")!
-    expect(clients.count).toBe(6)
+    expect(clients.count).toBe(12)
+    expect(clients.items).toHaveLength(8)
   })
 
   it("reports no results when nothing real matches (only Ask remains)", () => {
     const model = buildSearchModel({
       query: "zzzzz",
-      clientResults: [],
+      clientMatches: [],
       sources,
       recentClients: [],
     })

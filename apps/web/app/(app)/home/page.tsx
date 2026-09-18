@@ -25,7 +25,6 @@ export default async function HomePage() {
         name: c.name,
         email: c.email,
         status: c.status,
-        sources: c.sources,
       }))}
       sources={homeSources}
     />

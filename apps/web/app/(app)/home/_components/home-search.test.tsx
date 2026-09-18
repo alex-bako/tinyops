@@ -1,17 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { ClientSearchResult } from "@/features/clients/application/client-memory"
-
 import { HomeSearch } from "./home-search"
-import type { RecentClientItem } from "./home-search-model"
+import type { ClientSearchItem } from "./home-search-model"
 
-const searchClientsAction = vi.fn()
 const navigate = vi.fn()
-
-vi.mock("../actions", () => ({
-  searchClientsAction: (q: string) => searchClientsAction(q),
-}))
 
 vi.mock("@/lib/navigation-progress/context", () => ({
   useNavigationProgress: () => ({
@@ -26,12 +19,34 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-const recent: RecentClientItem[] = [
-  { slug: "anna-smith", name: "Anna Smith", email: "anna@example.com", status: "active", sources: 3 },
-]
+const anna: ClientSearchItem = {
+  slug: "anna-smith",
+  name: "Anna Smith",
+  email: "anna@example.com",
+  status: "active",
+}
+const mariko: ClientSearchItem = {
+  slug: "mariko-tan",
+  name: "Mariko Tan",
+  email: "mariko.t@example.com",
+  status: "active",
+}
 
-function renderSearch() {
-  return render(<HomeSearch recentClients={recent} sources={[]} />)
+function renderSearch({
+  query = "",
+  clientMatches = [] as ClientSearchItem[],
+  onQueryChange = vi.fn(),
+} = {}) {
+  render(
+    <HomeSearch
+      query={query}
+      onQueryChange={onQueryChange}
+      clientMatches={clientMatches}
+      recentClients={[anna]}
+      sources={[]}
+    />
+  )
+  return { onQueryChange }
 }
 
 function input() {
@@ -47,63 +62,52 @@ describe("HomeSearch", () => {
 
     expect(screen.getByText("Recently viewed")).toBeInTheDocument()
     expect(screen.getByText("Quick actions")).toBeInTheDocument()
-    expect(screen.getByText("View all clients")).toBeInTheDocument()
   })
 
-  it("queries the server as the user types and shows client results", async () => {
-    const result: ClientSearchResult = {
-      id: "c1",
-      slug: "mariko-tan",
-      name: "Mariko Tan",
-      email: "mariko.t@example.com",
-      lastInteractionAt: null,
-      sourceCount: 4,
-    }
-    searchClientsAction.mockResolvedValue([result])
+  it("reports every keystroke upwards instead of holding a query of its own", () => {
+    const { onQueryChange } = renderSearch()
 
-    renderSearch()
     fireEvent.focus(input())
-    fireEvent.change(input(), { target: { value: "mariko" } })
+    fireEvent.change(input(), { target: { value: "mari" } })
 
-    await waitFor(() =>
-      expect(searchClientsAction).toHaveBeenCalledWith("mariko")
-    )
-    expect(await screen.findByText("Mariko Tan")).toBeInTheDocument()
+    expect(onQueryChange).toHaveBeenCalledWith("mari")
+    // Controlled: the box shows what the caller passed, not what was typed.
+    expect(input()).toHaveValue("")
   })
 
-  it("navigates to the client profile when a result is chosen", async () => {
-    searchClientsAction.mockResolvedValue([
-      {
-        id: "c1",
-        slug: "mariko-tan",
-        name: "Mariko Tan",
-        email: "mariko.t@example.com",
-        lastInteractionAt: null,
-        sourceCount: 4,
-      } satisfies ClientSearchResult,
-    ])
+  it("offers the matches it was handed, without querying the server", () => {
+    renderSearch({ query: "mari", clientMatches: [mariko] })
 
-    renderSearch()
     fireEvent.focus(input())
-    fireEvent.change(input(), { target: { value: "mariko" } })
 
-    const row = await screen.findByText("Mariko Tan")
-    fireEvent.click(row)
+    expect(screen.getByText("Mariko Tan")).toBeInTheDocument()
+  })
+
+  it("navigates to the client profile when a match is chosen", async () => {
+    renderSearch({ query: "mari", clientMatches: [mariko] })
+
+    fireEvent.focus(input())
+    fireEvent.click(screen.getByText("Mariko Tan"))
 
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith("/home/clients/mariko-tan")
     )
   })
 
-  it("reports an honest empty state when nothing matches", async () => {
-    searchClientsAction.mockResolvedValue([])
+  it("reports an honest empty state when nothing matches", () => {
+    renderSearch({ query: "zzzz", clientMatches: [] })
 
-    renderSearch()
     fireEvent.focus(input())
-    fireEvent.change(input(), { target: { value: "zzzz" } })
 
-    expect(
-      await screen.findByText(/No clients or sources match/i)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/No clients or sources match/i)).toBeInTheDocument()
+    expect(screen.queryByText("View all clients")).not.toBeInTheDocument()
+  })
+
+  it("clears the query through the caller", () => {
+    const { onQueryChange } = renderSearch({ query: "mari" })
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }))
+
+    expect(onQueryChange).toHaveBeenCalledWith("")
   })
 })
