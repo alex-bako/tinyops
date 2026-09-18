@@ -51,7 +51,19 @@ export type OnboardingData = {
 
 export type SkippedMap = Partial<Record<StepId, boolean>>
 
+/**
+ * A server rejection that named one field, carried back to the step that holds it,
+ * together with the value it is about - which is what lets it come back if that value
+ * does.
+ */
+export type FieldError = {
+  field: "firstName" | "workspaceName" | "handle"
+  value: string
+  message: string
+}
+
 export type StepProps = {
   data: OnboardingData
   set: (patch: Partial<OnboardingData>) => void
+  fieldError?: FieldError | null
 }

@@ -89,4 +89,46 @@ describe("supabase onboarding store", () => {
       "invalid_invite_email"
     )
   })
+
+  // M3.T4 -------------------------------------------------------------------
+
+  it("names a handle the unique index refused", async () => {
+    const client = {
+      rpc() {
+        return Promise.resolve({
+          data: null,
+          error: {
+            code: "23505",
+            message:
+              'duplicate key value violates unique constraint "workspaces_handle_key"',
+            details: "Key (handle)=(park-therapy) already exists.",
+            hint: null,
+          },
+        })
+      },
+    }
+    const store = createSupabaseOnboardingStore({ client: client as never })
+
+    await expect(store.completeOnboarding(input)).rejects.toThrow(
+      "workspace_handle_taken"
+    )
+  })
+
+  // The same SQLSTATE, a different field. This RPC raises it about invitations, so
+  // reading the code alone would put a colleague's duplicate email on the handle.
+  it("leaves a duplicate invite as itself", async () => {
+    const client = {
+      rpc() {
+        return Promise.resolve({
+          data: null,
+          error: { code: "23505", message: "duplicate_invite" },
+        })
+      },
+    }
+    const store = createSupabaseOnboardingStore({ client: client as never })
+
+    await expect(store.completeOnboarding(input)).rejects.toThrow(
+      "duplicate_invite"
+    )
+  })
 })

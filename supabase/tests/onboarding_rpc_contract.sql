@@ -212,6 +212,73 @@ select pg_temp.assert_true(
   'onboarding RPC registers auth invite'
 );
 
+-- M3.T4: the collision the web store recognizes by name.
+--
+-- `23505` on its own cannot say which column collided - this same function raises
+-- `duplicate_invite` with it - so `isWorkspaceHandleConflict` reads the constraint
+-- name too. This is where that name is held down: rename the index and this fails
+-- here, loudly, instead of quietly turning into "could not be completed" for a
+-- person whose only problem is a handle someone else already has.
+
+select pg_temp.create_auth_user(
+  '00000000-0000-4000-8000-000000000202',
+  'rival-onboarding@example.co'
+);
+
+create or replace function pg_temp.handle_collision()
+returns text
+language plpgsql
+as $$
+declare
+  failed_constraint text;
+begin
+  perform public.complete_onboarding(
+    'rival-onboarding@example.co',
+    'Robin',
+    'Vega',
+    '2026-05-10T01:02:03.000Z'::timestamptz,
+    'Rival Contract',
+    'onboarding-contract',
+    'letter',
+    'R',
+    'cobalt',
+    'cobalt',
+    'therapy',
+    'Robin at Rival',
+    'csv',
+    'strict',
+    'low-only',
+    array['crisis', 'trauma']::text[],
+    true,
+    array[]::text[],
+    array[]::text[]
+  );
+  return 'no error';
+exception
+  when unique_violation then
+    get stacked diagnostics failed_constraint = constraint_name;
+    return sqlstate || ' ' || coalesce(failed_constraint, '(none)');
+end;
+$$;
+
+select pg_temp.as_user(
+  '00000000-0000-4000-8000-000000000202',
+  'rival-onboarding@example.co'
+);
+set role authenticated;
+
+select pg_temp.handle_collision() as collision \gset
+
+reset role;
+
+select pg_temp.assert_true(
+  :'collision' = '23505 workspaces_handle_key',
+  'onboarding RPC refuses a handle another workspace holds, naming the handle index'
+);
+
+delete from auth.users
+where id = '00000000-0000-4000-8000-000000000202';
+
 delete from public.workspaces
 where id = :'workspace_id'::uuid;
 

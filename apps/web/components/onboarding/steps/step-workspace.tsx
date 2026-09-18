@@ -28,6 +28,7 @@ const toneSwatchClasses: Record<AvatarTone, string> = {
 export function StepWorkspace({
   data,
   set,
+  fieldError,
   availability,
 }: StepProps & { availability: WorkspaceHandleAvailability }) {
   const previewLetter = (
@@ -43,9 +44,13 @@ export function StepWorkspace({
       ? workspaceHandleIssue(data.handle)
       : null
   const formatBlocking = issue !== null && issue !== "at_max_length"
-  // A handle someone else already holds is just as much a dead end as a malformed one,
-  // and only the field can say which of the two it is.
-  const blocking = formatBlocking || availability.status === "taken"
+  // What the server said about the value that was actually sent. It outranks both of
+  // the above: it is the only one of the three that has been tried for real.
+  const handleRejected = fieldError?.field === "handle" ? fieldError.message : null
+  const nameRejected =
+    fieldError?.field === "workspaceName" ? fieldError.message : null
+  const blocking =
+    formatBlocking || availability.status === "taken" || handleRejected !== null
 
   return (
     <div className="flex w-full max-w-[520px] flex-col gap-6">
@@ -71,9 +76,24 @@ export function StepWorkspace({
             id="ob-workspace-name"
             value={data.workspaceName}
             onChange={(e) => set({ workspaceName: e.target.value })}
+            aria-invalid={nameRejected ? true : undefined}
+            aria-describedby={
+              nameRejected ? "ob-workspace-name-error" : undefined
+            }
             placeholder="Park Therapy"
             className={inputClass}
           />
+          {/* Only a server rejection speaks here. A name too short for a handle is the
+              handle's problem and is reported there, not twice (OBI-11). */}
+          {nameRejected && (
+            <span
+              id="ob-workspace-name-error"
+              role="alert"
+              className="text-[12px] leading-[1.5] text-coral-700"
+            >
+              {nameRejected}
+            </span>
+          )}
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -107,9 +127,10 @@ export function StepWorkspace({
               blocking ? "text-coral-700" : "text-[rgba(15,23,42,0.55)]"
             )}
           >
-            {issue
-              ? WORKSPACE_HANDLE_MESSAGES[issue]
-              : availabilityMessage(availability)}
+            {handleRejected ??
+              (issue
+                ? WORKSPACE_HANDLE_MESSAGES[issue]
+                : availabilityMessage(availability))}
           </span>
           {availability.status === "taken" && availability.suggestion && (
             <button

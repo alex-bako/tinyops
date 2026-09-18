@@ -8,10 +8,14 @@ import { Button } from "@workspace/ui/components/button"
 import { WorkspaceIcon } from "@workspace/ui/components/workspace-icon"
 
 import { completeOnboarding } from "@/app/onboarding/actions"
-import type { OnboardingCommand } from "@/features/onboarding/application"
+import type {
+  OnboardingCommand,
+  OnboardingValidationError,
+} from "@/features/onboarding/application"
 import { DEFAULT_SIGNED_IN_PATH } from "@/lib/auth/route-policy"
 
 import {
+  WORKSPACE_HANDLE_MESSAGES,
   deriveWorkspaceHandle,
   isValidWorkspaceHandle,
   sanitizeWorkspaceHandleInput,
@@ -28,7 +32,7 @@ import { StepSensitivity } from "./steps/step-sensitivity"
 import { StepSource } from "./steps/step-source"
 import { StepVertical } from "./steps/step-vertical"
 import { StepWorkspace } from "./steps/step-workspace"
-import type { OnboardingData, SkippedMap, StepId } from "./types"
+import type { FieldError, OnboardingData, SkippedMap, StepId } from "./types"
 
 type OnboardingFlowState = {
   stepIdx: number
@@ -37,7 +41,46 @@ type OnboardingFlowState = {
   edited: EditedMap
   pending: boolean
   finishError: string | null
+  fieldError: FieldError | null
   canSkipSourceAfterError: boolean
+}
+
+/**
+ * Where a server rejection belongs. An error absent from this table has no field to
+ * point at, so it keeps the one sentence under the finish button (OBI-8).
+ */
+const ERROR_FIELD: Partial<
+  Record<OnboardingValidationError, Omit<FieldError, "value"> & { step: StepId }>
+> = {
+  first_name_required: {
+    step: "name",
+    field: "firstName",
+    message: "Enter your first name.",
+  },
+  workspace_name_required: {
+    step: "workspace",
+    field: "workspaceName",
+    message: "Enter a workspace name.",
+  },
+  workspace_handle_required: {
+    step: "workspace",
+    field: "handle",
+    message: WORKSPACE_HANDLE_MESSAGES.required,
+  },
+  workspace_handle_taken: {
+    step: "workspace",
+    field: "handle",
+    // Past tense on purpose: it was free when they were told so, and the difference
+    // between that and "that handle is taken" is the whole of what happened.
+    message: "That handle was just taken.",
+  },
+}
+
+/** The input each rejection points at, so focus can land on it. */
+const FIELD_INPUT_ID: Record<FieldError["field"], string> = {
+  firstName: "ob-first-name",
+  workspaceName: "ob-workspace-name",
+  handle: "ob-handle",
 }
 
 /** Fields the person has typed into. A derived field follows its source until it appears here. */
@@ -49,6 +92,7 @@ type OnboardingFlowAction =
   | { type: "skip_step"; stepId: StepId; nextStepIdx: number }
   | { type: "submit_started" }
   | { type: "submit_failed"; error: string; canSkipSourceAfterError?: boolean }
+  | { type: "submit_rejected"; stepIdx: number; fieldError: FieldError }
   | { type: "submit_finished" }
 
 const INITIAL_FLOW_STATE: OnboardingFlowState = {
@@ -58,6 +102,7 @@ const INITIAL_FLOW_STATE: OnboardingFlowState = {
   edited: {},
   pending: false,
   finishError: null,
+  fieldError: null,
   canSkipSourceAfterError: false,
 }
 
@@ -76,9 +121,27 @@ export function OnboardingFlow() {
     canSkipSourceAfterError,
   } = state
 
+  // A rejection is about one value. It shows exactly while the field still holds that
+  // value - which is also what brings it back if the person types it again. Clearing it
+  // on any edit instead would let a re-typed handle through the guard below.
+  const fieldError =
+    state.fieldError && data[state.fieldError.field] === state.fieldError.value
+      ? state.fieldError
+      : null
+
   const set = React.useCallback((patch: Partial<OnboardingData>) => {
     dispatch({ type: "patch_data", patch })
   }, [])
+
+  // Being moved two steps back is silent otherwise: focus carries the reader to the
+  // field, where `aria-describedby` reads out the rejection, and tells a sighted
+  // keyboard user where they have landed. Keyed on the rejection, not on the derived
+  // value above, so it fires once per answer from the server.
+  React.useEffect(() => {
+    const rejection = state.fieldError
+    if (!rejection) return
+    document.getElementById(FIELD_INPUT_ID[rejection.field])?.focus()
+  }, [state.fieldError])
 
   // Lives here rather than in the step because Continue is decided here.
   const handleAvailability = useWorkspaceHandleAvailability(data.handle)
@@ -100,7 +163,11 @@ export function OnboardingFlow() {
         return (
           data.workspaceName.trim().length > 0 &&
           isValidWorkspaceHandle(data.handle) &&
-          handleAvailability.status !== "taken"
+          handleAvailability.status !== "taken" &&
+          // Coming back here does not change the handle, so the availability hook
+          // never re-runs and keeps reporting the stale "free" that let the submit
+          // through. Only the server's answer knows better until it is edited.
+          fieldError?.field !== "handle"
         )
       case "sensitivity":
         return !!data.sensitivity
@@ -153,6 +220,19 @@ export function OnboardingFlow() {
         })
         return
       }
+      const routed = ERROR_FIELD[result.error]
+      if (routed) {
+        dispatch({
+          type: "submit_rejected",
+          stepIdx: steps.findIndex((candidate) => candidate.id === routed.step),
+          fieldError: {
+            field: routed.field,
+            value: data[routed.field],
+            message: routed.message,
+          },
+        })
+        return
+      }
       dispatch({ type: "submit_failed", error: result.error })
     } finally {
       dispatch({ type: "submit_finished" })
@@ -162,12 +242,17 @@ export function OnboardingFlow() {
   const stepBody = (() => {
     switch (stepId) {
       case "name":
-        return <StepName data={data} set={set} />
+        return <StepName data={data} set={set} fieldError={fieldError} />
       case "vertical":
         return <StepVertical data={data} set={set} />
       case "workspace":
         return (
-          <StepWorkspace data={data} set={set} availability={handleAvailability} />
+          <StepWorkspace
+            data={data}
+            set={set}
+            fieldError={fieldError}
+            availability={handleAvailability}
+          />
         )
       case "sensitivity":
         return <StepSensitivity data={data} set={set} />
@@ -208,7 +293,10 @@ export function OnboardingFlow() {
           <button
             type="button"
             onClick={goBack}
-            disabled={safeIdx === 0}
+            // While a submit is in flight the answers are already on their way: editing
+            // them here would leave the server's reply pointing at a value the person no
+            // longer has, and it would be routed and focused without being shown.
+            disabled={safeIdx === 0 || pending}
             className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-[13px] text-[rgba(15,23,42,0.55)] hover:bg-[rgba(15,23,42,0.05)] hover:text-foreground disabled:invisible"
           >
             <ArrowLeftIcon className="size-3.5" /> Back
@@ -343,6 +431,8 @@ function onboardingFlowReducer(
         const vertical = VERTICALS.find((x) => x.id === data.vertical)
         if (vertical) data.sensitivity = vertical.sensitivity
       }
+      // The rejection is not touched here: it is about a value, and whether that value
+      // is still in the field is read where it is shown.
       return { ...state, data, edited }
     }
     case "set_step":
@@ -358,6 +448,7 @@ function onboardingFlowReducer(
         ...state,
         pending: true,
         finishError: null,
+        fieldError: null,
         canSkipSourceAfterError: false,
       }
     case "submit_failed":
@@ -365,6 +456,14 @@ function onboardingFlowReducer(
         ...state,
         finishError: action.error,
         canSkipSourceAfterError: action.canSkipSourceAfterError ?? false,
+      }
+    case "submit_rejected":
+      // Only the step and the message move. Every answer already given is in `data`,
+      // which this does not touch.
+      return {
+        ...state,
+        stepIdx: action.stepIdx,
+        fieldError: action.fieldError,
       }
     case "submit_finished":
       return { ...state, pending: false }
