@@ -2525,3 +2525,9 @@ The first revenue-generating workflow is:
 The long-term platform is:
 
 > “Connect all client data, understand every relationship, and execute recurring client operations with human approval.”
+
+---
+
+# Feature documents
+
+- [Workspace invites](product/workspace-invites.md) — inviting a person into an existing workspace (roadmap: [roadmap/ROADMAP.md](roadmap/ROADMAP.md)).
