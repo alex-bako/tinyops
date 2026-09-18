@@ -65,10 +65,10 @@ describe("workspace view models", () => {
       WORKSPACE_NAV_GROUPS,
       state.activeUsage
     )
-    const clients = groups
+    const home = groups
       .flatMap((group) => group.items)
-      .find((item) => item.id === "clients")
+      .find((item) => item.id === "home")
 
-    expect(clients?.count).toBe(480)
+    expect(home?.count).toBe(480)
   })
 })
