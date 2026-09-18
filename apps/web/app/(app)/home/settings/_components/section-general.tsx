@@ -16,6 +16,11 @@ import {
 } from "@workspace/ui/components/select"
 import { WorkspaceIcon } from "@workspace/ui/components/workspace-icon"
 
+import {
+  sanitizeWorkspaceHandleInput,
+  WORKSPACE_HANDLE_MESSAGES,
+  workspaceHandleIssue,
+} from "@/features/workspaces/handle"
 import type { Workspace, WorkspaceTone } from "@/features/workspaces/types"
 import type { WorkspaceProfilePatch } from "@/features/workspaces/use-cases"
 
@@ -55,6 +60,15 @@ export function SectionGeneral({
     workspace.description,
     workspace.accent,
   ])
+
+  /**
+   * M3.T5: the same rule the create form holds, for the same reason - what is in the
+   * field is what gets stored. It matters more here: Save sends the name, description
+   * and accent in the same click, so a handle the server would refuse used to take the
+   * rest of the edit down with it, and this screen has nowhere to say so.
+   */
+  const handleIssue = workspaceHandleIssue(draft.handle ?? "")
+  const handleBlocking = handleIssue !== null && handleIssue !== "at_max_length"
 
   const reset = () => {
     setDraft({
@@ -129,13 +143,33 @@ export function SectionGeneral({
               tinyops.app/
             </span>
             <Input
+              id="settings-workspace-handle"
               value={draft.handle ?? ""}
               onChange={(e) =>
-                setDraft((current) => ({ ...current, handle: e.target.value }))
+                setDraft((current) => ({
+                  ...current,
+                  handle: sanitizeWorkspaceHandleInput(e.target.value),
+                }))
+              }
+              aria-invalid={handleBlocking || undefined}
+              aria-describedby={
+                handleIssue ? "settings-workspace-handle-issue" : undefined
               }
               className="rounded-l-none font-mono"
             />
           </div>
+          {handleIssue && (
+            <span
+              id="settings-workspace-handle-issue"
+              role="alert"
+              className={cn(
+                "text-[12px] leading-[1.5]",
+                handleBlocking ? "text-coral-700" : "text-muted-foreground"
+              )}
+            >
+              {WORKSPACE_HANDLE_MESSAGES[handleIssue]}
+            </span>
+          )}
         </FormRow>
 
         <FormRow
@@ -213,6 +247,7 @@ export function SectionGeneral({
         <Button
           variant="primary"
           size="sm"
+          disabled={handleBlocking}
           onClick={() => onUpdateProfile(draft)}
         >
           <CheckIcon />
