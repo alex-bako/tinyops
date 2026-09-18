@@ -95,6 +95,50 @@ Configure Auth site URL and redirect allowlist:
 Do not run `supabase config push` yet. Current `supabase/config.toml` is local
 development oriented.
 
+### Invite and sign-in email (M1.S1)
+
+Supabase's built-in mailer only delivers to members of the Supabase
+organisation, so real invitees never receive invite or magic-link email until
+the hosted project has custom SMTP. Do this on staging first, then production.
+Everything below is dashboard configuration; nothing is committed to the repo
+and no SMTP credential ever goes into `supabase/config.toml` or an env file.
+
+1. **Custom SMTP** — Supabase dashboard → Project Settings → Authentication →
+   SMTP Settings. Enter the provider's host, port, username and password, plus
+   a sender address on a domain you control. Any provider works (Resend,
+   Postmark, SendGrid, ...). Raise the auth rate limit for emails if the
+   default (a few per hour) is too low for testing.
+2. **Email templates** — Authentication → Email Templates. Paste the local
+   templates so hosted links match what `/auth/callback` verifies:
+   - *Invite user*: `supabase/templates/invite.html`
+   - *Magic Link*: `supabase/templates/magic-link.html`
+
+   Both link to `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=...`.
+   The app always passes a `redirectTo` that already carries `?next=`, so the
+   `&` is safe. Do not use `{{ .ConfirmationURL }}`: links generated for
+   invitees (and the copyable invite link) have no PKCE verifier in the
+   invitee's browser, and that URL would drop them on `/login?auth=expired`.
+   The callback still accepts `?code=` links, so switching the templates
+   does not break sign-in for users mid-flow.
+3. **Redirect allowlist** — Authentication → URL Configuration. Add
+   `https://tinyops-staging.vercel.app/auth/callback**` and
+   `https://tinyops-prod.vercel.app/auth/callback**` next to the existing bare
+   entries. App links always carry `?next=`, and if hosted GoTrue rejects the
+   redirect it falls back to the site URL, where a `token_hash` link cannot
+   be recovered (only `?code=` links are rescued from the root).
+4. **Verify on staging** — invite a mailbox outside the Supabase organisation
+   from Settings → Members. The email must arrive, its link must land on
+   `/join`, and Accept must add the member. Then repeat with an address that
+   already has a TinyOps account: it receives a sign-in link and joins the
+   workspace under its existing account. "Copy link" on the pending row must
+   produce the same kind of link without email. Invite from the app, not from
+   the dashboard's "Invite user": a dashboard invite passes no redirect, so the
+   pasted templates render a broken `https://<host>&token_hash=...` link. It
+   proves SMTP delivery only.
+
+Until step 1 is done, invites are still saved and the inviter sees "Invite
+saved, email not sent"; "Copy link" works regardless of SMTP.
+
 ## Release Flow
 
 1. Open PR to `main`.
